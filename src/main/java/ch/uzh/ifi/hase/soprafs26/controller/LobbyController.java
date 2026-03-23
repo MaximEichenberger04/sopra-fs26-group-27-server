@@ -3,11 +3,12 @@ package ch.uzh.ifi.hase.soprafs26.controller;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
-//import ch.uzh.ifi.hase.soprafs26.entity.Lobby;
-//import ch.uzh.ifi.hase.soprafs26.rest.dto.LobbyGetDTO;
-//mport ch.uzh.ifi.hase.soprafs26.rest.dto.LobbyPostDTO;
+import ch.uzh.ifi.hase.soprafs26.service.LobbyService;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.LobbyGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.LobbyPostDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.LobbyPutDTO;
+import ch.uzh.ifi.hase.soprafs26.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
-//import ch.uzh.ifi.hase.soprafs26.service.LobbyService;
 
 import java.util.ArrayList;
 import java.util.List;
