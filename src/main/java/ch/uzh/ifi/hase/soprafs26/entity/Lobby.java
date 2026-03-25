@@ -15,23 +15,79 @@ public class Lobby implements Serializable {
     @Column(nullable = false)
     private String name; // lobby name
 
-    @Column(nullable = false, unique = true)
-    private String inviteCode; 
+	@Column(nullable = false)
+	private LobbyStatus status;
 
     @Column(nullable = false)
     private Long hostId; // user id from host
 
     @Column(nullable = false)
-    private int playerCount;
+    private Integer playerCount;
 
     @Column(nullable = false)
-    private int currentPlayers;
+    private Integer currentPlayers;
 
     @Column(nullable = false)
     private String gameMode;
 
-    @Column(nullable = false)
-    private String gameStatus; 
+    @Column(nullable = false, unique = true)
+    private String inviteCode;
 
     // map layout, board size, game mode, theme etc missing right now.
+
+    public Long getId() {
+		return id;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public LobbyStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(LobbyStatus status) {
+        this.status = status;
+    }
+
+    public Long getHostId() {
+        return hostId;
+    }
+
+    public void setHostId(Long hostId) {
+        this.hostId = hostId;
+    }
+
+    public String getGameMode() {
+        return gameMode;
+    }
+
+    public void setGameMode(String gameMode) {
+        this.gameMode = gameMode;
+    }
+
+    public Integer getPlayerCount() {
+        return playerCount;
+    }
+
+    public void setPlayerCount(Integer playerCount) {
+        this.playerCount = playerCount;
+    }
+
+    public Integer getCurrentPlayers() {
+        return currentPlayers;
+    }
+
+    public void setCurrentPlayers(Integer currentPlayers) {
+        this.currentPlayers = currentPlayers;
+    }
 }
