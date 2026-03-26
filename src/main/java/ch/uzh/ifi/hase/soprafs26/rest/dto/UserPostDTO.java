@@ -4,7 +4,7 @@ import java.time.LocalDate;
 
 public class UserPostDTO {
 
-	private String displayname;
+	private String displayName;
 
 	private String username;
 
@@ -12,12 +12,12 @@ public class UserPostDTO {
 
 	private LocalDate creationDate;
 
-	public String getDisplayname() {
-		return displayname;
+	public String getDisplayName() {
+		return displayName;
 	}
 
-	public void setDisplayname(String displayname) {
-		this.displayname = displayname;
+	public void setDisplayName(String displayName) {
+		this.displayName = displayName;
 	}
 
 	public String getUsername() {
