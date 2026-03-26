@@ -1,17 +1,23 @@
 package ch.uzh.ifi.hase.soprafs26.rest.dto;
 
+import java.time.LocalDate;
+
 public class UserPostDTO {
 
-	private String name;
+	private String displayname;
 
 	private String username;
 
-	public String getName() {
-		return name;
+	private String password;
+
+	private LocalDate creationDate;
+
+	public String getDisplayname() {
+		return displayname;
 	}
 
-	public void setName(String name) {
-		this.name = name;
+	public void setDisplayname(String displayname) {
+		this.displayname = displayname;
 	}
 
 	public String getUsername() {
@@ -20,5 +26,21 @@ public class UserPostDTO {
 
 	public void setUsername(String username) {
 		this.username = username;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+	public LocalDate getCreationDate() {
+		return creationDate;
+	}
+
+	public void setCreationDate(LocalDate creationDate) {
+		this.creationDate = creationDate;
 	}
 }
