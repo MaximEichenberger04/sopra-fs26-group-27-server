@@ -1,9 +1,14 @@
 package ch.uzh.ifi.hase.soprafs26.entity;
-
+import ch.uzh.ifi.hase.soprafs26.constant.LobbyStatus;
 import jakarta.persistence.*;
 
 import java.io.Serializable;
 import java.lang.annotation.Inherited;
+
+import jakarta.persistence.*;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "lobbies")
@@ -16,13 +21,13 @@ public class Lobby implements Serializable {
     private String name; // lobby name
 
 	@Column(nullable = false)
-	private LobbyStatus status;
+	private LobbyStatus lobbyStatus; 
 
     @Column(nullable = false)
     private Long hostId; // user id from host
 
     @Column(nullable = false)
-    private Integer playerCount;
+    private Integer maxPlayers;
 
     @Column(nullable = false)
     private Integer currentPlayers;
@@ -32,6 +37,21 @@ public class Lobby implements Serializable {
 
     @Column(nullable = false, unique = true)
     private String inviteCode;
+
+    @Column(nullable = false)
+    private String theme;
+
+    @Column(nullable = false)
+    private String map;
+
+    @Column(nullable = false)
+    private int startAbilities;
+
+    @ElementCollection
+    @CollectionTable(name = "lobby_players", joinColumns = @JoinColumn(name = "lobby_id"))
+    @Column(name = "user_id")
+    private List<Long> playerIds = new ArrayList<>();
+
 
     // map layout, board size, game mode, theme etc missing right now.
 
@@ -51,12 +71,12 @@ public class Lobby implements Serializable {
         this.name = name;
     }
 
-    public LobbyStatus getStatus() {
-        return status;
+    public LobbyStatus getLobbyStatus() {
+        return lobbyStatus;
     }
 
-    public void setStatus(LobbyStatus status) {
-        this.status = status;
+    public void setLobbyStatus(LobbyStatus lobbyStatus) {
+        this.lobbyStatus = lobbyStatus;
     }
 
     public Long getHostId() {
@@ -75,12 +95,12 @@ public class Lobby implements Serializable {
         this.gameMode = gameMode;
     }
 
-    public Integer getPlayerCount() {
-        return playerCount;
+    public Integer getMaxPlayers() {
+        return maxPlayers;
     }
 
-    public void setPlayerCount(Integer playerCount) {
-        this.playerCount = playerCount;
+    public void setMaxPlayers(Integer maxPlayers) {
+        this.maxPlayers = maxPlayers;
     }
 
     public Integer getCurrentPlayers() {
@@ -89,5 +109,45 @@ public class Lobby implements Serializable {
 
     public void setCurrentPlayers(Integer currentPlayers) {
         this.currentPlayers = currentPlayers;
+    }
+
+    public String getInviteCode() {
+        return inviteCode;
+    }
+
+    public void setInviteCode(String inviteCode) {
+        this.inviteCode = inviteCode;
+    }
+
+    public String getTheme() {
+        return theme;
+    }
+
+    public void setTheme(String theme) {
+        this.theme = theme;
+    }
+
+    public String getMap() {
+        return map;
+    }
+
+    public void setMap(String map) {
+        this.map = map;
+    }
+
+    public int getStartAbilities() {
+        return startAbilities;
+    }
+
+    public void setStartAbilities(int startAbilities) {
+        this.startAbilities = startAbilities;
+    }
+
+    public List<Long> getPlayerIds() {
+        return playerIds;
+    }
+
+    public void setPlayerIds(List<Long> playerIds) {
+        this.playerIds = playerIds;
     }
 }

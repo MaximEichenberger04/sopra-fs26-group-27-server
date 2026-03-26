@@ -1,7 +1,12 @@
 package ch.uzh.ifi.hase.soprafs26.service;
-
 import ch.uzh.ifi.hase.soprafs26.entity.Lobby;
+import ch.uzh.ifi.hase.soprafs26.repository.LobbyRepository;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -67,7 +72,7 @@ public class LobbyService {
     }
     
     // HELPER METHOD FOR CREATELOBBY
-    public string generateInviteCode() {
+    public String generateInviteCode() {
         return UUID.randomUUID().toString().replace("-", "").substring(0, 6).toUpperCase(); // generate UUID and take the first 6 chars
     }
 }
