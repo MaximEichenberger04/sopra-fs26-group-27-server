@@ -91,8 +91,8 @@ public class UserPostDTO {
 		this.level = level;
 	}
 
-	public String getCreationDate() {
-		return creationDate.toString();
+	public LocalDate getCreationDate() {
+		return creationDate;
 	}
 
 	public void setCreationDate(LocalDate creationDate) {
