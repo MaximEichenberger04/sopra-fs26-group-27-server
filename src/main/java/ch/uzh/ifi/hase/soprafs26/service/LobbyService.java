@@ -52,11 +52,39 @@ public class LobbyService {
     }
 
     public Lobby getLobbyById(Long lobbyId) {
-        return new Lobby();
+        Lobby lobby = lobbyRepository.findById(lobbyId).orElse(null);
+
+        if (lobby == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found");
+        }
+        return lobby;
     }
 
-    public void updateLobby(Long lobbyId, Lobby lobby, String token) {
-        // TODO
+    public void updateLobby(Long lobbyId, Lobby lobbyChange, String token) {
+        // Authenticate user
+        User authenticatedUser = userRepository.findByToken(token); // get user
+        if (authenticatedUser == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
+        }
+        if (!authenticatedUser.getId().equals(HostId)) { // Check if that User ID is the same as the Host ID
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the host can make changes to the lobby!");
+        }
+
+        Lobby existingLobby = lobbyRepository.findById(lobbyId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));)
+        
+        if (lobbyChange.getName() != null && !lobbyChange.getName().isBlank()) {
+            existingLobby.setName(lobbyChange.getName());
+        }
+        if (lobbyChange.getGameMode() != null && !lobbyChange.getGameMode().isBlank()) {
+            existingLobby.setGameMode(lobbyChange.getGameMode());
+        }
+        if (lobbyChange.getPlayerCount() != null &&
+            (lobbyChange.getPlayerCount() == 2 || lobbyChange.getPlayerCount() == 4)) {
+            existingLobby.setPlayerCount(lobbyChange.getPlayerCount());
+        }
+
+        lobbyRepository.save(existingLobby);
+        lobbyRepository.flush();
     }
 
     public void startLobby(Long lobbyId, String token) {
