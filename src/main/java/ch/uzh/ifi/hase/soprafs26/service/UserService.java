@@ -11,7 +11,6 @@ import org.springframework.web.server.ResponseStatusException;
 import ch.uzh.ifi.hase.soprafs26.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
-import ch.uzh.ifi.hase.soprafs26.rest.dto.UserLoginDTO;
 
 import java.util.List;
 import java.util.UUID;
@@ -72,14 +71,14 @@ public class UserService {
 		}
 	}
 
-	public User loginUser(UserLoginDTO loginDTO) {
-    User user = userRepository.findByUsername(loginDTO.getUsername());
+	public User loginUser(String username, String password) {
+    User user = userRepository.findByUsername(username);
 
     if (user == null) {
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found");
     }
 
-	if (!user.getPassword().equals(loginDTO.getPassword())) {
+	if (password != user.getPassword()) {
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Wrong password");
     }
 
