@@ -3,9 +3,11 @@ package ch.uzh.ifi.hase.soprafs26.rest.dto;
 public class LobbyPostDTO {
     
     private String name;
-    private Long hostId;
     private String gameMode;
-    private Integer playerCount;
+    private int maxPlayers;
+    private String theme;
+    private String map;
+    private int startAbilities;
 
     public String getName() {
         return name;
@@ -13,14 +15,6 @@ public class LobbyPostDTO {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public Long getHostId() {
-        return hostId;
-    }
-
-    public void setHostId(Long hostId) {
-        this.hostId = hostId;
     }
 
     public String getGameMode() {
@@ -31,11 +25,35 @@ public class LobbyPostDTO {
         this.gameMode = gameMode;
     }
 
-    public Integer getPlayerCount() {
-        return playerCount;
+    public Integer getMaxPlayers() {
+        return maxPlayers;
     }
 
-    public void setPlayerCount(Integer playerCount) {
-        this.playerCount = playerCount;
+    public void setMaxPlayers(Integer maxPlayers) {
+        this.maxPlayers = maxPlayers;
+    }
+
+    public String getTheme() {
+        return theme;
+    }
+
+    public void setTheme(String theme) {
+        this.theme = theme;
+    }
+
+    public String getMap() {
+        return map;
+    }
+
+    public void setMap(String map) {
+        this.map = map;
+    }
+
+    public int getStartAbilities() {
+        return startAbilities;
+    }   
+
+    public void setStartAbilities(int startAbilities) {
+        this.startAbilities = startAbilities;
     }
 }
