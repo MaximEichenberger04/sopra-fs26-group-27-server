@@ -78,7 +78,7 @@ public class UserService {
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found");
     }
 
-	if (password != user.getPassword()) {
+	if (!password.equals(user.getPassword())) {
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Wrong password");
     }
 
@@ -87,5 +87,16 @@ public class UserService {
 	user.setStatus(UserStatus.ONLINE);
 	userRepository.save(user);
     return user;
-}
+	}
+
+	public User getUserById(Long id) {
+	    return userRepository.findById(id)
+	        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+	}
+
+	public void validateToken(String token) {
+	    if (token == null || userRepository.findByToken(token) == null) {
+	        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or missing token");
+	    }
+	}
 }
