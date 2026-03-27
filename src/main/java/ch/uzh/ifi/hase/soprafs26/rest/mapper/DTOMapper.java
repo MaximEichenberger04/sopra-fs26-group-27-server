@@ -45,7 +45,14 @@ public interface DTOMapper {
 	
 	LobbyGetDTO convertEntityToLobbyGetDTO(Lobby lobby);
 
+	@Mapping(source = "name", target = "name")
+	@Mapping(source = "hostId", target = "hostId")
+	@Mapping(source = "gameMode", target = "gameMode")
+	@Mapping(source = "maxPlayers", target = "maxPlayers")
 	Lobby convertLobbyPostDTOtoEntity(LobbyPostDTO lobbyPostDTO);
 
+	@Mapping(source = "name", target = "name")
+	@Mapping(source = "gameMode", target = "gameMode")
+	@Mapping(source = "maxPlayers", target = "maxPlayers")
 	Lobby convertLobbyPutDTOtoEntity(LobbyPutDTO lobbyPutDTO);
 }

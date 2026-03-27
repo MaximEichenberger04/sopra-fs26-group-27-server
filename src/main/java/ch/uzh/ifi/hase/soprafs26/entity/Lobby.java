@@ -2,6 +2,7 @@ package ch.uzh.ifi.hase.soprafs26.entity;
 
 import jakarta.persistence.*;
 
+import ch.uzh.ifi.hase.soprafs26.constant.LobbyStatus;
 import java.io.Serializable;
 import java.lang.annotation.Inherited;
 
@@ -89,5 +90,13 @@ public class Lobby implements Serializable {
 
     public void setCurrentPlayers(Integer currentPlayers) {
         this.currentPlayers = currentPlayers;
+    }
+
+    public String getInviteCode() {
+        return inviteCode;
+    }
+
+    public void setInviteCode(String inviteCode) {
+        this.inviteCode = inviteCode;
     }
 }
