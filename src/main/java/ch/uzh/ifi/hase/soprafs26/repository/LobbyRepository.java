@@ -6,6 +6,6 @@ import org.springframework.stereotype.Repository;
 import ch.uzh.ifi.hase.soprafs26.entity.Lobby;
 
 @Repository("lobbyRepository")
-public interface lobbyRepository extends JpaRepository<Lobby, Long> {
+public interface LobbyRepository extends JpaRepository<Lobby, Long> {
     
 }
