@@ -4,10 +4,7 @@ public class LobbyPostDTO {
     
     private String name;
     private String gameMode;
-    private int maxPlayers;
-    private String theme;
-    private String map;
-    private int startAbilities;
+    private Integer maxPlayers;
 
     public String getName() {
         return name;
@@ -31,29 +28,5 @@ public class LobbyPostDTO {
 
     public void setMaxPlayers(Integer maxPlayers) {
         this.maxPlayers = maxPlayers;
-    }
-
-    public String getTheme() {
-        return theme;
-    }
-
-    public void setTheme(String theme) {
-        this.theme = theme;
-    }
-
-    public String getMap() {
-        return map;
-    }
-
-    public void setMap(String map) {
-        this.map = map;
-    }
-
-    public int getStartAbilities() {
-        return startAbilities;
-    }   
-
-    public void setStartAbilities(int startAbilities) {
-        this.startAbilities = startAbilities;
     }
 }
