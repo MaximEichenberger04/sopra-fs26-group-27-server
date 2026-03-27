@@ -32,7 +32,7 @@ public class LobbyService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "HostId must not be null");
         }
 
-        if (newLobby.getPlayerCount() == null || newLobby.getPlayerCount() != 2 || newLobby.getPlayerCount() != 4) {
+        if (newLobby.getMaxPlayers() == null || newLobby.getMaxPlayers() != 2 || newLobby.getMaxPlayers() != 4) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Player count must be 2 or 4");
         }
 
@@ -78,9 +78,9 @@ public class LobbyService {
         if (lobbyChange.getGameMode() != null && !lobbyChange.getGameMode().isBlank()) {
             existingLobby.setGameMode(lobbyChange.getGameMode());
         }
-        if (lobbyChange.getPlayerCount() != null &&
-            (lobbyChange.getPlayerCount() == 2 || lobbyChange.getPlayerCount() == 4)) {
-            existingLobby.setPlayerCount(lobbyChange.getPlayerCount());
+        if (lobbyChange.getMaxPlayers() != null &&
+            (lobbyChange.getMaxPlayers() == 2 || lobbyChange.getMaxPlayers() == 4)) {
+            existingLobby.setMaxPlayers(lobbyChange.getMaxPlayers());
         }
 
         lobbyRepository.save(existingLobby);
