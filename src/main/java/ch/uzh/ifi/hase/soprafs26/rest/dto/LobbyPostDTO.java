@@ -5,7 +5,7 @@ public class LobbyPostDTO {
     private String name;
     private Long hostId;
     private String gameMode;
-    private Integer playerCount;
+    private Integer maxPlayers;
 
     public String getName() {
         return name;
@@ -31,11 +31,11 @@ public class LobbyPostDTO {
         this.gameMode = gameMode;
     }
 
-    public Integer getPlayerCount() {
-        return playerCount;
+    public Integer getMaxPlayers() {
+        return maxPlayers;
     }
 
-    public void setPlayerCount(Integer playerCount) {
-        this.playerCount = playerCount;
+    public void setMaxPlayers(Integer maxPlayers) {
+        this.maxPlayers = maxPlayers;
     }
 }

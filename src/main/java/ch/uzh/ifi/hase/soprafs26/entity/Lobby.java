@@ -22,7 +22,7 @@ public class Lobby implements Serializable {
     private Long hostId; // user id from host
 
     @Column(nullable = false)
-    private Integer playerCount;
+    private Integer maxPlayers;
 
     @Column(nullable = false)
     private Integer currentPlayers;
@@ -75,12 +75,12 @@ public class Lobby implements Serializable {
         this.gameMode = gameMode;
     }
 
-    public Integer getPlayerCount() {
-        return playerCount;
+    public Integer getMaxPlayers() {
+        return maxPlayers;
     }
 
-    public void setPlayerCount(Integer playerCount) {
-        this.playerCount = playerCount;
+    public void setMaxPlayers(Integer maxPlayers) {
+        this.maxPlayers = maxPlayers;
     }
 
     public Integer getCurrentPlayers() {

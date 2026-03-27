@@ -4,7 +4,7 @@ public class LobbyPutDTO {
     
     private String name;
     private String gameMode;
-    private Integer playerCount;
+    private Integer maxPlayers;
 
     public String getName() {
         return name;
@@ -22,11 +22,11 @@ public class LobbyPutDTO {
         this.gameMode = gameMode;
     }
 
-    public Integer getPlayerCount() {
-        return playerCount;
+    public Integer getMaxPlayers() {
+        return maxPlayers;
     }
 
-    public void setPlayerCount(Integer playerCount) {
-        this.playerCount = playerCount;
+    public void setMaxPlayers(Integer maxPlayers) {
+        this.maxPlayers = maxPlayers;
     }
 }
