@@ -7,5 +7,6 @@ import ch.uzh.ifi.hase.soprafs26.entity.Lobby;
 
 @Repository("lobbyRepository")
 public interface LobbyRepository extends JpaRepository<Lobby, Long> {
+    Lobby findByInviteCode(String inviteCode);
     
 }

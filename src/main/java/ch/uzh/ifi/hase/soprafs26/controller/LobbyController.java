@@ -106,12 +106,28 @@ public class LobbyController {
     @PostMapping("/join/{inviteCode}")
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
-    public LobbyGetDTO joinLobby(
+    public LobbyGetDTO joinLobbyByInviteCode(
             @PathVariable String inviteCode,
             @RequestHeader("Authorization") String token) {
 
-        Lobby lobby = lobbyService.joinLobby(inviteCode, token);
+        Lobby lobby = lobbyService.joinLobbyByInviteCode(inviteCode, token);
 
+        return DTOMapper.INSTANCE.convertEntityToLobbyGetDTO(lobby);
+    }
+
+
+    /**
+     * POST /lobbies/{lobbyId}/join
+     * Join open lobby via lobbies page
+     */
+    @PostMapping("/{lobbyId}/join")
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public LobbyGetDTO joinLobbyById(
+            @PathVariable Long lobbyId,
+            @RequestHeader("Authorization") String token) {
+
+        Lobby lobby = lobbyService.joinLobbyById(lobbyId, token);
         return DTOMapper.INSTANCE.convertEntityToLobbyGetDTO(lobby);
     }
 

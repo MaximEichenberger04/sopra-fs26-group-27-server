@@ -57,8 +57,9 @@ public class LobbyService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Game mode must not be empty");
         }
 
-        newLobby.setStatus(LobbyStatus.WAITING);
+        newLobby.setLobbyStatus(LobbyStatus.WAITING);
         newLobby.setCurrentPlayers(1);
+        newLobby.getPlayerIds().add(authenticatedUser.getId());
         newLobby.setInviteCode(generateInviteCode());
 
         newLobby = lobbyRepository.save(newLobby);
@@ -116,11 +117,85 @@ public class LobbyService {
     }
 
     public void startLobby(Long lobbyId, String token) {
-        // TODO
+        User authenticatedUser = userRepository.findByToken(token);
+        if (authenticatedUser == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
+        }
+
+        Lobby lobby = lobbyRepository.findById(lobbyId).orElseThrow(() ->
+            new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found")
+        );
+
+        if (!authenticatedUser.getId().equals(lobby.getHostId())){
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the host can start the game!");
+        }
+
+        if (lobby.getCurrentPlayers() < 2) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "At least 2 players are required to start the game");
+        }
+        if (lobby.getLobbyStatus() != LobbyStatus.WAITING) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lobby is not in a state to start the game");
+        }
+
+        lobby.setLobbyStatus(LobbyStatus.INGAME);
+        lobbyRepository.saveAndFlush(lobby);
     }
 
-    public Lobby joinLobby(String inviteCode, String token) {
-        return new Lobby();
+    public Lobby joinLobbyByInviteCode(String inviteCode, String token) {
+        User authenticatedUser = userRepository.findByToken(token);
+        if (authenticatedUser == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
+        }
+
+        Lobby lobby = lobbyRepository.findByInviteCode(inviteCode);
+        if (lobby == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found");
+        }
+
+        if (lobby.getLobbyStatus() != LobbyStatus.WAITING) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lobby is currently not joinable");
+        }
+
+        if (lobby.getPlayerIds().contains(authenticatedUser.getId())){
+            return lobby; // user is already in the lobby so return it without changing anything
+        }
+
+        if (lobby.getCurrentPlayers() >= lobby.getMaxPlayers()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lobby is full");
+        }
+        
+        lobby.getPlayerIds().add(authenticatedUser.getId());
+        lobby.setCurrentPlayers(lobby.getCurrentPlayers() + 1);
+        lobbyRepository.saveAndFlush(lobby);
+        return lobby;
+    }
+
+    public Lobby joinLobbyById(Long lobbyId, String token) {
+        User authenticatedUser = userRepository.findByToken(token);
+        if (authenticatedUser == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
+        }
+
+        Lobby lobby = lobbyRepository.findById(lobbyId).orElseThrow(() ->
+            new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found")
+        );
+
+        if (lobby.getLobbyStatus() != LobbyStatus.WAITING) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lobby is currently not joinable");
+        }
+
+        if (lobby.getPlayerIds().contains(authenticatedUser.getId())){
+            return lobby; // user is already in the lobby so return it without changing anything
+        }
+
+        if (lobby.getCurrentPlayers() >= lobby.getMaxPlayers()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lobby is full");
+        }
+
+        lobby.getPlayerIds().add(authenticatedUser.getId());
+        lobby.setCurrentPlayers(lobby.getCurrentPlayers() + 1);
+        lobbyRepository.saveAndFlush(lobby);
+        return lobby;
     }
 
     public void leaveLobby(Long lobbyId, String token) {
