@@ -23,13 +23,32 @@ public interface DTOMapper {
 
 	DTOMapper INSTANCE = Mappers.getMapper(DTOMapper.class);
 
-	@Mapping(source = "name", target = "name")
 	@Mapping(source = "username", target = "username")
+	@Mapping(source = "password", target = "password")
+	@Mapping(source = "displayName", target = "displayName")
+	@Mapping(source = "biography", target = "biography")
+	@Mapping(source = "avatarURL", target = "avatarURL")
+	@Mapping(source = "preferredLanguage", target = "preferredLanguage")
+	@Mapping(source = "score", target = "score")
+	@Mapping(source = "xp", target = "xp")
+	@Mapping(source = "level", target = "level")
+	@Mapping(source = "token", target = "token")
+	@Mapping(source = "creationDate", target = "creationDate")
+	@Mapping(source = "status", target = "status")
+	@Mapping(source = "currentPassword", target = "currentPassword")
 	User convertUserPostDTOtoEntity(UserPostDTO userPostDTO);
 
 	@Mapping(source = "id", target = "id")
-	@Mapping(source = "name", target = "name")
 	@Mapping(source = "username", target = "username")
+	@Mapping(source = "displayName", target = "displayName")
+	@Mapping(source = "biography", target = "biography")
+	@Mapping(source = "avatarURL", target = "avatarURL")
+	@Mapping(source = "preferredLanguage", target = "preferredLanguage")
+	@Mapping(source = "score", target = "score")
+	@Mapping(source = "xp", target = "xp")
+	@Mapping(source = "level", target = "level")
+	@Mapping(source = "token", target = "token")
+	@Mapping(source = "creationDate", target = "creationDate")
 	@Mapping(source = "status", target = "status")
 	UserGetDTO convertEntityToUserGetDTO(User user);
 }
