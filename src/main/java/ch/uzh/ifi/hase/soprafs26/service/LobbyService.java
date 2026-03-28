@@ -57,7 +57,7 @@ public class LobbyService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Game mode must not be empty");
         }
 
-        newLobby.setStatus(LobbyStatus.WAITING);
+        newLobby.setLobbyStatus(LobbyStatus.WAITING);
         newLobby.setCurrentPlayers(1);
         newLobby.setInviteCode(generateInviteCode());
 
