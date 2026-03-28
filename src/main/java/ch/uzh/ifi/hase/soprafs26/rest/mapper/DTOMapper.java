@@ -61,17 +61,14 @@ public interface DTOMapper {
 
 	// LOBBY MAPPINGS
 	
-	@Mapping(source = "id", target = "lobbyId")
+	@Mapping(source = "id", target = "id")
 	@Mapping(source = "name", target = "name")
 	@Mapping(source = "inviteCode", target = "inviteCode")
-	@Mapping(source = "theme", target = "theme")
 	@Mapping(source = "maxPlayers", target = "maxPlayers")
 	@Mapping(source = "hostId", target = "hostId")
 	@Mapping(source = "currentPlayers", target = "currentPlayers")
 	@Mapping(source = "lobbyStatus", target = "lobbyStatus")
 	@Mapping(source = "gameMode", target = "gameMode")
-	@Mapping(source = "map", target = "map")
-	@Mapping(source = "startAbilities", target = "startAbilities")
 	@Mapping(source = "playerIds", target = "playerIds")
 	LobbyGetDTO convertEntityToLobbyGetDTO(Lobby lobby);
 

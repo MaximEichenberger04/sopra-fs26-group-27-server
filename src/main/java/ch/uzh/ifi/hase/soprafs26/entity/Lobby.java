@@ -39,22 +39,10 @@ public class Lobby implements Serializable {
     @Column(nullable = false, unique = true)
     private String inviteCode;
 
-    @Column(nullable = false)
-    private String theme;
-
-    @Column(nullable = false)
-    private String map;
-
-    @Column(nullable = false)
-    private int startAbilities;
-
     @ElementCollection
     @CollectionTable(name = "lobby_players", joinColumns = @JoinColumn(name = "lobby_id"))
     @Column(name = "user_id")
     private List<Long> playerIds = new ArrayList<>();
-
-
-    // map layout, board size, game mode, theme etc missing right now.
 
     public Long getId() {
 		return id;
@@ -118,30 +106,6 @@ public class Lobby implements Serializable {
 
     public void setInviteCode(String inviteCode) {
         this.inviteCode = inviteCode;
-    }
-
-    public String getTheme() {
-        return theme;
-    }
-
-    public void setTheme(String theme) {
-        this.theme = theme;
-    }
-
-    public String getMap() {
-        return map;
-    }
-
-    public void setMap(String map) {
-        this.map = map;
-    }
-
-    public int getStartAbilities() {
-        return startAbilities;
-    }
-
-    public void setStartAbilities(int startAbilities) {
-        this.startAbilities = startAbilities;
     }
 
     public List<Long> getPlayerIds() {
