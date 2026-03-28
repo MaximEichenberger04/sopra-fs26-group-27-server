@@ -53,7 +53,7 @@ public class UserServiceIntegrationTest {
 		assertEquals(testUser.getDisplayName(), createdUser.getDisplayName());
 		assertEquals(testUser.getUsername(), createdUser.getUsername());
 		assertNotNull(createdUser.getToken());
-		assertEquals(UserStatus.OFFLINE, createdUser.getStatus());
+		assertEquals(UserStatus.ONLINE, createdUser.getStatus());
 	}
 
 	@Test

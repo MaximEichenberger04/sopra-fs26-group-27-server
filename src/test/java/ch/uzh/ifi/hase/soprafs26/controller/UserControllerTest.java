@@ -53,6 +53,7 @@ public class UserControllerTest {
 		user.setUsername("firstname@lastname");
 		user.setPassword("testPassword");
 		user.setStatus(UserStatus.OFFLINE);
+		user.setCreationDate(java.time.LocalDate.now());
 
 		List<User> allUsers = Collections.singletonList(user);
 
