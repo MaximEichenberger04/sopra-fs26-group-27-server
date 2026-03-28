@@ -55,7 +55,7 @@ public class UserController {
 		// convert internal representation of user back to API
 		return DTOMapper.INSTANCE.convertEntityToUserGetDTO(createdUser);
 	}
-	
+
 	@PostMapping("/login")
 	@ResponseStatus(HttpStatus.OK)
 	@ResponseBody
@@ -65,8 +65,7 @@ public class UserController {
 
 		User loggedInUser = userService.loginUser(
 				userInput.getUsername(),
-				userInput.getPassword()
-		);
+				userInput.getPassword());
 
 		return DTOMapper.INSTANCE.convertEntityToUserGetDTO(loggedInUser);
 	}
@@ -75,10 +74,22 @@ public class UserController {
 	@ResponseStatus(HttpStatus.OK)
 	@ResponseBody
 	public UserGetDTO getUserById(@PathVariable Long id,
-	                               @RequestHeader(value = "Authorization", required = false) String token) {
-	    userService.validateToken(token);
-	    User user = userService.getUserById(id);
-	    return DTOMapper.INSTANCE.convertEntityToUserGetDTO(user);
+			@RequestHeader(value = "Authorization", required = false) String token) {
+		userService.validateToken(token);
+		User user = userService.getUserById(id);
+		return DTOMapper.INSTANCE.convertEntityToUserGetDTO(user);
 	}
-}
 
+	@PutMapping("/users/{id}")
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	public UserGetDTO updateUser(@PathVariable Long id,
+			@RequestBody UserPostDTO userPostDTO,
+			@RequestHeader(value = "Authorization", required = false) String token) {
+		userService.validateToken(token);
+		User userInput = DTOMapper.INSTANCE.convertUserPostDTOtoEntity(userPostDTO);
+		User updatedUser = userService.updateUser(id, token, userInput);
+		return DTOMapper.INSTANCE.convertEntityToUserGetDTO(updatedUser);
+	}
+
+}

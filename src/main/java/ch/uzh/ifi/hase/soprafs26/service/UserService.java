@@ -67,36 +67,93 @@ public class UserService {
 		User userByUsername = userRepository.findByUsername(userToBeCreated.getUsername());
 
 		if (userByUsername != null) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The username provided is not unique. Therefore, the user could not be created!");
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+					"The username provided is not unique. Therefore, the user could not be created!");
 		}
 	}
 
 	public User loginUser(String username, String password) {
-    User user = userRepository.findByUsername(username);
+		User user = userRepository.findByUsername(username);
 
-    if (user == null) {
-        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found");
-    }
+		if (user == null) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found");
+		}
 
-	if (!password.equals(user.getPassword())) {
-        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Wrong password");
-    }
+		if (!password.equals(user.getPassword())) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Wrong password");
+		}
 
-	user.setToken(UUID.randomUUID().toString());
+		user.setToken(UUID.randomUUID().toString());
 
-	user.setStatus(UserStatus.ONLINE);
-	userRepository.save(user);
-    return user;
+		user.setStatus(UserStatus.ONLINE);
+		userRepository.save(user);
+		return user;
 	}
 
 	public User getUserById(Long id) {
-	    return userRepository.findById(id)
-	        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+		return userRepository.findById(id)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 	}
 
 	public void validateToken(String token) {
-	    if (token == null || userRepository.findByToken(token) == null) {
-	        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or missing token");
-	    }
+		if (token == null || userRepository.findByToken(token) == null) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or missing token");
+		}
 	}
+
+	public User updateUser(Long id, String token, User userInput) {
+		User requestinUser = userRepository.findByToken(token);
+		if (requestinUser == null || !requestinUser.getId().equals(id)) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+					"You can only update your own user information");
+		}
+
+		User existingUser = getUserById(id);
+
+		if (userInput.getUsername() != null && !userInput.getUsername().isBlank()) {
+			if (!userInput.getUsername().equals(existingUser.getUsername())) {
+				User conflict = userRepository.findByUsername(userInput.getUsername());
+				if (conflict != null) {
+					throw new ResponseStatusException(HttpStatus.CONFLICT,
+							"This username is already taken. Please choose another one.");
+				}
+				existingUser.setUsername(userInput.getUsername());
+			}
+		}
+
+		if (userInput.getDisplayName() != null && !userInput.getDisplayName().isBlank()) {
+			existingUser.setDisplayName(userInput.getDisplayName());
+		}
+
+		if (userInput.getBiography() != null) {
+			existingUser.setBiography(userInput.getBiography());
+		}
+
+		if (userInput.getAvatarURL() != null) {
+			existingUser.setAvatarURL(userInput.getAvatarURL());
+		}
+
+		// Update password (requires current password for verification)
+		if (userInput.getPassword() != null && !userInput.getPassword().isBlank()) {
+			if (userInput.getCurrentPassword() == null ||
+					!userInput.getCurrentPassword().equals(existingUser.getPassword())) {
+				throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+						"Current password is incorrect.");
+			}
+			if (userInput.getPassword().length() < 8) {
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+						"New password must be at least 8 characters.");
+			}
+			if (userInput.getPassword().equals(existingUser.getPassword())) {
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+						"New password must be different from the current password.");
+			}
+			existingUser.setPassword(userInput.getPassword());
+		}
+
+		userRepository.save(existingUser);
+		userRepository.save(existingUser);
+		return existingUser;
+	}
+
 }

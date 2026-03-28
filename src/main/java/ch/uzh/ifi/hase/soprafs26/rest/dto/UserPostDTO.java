@@ -18,6 +18,7 @@ public class UserPostDTO {
 	private LocalDate creationDate;
 	private String token;
 	private UserStatus status;
+	private String currentPassword;
 
 	public String getDisplayName() {
 		return displayName;
@@ -113,5 +114,13 @@ public class UserPostDTO {
 
 	public void setStatus(UserStatus status) {
 		this.status = status;
+	}
+
+	public String getCurrentPassword() {
+		return currentPassword;
+	}
+
+	public void setCurrentPassword(String currentPassword) {
+		this.currentPassword = currentPassword;
 	}
 }

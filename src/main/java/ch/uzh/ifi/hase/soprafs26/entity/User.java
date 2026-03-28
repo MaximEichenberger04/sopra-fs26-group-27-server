@@ -35,11 +35,11 @@ public class User implements Serializable {
 
 	@Column(nullable = false)
 	private String displayName;
-	
+
 	@Column(nullable = true)
 	private String biography;
 
-	@Column(nullable = true)
+	@Column(nullable = true, columnDefinition = "TEXT")
 	private String avatarURL;
 
 	@Column(nullable = false)
@@ -56,7 +56,10 @@ public class User implements Serializable {
 
 	@Column(nullable = true)
 	private String preferredLanguage;
-	
+
+	@Transient
+	private String currentPassword;
+
 	@Column(nullable = false)
 	private LocalDate creationDate;
 
@@ -165,5 +168,13 @@ public class User implements Serializable {
 
 	public void setToken(String token) {
 		this.token = token;
+	}
+
+	public String getCurrentPassword() {
+		return currentPassword;
+	}
+
+	public void setCurrentPassword(String currentPassword) {
+		this.currentPassword = currentPassword;
 	}
 }
