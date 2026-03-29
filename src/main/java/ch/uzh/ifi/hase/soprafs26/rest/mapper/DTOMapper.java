@@ -3,9 +3,16 @@ package ch.uzh.ifi.hase.soprafs26.rest.mapper;
 import org.mapstruct.*;
 import org.mapstruct.factory.Mappers;
 
+// User
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPostDTO;
+
+// Lobby
+import ch.uzh.ifi.hase.soprafs26.entity.Lobby;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.LobbyGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.LobbyPostDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.LobbyPutDTO;
 
 /**
  * DTOMapper
@@ -51,4 +58,33 @@ public interface DTOMapper {
 	@Mapping(source = "creationDate", target = "creationDate")
 	@Mapping(source = "status", target = "status")
 	UserGetDTO convertEntityToUserGetDTO(User user);
+
+	// LOBBY MAPPINGS
+	
+	@Mapping(source = "id", target = "id")
+	@Mapping(source = "name", target = "name")
+	@Mapping(source = "inviteCode", target = "inviteCode")
+	@Mapping(source = "maxPlayers", target = "maxPlayers")
+	@Mapping(source = "hostId", target = "hostId")
+	@Mapping(source = "currentPlayers", target = "currentPlayers")
+	@Mapping(source = "lobbyStatus", target = "lobbyStatus")
+	@Mapping(source = "gameMode", target = "gameMode")
+	@Mapping(source = "playerIds", target = "playerIds")
+	LobbyGetDTO convertEntityToLobbyGetDTO(Lobby lobby);
+
+	@Mapping(source = "name", target = "name")
+	@Mapping(source = "gameMode", target = "gameMode")
+	@Mapping(source = "maxPlayers", target = "maxPlayers")
+	@Mapping(source = "theme", target = "theme")
+	@Mapping(source = "map", target = "map")
+	@Mapping(source = "startAbilities", target = "startAbilities")
+	Lobby convertLobbyPostDTOtoEntity(LobbyPostDTO lobbyPostDTO);
+
+	@Mapping(source = "name", target = "name")
+	@Mapping(source = "gameMode", target = "gameMode")
+	@Mapping(source = "map", target = "map")
+	@Mapping(source = "startAbilities", target = "startAbilities")
+	@Mapping(source = "maxPlayers", target = "maxPlayers")
+	@Mapping(source = "theme", target = "theme")
+	Lobby convertLobbyPutDTOtoEntity(LobbyPutDTO lobbyPutDTO);
 }
