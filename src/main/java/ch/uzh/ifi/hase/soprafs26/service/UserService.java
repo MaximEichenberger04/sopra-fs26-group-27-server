@@ -135,15 +135,26 @@ public class UserService {
 
 		// Update password (requires current password for verification)
 		if (userInput.getPassword() != null && !userInput.getPassword().isBlank()) {
+			// 1. Check current password FIRST
 			if (userInput.getCurrentPassword() == null ||
 					!userInput.getCurrentPassword().equals(existingUser.getPassword())) {
 				throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-						"Current password is incorrect.");
+						"Wrong password filled in.");
 			}
+			// 2. Check new password requirements
 			if (userInput.getPassword().length() < 8) {
 				throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
 						"New password must be at least 8 characters.");
 			}
+			if (!userInput.getPassword().matches(".*[A-Z].*")) {
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+						"New password must contain at least one uppercase letter.");
+			}
+			if (!userInput.getPassword().matches(".*[0-9].*")) {
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+						"New password must contain at least one number.");
+			}
+			// 3. Check it's different from current
 			if (userInput.getPassword().equals(existingUser.getPassword())) {
 				throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
 						"New password must be different from the current password.");
@@ -151,7 +162,6 @@ public class UserService {
 			existingUser.setPassword(userInput.getPassword());
 		}
 
-		userRepository.save(existingUser);
 		userRepository.save(existingUser);
 		return existingUser;
 	}
