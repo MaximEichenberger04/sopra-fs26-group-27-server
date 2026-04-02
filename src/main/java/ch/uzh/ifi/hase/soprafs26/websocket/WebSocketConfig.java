@@ -25,7 +25,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
      */
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        registry.addHandler(gameWebSocketHandler, "/game_refresh_websocket").setAllowedOrigins("*");
+        registry.addHandler(chatWebSocketHandler, "/chat_refresh_websocket").setAllowedOrigins("*");
     }
 }
