@@ -130,9 +130,10 @@ public class LobbyService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the host can start the game!");
         }
 
-        if (lobby.getCurrentPlayers() < 2) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "At least 2 players are required to start the game");
+        if (!lobby.getCurrentPlayers().equals(lobby.getMaxPlayers())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lobby must be full to start the game");
         }
+
         if (lobby.getLobbyStatus() != LobbyStatus.WAITING) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lobby is not in a state to start the game");
         }
@@ -199,7 +200,33 @@ public class LobbyService {
     }
 
     public void leaveLobby(Long lobbyId, String token) {
-        // TODO
+        User authenticatedUser = userRepository.findByToken(token);
+        if (authenticatedUser == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
+        }
+
+        Lobby lobby = lobbyRepository.findById(lobbyId).orElseThrow(() ->
+            new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found")
+        );
+        
+        if (!lobby.getPlayerIds().contains(authenticatedUser.getId())) { // check that leave lobby only works for users in lobby arraylist
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You are not in this lobby");
+        }
+        
+        lobby.getPlayerIds().contains(authenticatedUser.getId());
+        lobby.setCurrentPlayers(lobby.getCurrentPlayers() - 1);
+        if (lobby.getCurrentPlayers() < 1) {
+            lobbyRepository.delete(lobby);
+            lobbyRepository.flush();
+            return;
+        }
+
+        // if host leaves lobby, transfer host to next player
+        if (lobby.getHostId().equals(authenticatedUser.getId())) {
+            lobby.setHostId(lobby.getPlayerIds().get(0));
+        }
+
+        lobbyRepository.saveAndFlush(lobby);
     }
 
     public String generateInviteCode() {
