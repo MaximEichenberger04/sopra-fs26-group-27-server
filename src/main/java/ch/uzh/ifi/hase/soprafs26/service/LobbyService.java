@@ -214,7 +214,7 @@ public class LobbyService {
         }
         
         lobby.getPlayerIds().contains(authenticatedUser.getId());
-        lobby.setCurrentPlayer(lobby.getCurrentPlayers() - 1);
+        lobby.setCurrentPlayers(lobby.getCurrentPlayers() - 1);
         if (lobby.getCurrentPlayers() < 1) {
             lobbyRepository.delete(lobby);
             lobbyRepository.flush();
