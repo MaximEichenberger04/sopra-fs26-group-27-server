@@ -6,7 +6,7 @@ import java.util.List;
 
 public class LobbyGetDTO {
 
-    private Long Id;
+    private Long id;
     private String name;
     private String inviteCode;
     private int maxPlayers;
@@ -16,8 +16,8 @@ public class LobbyGetDTO {
     private String gameMode;
     private List<Long> playerIds;
 
-    public Long getId() {return Id;}
-    public void setId(Long Id) {this.Id = Id;}
+    public Long getId() {return id;}
+    public void setId(Long id) {this.id = id;}
 
     public String getName() {return name;}
     public void setName(String name) {this.name = name;}
