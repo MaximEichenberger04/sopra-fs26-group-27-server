@@ -14,6 +14,14 @@ import ch.uzh.ifi.hase.soprafs26.rest.dto.LobbyGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.LobbyPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.LobbyPutDTO;
 
+// Game
+import ch.uzh.ifi.hase.soprafs26.entity.Game;
+import ch.uzh.ifi.hase.soprafs26.entity.Pawn;
+import ch.uzh.ifi.hase.soprafs26.entity.Wall;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.GameGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.PawnGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.WallGetDTO;
+
 /**
  * DTOMapper
  * This class is responsible for generating classes that will automatically
@@ -60,7 +68,7 @@ public interface DTOMapper {
 	UserGetDTO convertEntityToUserGetDTO(User user);
 
 	// LOBBY MAPPINGS
-	
+
 	@Mapping(source = "id", target = "id")
 	@Mapping(source = "name", target = "name")
 	@Mapping(source = "inviteCode", target = "inviteCode")
@@ -70,6 +78,7 @@ public interface DTOMapper {
 	@Mapping(source = "lobbyStatus", target = "lobbyStatus")
 	@Mapping(source = "gameMode", target = "gameMode")
 	@Mapping(source = "playerIds", target = "playerIds")
+	@Mapping(source = "gameId", target = "gameId")
 	LobbyGetDTO convertEntityToLobbyGetDTO(Lobby lobby);
 
 	@Mapping(source = "name", target = "name")
@@ -81,4 +90,33 @@ public interface DTOMapper {
 	@Mapping(source = "gameMode", target = "gameMode")
 	@Mapping(source = "maxPlayers", target = "maxPlayers")
 	Lobby convertLobbyPutDTOtoEntity(LobbyPutDTO lobbyPutDTO);
+
+	// GAME MAPPINGS
+	// Note: pawns and walls lists are populated manually in GameService — ignored here.
+
+	@Mapping(source = "id", target = "id")
+	@Mapping(source = "lobbyId", target = "lobbyId")
+	@Mapping(source = "gameStatus", target = "gameStatus")
+	@Mapping(source = "sizeBoard", target = "sizeBoard")
+	@Mapping(source = "creatorId", target = "creatorId")
+	@Mapping(source = "currentTurnUserId", target = "currentTurnUserId")
+	@Mapping(source = "wallsPerPlayer", target = "wallsPerPlayer")
+	@Mapping(source = "winnerId", target = "winnerId")
+	@Mapping(source = "playerIds", target = "playerIds")
+	@Mapping(target = "pawns", ignore = true)
+	@Mapping(target = "walls", ignore = true)
+	GameGetDTO convertEntityToGameGetDTO(Game game);
+
+	@Mapping(source = "id", target = "id")
+	@Mapping(source = "userId", target = "userId")
+	@Mapping(source = "row", target = "row")
+	@Mapping(source = "col", target = "col")
+	PawnGetDTO convertEntityToPawnGetDTO(Pawn pawn);
+
+	@Mapping(source = "id", target = "id")
+	@Mapping(source = "userId", target = "userId")
+	@Mapping(source = "row", target = "row")
+	@Mapping(source = "col", target = "col")
+	@Mapping(source = "orientation", target = "orientation")
+	WallGetDTO convertEntityToWallGetDTO(Wall wall);
 }
