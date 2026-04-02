@@ -75,16 +75,10 @@ public interface DTOMapper {
 	@Mapping(source = "name", target = "name")
 	@Mapping(source = "gameMode", target = "gameMode")
 	@Mapping(source = "maxPlayers", target = "maxPlayers")
-	@Mapping(source = "theme", target = "theme")
-	@Mapping(source = "map", target = "map")
-	@Mapping(source = "startAbilities", target = "startAbilities")
 	Lobby convertLobbyPostDTOtoEntity(LobbyPostDTO lobbyPostDTO);
 
 	@Mapping(source = "name", target = "name")
 	@Mapping(source = "gameMode", target = "gameMode")
-	@Mapping(source = "map", target = "map")
-	@Mapping(source = "startAbilities", target = "startAbilities")
 	@Mapping(source = "maxPlayers", target = "maxPlayers")
-	@Mapping(source = "theme", target = "theme")
 	Lobby convertLobbyPutDTOtoEntity(LobbyPutDTO lobbyPutDTO);
 }
