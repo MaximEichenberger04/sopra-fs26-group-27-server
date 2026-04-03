@@ -1,6 +1,5 @@
 package ch.uzh.ifi.hase.soprafs26.websocket;
 
-import ch.uzh.ifi.hase.soprafs26.repository.ChatMessageRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -29,12 +28,6 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     private static final Logger log = LoggerFactory.getLogger(ChatWebSocketHandler.class);
 
-    private final ChatMessageRepository chatMessageRepository;
-
     // gameId → set of connected sessions for that game room
     private final Map<Long, CopyOnWriteArraySet<WebSocketSession>> gameSessions = new ConcurrentHashMap<>();
-
-    public ChatWebSocketHandler(ChatMessageRepository chatMessageRepository) {
-        this.chatMessageRepository = chatMessageRepository;
-    }
 }
