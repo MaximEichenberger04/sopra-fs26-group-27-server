@@ -10,7 +10,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * Handles the /game_refresh_websocket endpoint.
+ * Handles the /game-refresh-websocket endpoint.
  *
  * Maintains a flat list of all connected sessions (across all games).
  * On any game state change, broadcasts a typed event so the client knows

@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
- * Handles the /chat_refresh_websocket endpoint.
+ * Handles the /chat-refresh-websocket endpoint.
  *
  * Sessions are grouped by gameId (parsed from query param ?gameId=<id>).
  * On connect, the full chat history for that game is replayed.

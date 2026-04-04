@@ -20,12 +20,12 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     /**
      * Registers WebSocket handlers:
-     *   /game_refresh_websocket, game state refresh (all sessions, flat list)
-     *   /chat_refresh_websocket, in-game chat (sessions grouped by gameId query param)
+     *   /game-refresh-websocket, game state refresh (all sessions, flat list)
+     *   /chat-refresh-websocket, in-game chat (sessions grouped by gameId query param)
      */
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(gameWebSocketHandler, "/game_refresh_websocket").setAllowedOrigins("*");
-        registry.addHandler(chatWebSocketHandler, "/chat_refresh_websocket").setAllowedOrigins("*");
+        registry.addHandler(gameWebSocketHandler, "/game-refresh-websocket").setAllowedOrigins("*");
+        registry.addHandler(chatWebSocketHandler, "/chat-refresh-websocket").setAllowedOrigins("*");
     }
 }
