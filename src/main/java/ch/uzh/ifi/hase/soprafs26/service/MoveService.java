@@ -21,7 +21,7 @@ import java.util.List;
  * Handles pawn moves and wall placements for a Quoridor game.
  *
  * All validation (wall lookups, BFS, pawn adjacency) runs against the
- * in-memory GameStateCache — no DB queries during hot-path validation.
+ * in-memory GameStateCache, no DB is used.
  *
  * Coordinate system — 17×17 internal grid (for a standard 9×9 board):
  *   Pawn cells:          even row, even col
@@ -30,9 +30,9 @@ import java.util.List;
  *   V-wall occupies:     (row-1, col), (row, col), (row+1, col)
  *
  * Move rules:
- *   SIMPLE   – step one pawn cell in a cardinal direction: Δrow=±2 or Δcol=±2
- *   JUMP     – leap over an adjacent opponent: Δrow=±4 or Δcol=±4 (no wall between)
- *   DIAGONAL – straight jump blocked (wall or edge) → move diagonally: Δrow=±2, Δcol=±2
+ *   SIMPLE   – step one pawn cell in a cardinal direction: row=±2 or col=±2
+ *   JUMP     – leap over an adjacent opponent: row=±4 or col=±4 (no wall between)
+ *   DIAGONAL – straight jump blocked (wall or edge) → move diagonally: row=±2, col=±2
  */
 @Service
 @Transactional
@@ -66,7 +66,7 @@ public class MoveService {
     /**
      * Validates and applies a pawn move.
      * Reads pawn position and wall grid from GameStateCache.
-     * Updates the cache, checks win, advances turn, broadcasts refresh.
+     * Updates the cache, checks win, advances turn, broadcasts refresh (through webseocket).
      *
      * @throws org.springframework.web.server.ResponseStatusException 403 if not the caller's turn
      * @throws org.springframework.web.server.ResponseStatusException 400 if the move is invalid
@@ -82,8 +82,8 @@ public class MoveService {
 
     /**
      * Validates and applies a wall placement.
-     * Checks budget, bounds, overlap, and path-blocking (BFS) — all against the cache grid.
-     * Updates the cache, advances turn, broadcasts refresh.
+     * Checks budget, bounds, overlap, and path-blocking (BFS), all against the cache grid.
+     * Updates the cache, advances turn, broadcasts refresh (through webseocket).
      *
      * @throws org.springframework.web.server.ResponseStatusException 403 if not the caller's turn
      * @throws org.springframework.web.server.ResponseStatusException 400 on any invalid placement
@@ -121,9 +121,7 @@ public class MoveService {
     //  Wall helpers  (all O(1) via the boolean[][] grid)
     // ─────────────────────────────────────────────────────────────
 
-    /**
-     * Returns true if grid[r][c] is occupied by any wall segment.
-     */
+    // Returns true if grid[r][c] is occupied by any wall segment.
     private boolean isWallAt(boolean[][] grid, int r, int c) {
         // TODO
         throw new UnsupportedOperationException("not implemented");
@@ -145,7 +143,7 @@ public class MoveService {
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  BFS path finding  (O(cells), O(1) per cell via grid)
+    //  BFS path finding  
     // ─────────────────────────────────────────────────────────────
 
     /**
@@ -157,9 +155,7 @@ public class MoveService {
         throw new UnsupportedOperationException("not implemented");
     }
 
-    /**
-     * Returns true if there is a path from (startRow, startCol) to targetCol (any row).
-     */
+    // Returns true if there is a path from (startRow, startCol) to targetCol (any row).
     public boolean hasPathToGoalCol(boolean[][] grid, int startRow, int startCol, int targetCol) {
         // TODO
         throw new UnsupportedOperationException("not implemented");
@@ -181,27 +177,30 @@ public class MoveService {
     //  Pawn presence helper
     // ─────────────────────────────────────────────────────────────
 
-    /** Returns true if any pawn other than {@code exclude} is at (r, c). */
+    // Returns true if any pawn other than {@code exclude} is at (r, c). 
     private boolean isPawnAt(List<Pawn> allPawns, Pawn exclude, int r, int c) {
         // TODO
         throw new UnsupportedOperationException("not implemented");
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  Shared guards
+    //  Shared guards (for processMove, applyWallPlacement)
     // ─────────────────────────────────────────────────────────────
 
+    //  look up user by token, throw 401 if not found    
     private User requireUser(String token) {
         // TODO
         throw new UnsupportedOperationException("not implemented");
     }
 
+    // load game from DB, throw 404 if not found
     private Game requireGame(Long gameId) {
         // TODO
         throw new UnsupportedOperationException("not implemented");
     }
 
-    /** Throws 400 if the game is not RUNNING, 403 if it is not this user's turn. */
+  
+    // Throws 400 if the game is not RUNNING, 403 if it is not this user's turn. 
     private void requireTurn(Game game, Long userId) {
         // TODO
         throw new UnsupportedOperationException("not implemented");

@@ -21,6 +21,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  *   {"type":"WALL","gameId":"<id>"}
  *   {"type":"FORFEIT","gameId":"<id>"}
  *   {"type":"GAME_STARTED","gameId":"<id>"}
+ *   {"type":"GAME_OVER","gameId":"<id>"}
  */
 @Component
 public class GameWebSocketHandler extends TextWebSocketHandler {
@@ -49,8 +50,9 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
      *   broadcastGameEvent("MOVE",         gameId) — MoveService.processMove
      *   broadcastGameEvent("WALL",         gameId) — MoveService.applyWallPlacement
      *   broadcastGameEvent("FORFEIT",      gameId) — GameService.forfeitGame
+     *   broadcastGameEvent("GAME_OVER",    gameId) — GameService.forfeitGame / MoveService.processMove (win)
      *
-     * @param type   one of: GAME_STARTED, MOVE, WALL, FORFEIT
+     * @param type   one of: GAME_STARTED, MOVE, WALL, FORFEIT, GAME_OVER
      * @param gameId the affected game
      */
     public void broadcastGameEvent(String type, Long gameId) {

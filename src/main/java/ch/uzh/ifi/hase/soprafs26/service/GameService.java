@@ -16,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
  * Handles game lifecycle: creation, retrieval, forfeit, win-condition, and turn advancement.
  *
  * Game metadata (status, playerIds, turn, winnerId) is persisted via JPA (Game entity).
- * Game state (pawn positions, walls) lives in GameStateCache — not in the DB.
+ * Game state (pawn positions, walls) lives in GameStateCache, not in the DB.
  *
  * Starting positions on a 9×9 board (17×17 internal grid):
  *   Player 0: row=16, col=8  →  goal row = 0   (starts south, moves north)
