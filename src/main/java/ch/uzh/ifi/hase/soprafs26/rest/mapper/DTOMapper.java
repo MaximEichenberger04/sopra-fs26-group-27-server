@@ -92,7 +92,7 @@ public interface DTOMapper {
 	Lobby convertLobbyPutDTOtoEntity(LobbyPutDTO lobbyPutDTO);
 
 	// GAME MAPPINGS
-	// Note: pawns and walls lists are populated manually in GameService — ignored here.
+	// Note: pawns and walls lists are populated manually in GameService, ignored here.
 
 	@Mapping(source = "id", target = "id")
 	@Mapping(source = "lobbyId", target = "lobbyId")

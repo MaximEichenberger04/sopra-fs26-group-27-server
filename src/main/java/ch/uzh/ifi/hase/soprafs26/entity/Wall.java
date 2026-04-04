@@ -4,7 +4,7 @@ import ch.uzh.ifi.hase.soprafs26.constant.WallOrientation;
 
 /**
  * Represents a wall placed on the board.
- * Plain POJO — not persisted to DB; held in GameStateCache.
+ * Plain POJO, not persisted to DB, held in GameStateCache.
  *
  * row and col store the center intersection in the 17×17 internal grid (both odd).
  * A HORIZONTAL wall at (row, col) occupies cells: (row, col-1), (row, col), (row, col+1)

@@ -15,9 +15,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * during a game. Cleared when the game ends.
  *
  * Per game, holds:
- *   boolean[17][17] wallGrid  — wall lookups for BFS and conflict checks
- *   List<Wall>       walls    — ordered list sent to the frontend for rendering
- *   List<Pawn>       pawns    — current pawn positions (one per player)
+ *   boolean[17][17] wallGrid, used for wall lookups for BFS and conflict checks
+ *   List<Wall>       walls, an ordered list sent to the frontend for rendering
+ *   List<Pawn>       pawns, current pawn positions (one per player)
  *
  * Wall rules (center at odd, odd in 17×17 grid):
  *   HORIZONTAL: marks (row, col-1), (row, col), (row, col+1) in grid
@@ -28,10 +28,10 @@ import java.util.concurrent.ConcurrentHashMap;
  *   Player index 1: row=0,  col=8  →  goal row = 16  (starts north, moves south)
  *
  * Lifecycle:
- *   initGame  — GameService.createGameFromLobby
- *   placeWall — MoveService.applyWallPlacement
- *   movePawn  — MoveService.processMove
- *   evictGame — GameService.forfeitGame / win handling
+ *   initGame, called by GameService.createGameFromLobby
+ *   placeWall, called by MoveService.applyWallPlacement
+ *   movePawn, called by MoveService.processMove
+ *   evictGame, called by GameService.forfeitGame / win handling
  */
 @Component
 public class GameStateCache {

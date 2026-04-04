@@ -2,7 +2,7 @@ package ch.uzh.ifi.hase.soprafs26.entity;
 
 /**
  * Represents a player's pawn on the board.
- * Plain POJO — not persisted to DB; held in GameStateCache.
+ * Plain POJO, not persisted to DB, held in GameStateCache.
  *
  * row and col use the 17×17 internal coordinate system (even values only).
  */

@@ -16,7 +16,7 @@ public class GameGetDTO {
     private Long winnerId;
     private List<Long> playerIds;
 
-    // Embedded board state — populated manually in GameService, not by MapStruct
+    // Embedded board state, populated manually in GameService, not by MapStruct
     private List<PawnGetDTO> pawns;
     private List<WallGetDTO> walls;
 

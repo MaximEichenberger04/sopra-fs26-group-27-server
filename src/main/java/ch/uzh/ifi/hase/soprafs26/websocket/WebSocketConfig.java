@@ -20,8 +20,8 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     /**
      * Registers WebSocket handlers:
-     *   /game_refresh_websocket  — game state refresh (all sessions, flat list)
-     *   /chat_refresh_websocket  — in-game chat (sessions grouped by gameId query param)
+     *   /game_refresh_websocket, game state refresh (all sessions, flat list)
+     *   /chat_refresh_websocket, in-game chat (sessions grouped by gameId query param)
      */
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {

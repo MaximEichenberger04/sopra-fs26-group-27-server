@@ -4,7 +4,7 @@ import ch.uzh.ifi.hase.soprafs26.constant.WallOrientation;
 
 /**
  * Request body for POST /games/{id}/wall
- * targetField[0] = row, targetField[1] = col — center intersection (odd, odd) in 17×17 grid
+ * targetField[0] = row, targetField[1] = col, where (row, col) is the center intersection (odd, odd) in the 17×17 grid
  * orientation = HORIZONTAL or VERTICAL
  */
 public class WallPostDTO {

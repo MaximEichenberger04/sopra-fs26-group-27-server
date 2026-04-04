@@ -23,7 +23,7 @@ import java.util.List;
  * All validation (wall lookups, BFS, pawn adjacency) runs against the
  * in-memory GameStateCache, no DB is used.
  *
- * Coordinate system — 17×17 internal grid (for a standard 9×9 board):
+ * Coordinate system, 17×17 internal grid (for a standard 9×9 board):
  *   Pawn cells:          even row, even col
  *   Wall intersections:  odd  row, odd  col  (center of wall)
  *   H-wall occupies:     (row, col-1), (row, col), (row, col+1)

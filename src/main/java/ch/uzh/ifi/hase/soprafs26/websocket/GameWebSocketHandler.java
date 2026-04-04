@@ -46,11 +46,11 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
      * Broadcasts a typed game event to all connected clients.
      *
      * Callers:
-     *   broadcastGameEvent("GAME_STARTED", gameId) — LobbyService.startLobby
-     *   broadcastGameEvent("MOVE",         gameId) — MoveService.processMove
-     *   broadcastGameEvent("WALL",         gameId) — MoveService.applyWallPlacement
-     *   broadcastGameEvent("FORFEIT",      gameId) — GameService.forfeitGame
-     *   broadcastGameEvent("GAME_OVER",    gameId) — GameService.forfeitGame / MoveService.processMove (win)
+     *   broadcastGameEvent("GAME_STARTED", gameId), called by LobbyService.startLobby
+     *   broadcastGameEvent("MOVE",         gameId), called by MoveService.processMove
+     *   broadcastGameEvent("WALL",         gameId), called by MoveService.applyWallPlacement
+     *   broadcastGameEvent("FORFEIT",      gameId), called by GameService.forfeitGame
+     *   broadcastGameEvent("GAME_OVER",    gameId), called by GameService.forfeitGame / MoveService.processMove (win)
      *
      * @param type   one of: GAME_STARTED, MOVE, WALL, FORFEIT, GAME_OVER
      * @param gameId the affected game
