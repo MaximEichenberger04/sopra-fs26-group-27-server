@@ -43,5 +43,8 @@ public class LobbyGetDTO {
     public List<Long> getPlayerIds() {return playerIds;}
     public void setPlayerIds(List<Long> playerIds) {this.playerIds = playerIds;}
 
-    
+    private Long gameId;
+
+    public Long getGameId() {return gameId;}
+    public void setGameId(Long gameId) {this.gameId = gameId;}
 }

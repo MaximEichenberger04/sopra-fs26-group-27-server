@@ -44,6 +44,9 @@ public class Lobby implements Serializable {
     @Column(name = "user_id")
     private List<Long> playerIds = new ArrayList<>();
 
+    @Column(nullable = true)
+    private Long gameId;
+
     public Long getId() {
 		return id;
 	}
@@ -114,5 +117,13 @@ public class Lobby implements Serializable {
 
     public void setPlayerIds(List<Long> playerIds) {
         this.playerIds = playerIds;
+    }
+
+    public Long getGameId() {
+        return gameId;
+    }
+
+    public void setGameId(Long gameId) {
+        this.gameId = gameId;
     }
 }

@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import ch.uzh.ifi.hase.soprafs26.service.LobbyService;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.LobbyGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.LobbyPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.LobbyPutDTO;
@@ -88,15 +89,17 @@ public class LobbyController {
 
     /**
      * POST /lobbies/{lobbyId}/start
-     * Start game from lobby
+     * Start game from lobby; returns the created GameGetDTO so the client gets the gameId.
      */
     @PostMapping("/{lobbyId}/start")
-    @ResponseStatus(HttpStatus.OK)
-    public void startLobby(
+    @ResponseStatus(HttpStatus.CREATED)
+    @ResponseBody
+    public GameGetDTO startLobby(
             @PathVariable Long lobbyId,
             @RequestHeader("Authorization") String token) {
 
-        lobbyService.startLobby(lobbyId, token);
+        // TODO
+        throw new UnsupportedOperationException("not implemented");
     }
 
     /**
