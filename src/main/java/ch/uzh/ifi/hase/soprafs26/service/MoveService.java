@@ -16,6 +16,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
+import ch.uzh.ifi.hase.soprafs26.constant.GameStatus;
+import java.util.Queue;
+import java.util.LinkedList;
 
 /**
  * Handles pawn moves and wall placements for a Quoridor game.
@@ -161,14 +166,12 @@ public class MoveService {
      * Movement restricted to pawn cells (even, even), step size 2.
      */
     public boolean hasPathToGoalRow(boolean[][] grid, int startRow, int startCol, int targetRow) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        return bfs(grid, startRow, startCol, targetRow, -1);
     }
 
     // Returns true if there is a path from (startRow, startCol) to targetCol (any row).
     public boolean hasPathToGoalCol(boolean[][] grid, int startRow, int startCol, int targetCol) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        return bfs(grid, startRow, startCol, -1, targetCol);
     }
 
     /**
@@ -177,10 +180,51 @@ public class MoveService {
      * @param targetRow pass -1 to ignore row goal
      * @param targetCol pass -1 to ignore col goal
      */
-    private boolean bfs(boolean[][] grid, int startRow, int startCol,
-                        int targetRow, int targetCol) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+    private boolean bfs(boolean[][] grid, int startRow, int startCol, int targetRow, int targetCol) {
+        boolean[][] visited = new boolean[INTERNAL_SIZE][INTERNAL_SIZE];
+        Queue<int[]> queue = new linkedlist<>();
+        queue.add(new int[]{startRow, startCol});
+        visited[startRow][startCol] = true;
+
+        int dir[][] = {
+        {-2, 0},    // up
+        {2, 0},     // down
+        {0, -2},    // left
+        {0, 2}      // right
+        };
+        while (!queue.isEmpty()) {
+            int current[] = queue.poll();
+            int row = current[0];
+            int col = current[1];
+
+            if (targetRow != null && row == targetRow) {
+            return true;
+            }
+            if (targetCol != null && col == targetCol) {
+                return true;
+            }
+
+            for (int d[] : dir){
+                int newRow = row + d[0];
+                int newCol = col + d[1];
+
+                if (!isValidPawnCell(newRow, newCol)){continue;}
+                if (visited[newRow][newCol]) {continue;}
+
+                int midRow = row + newRow / 2;
+                int midCol = col + newCol / 2;
+                if (isWallAt(grid, midRow, midCol)) {continue;}
+
+                visited[newRow][newCol] = true;
+                queue.add(new int[]{newRow, newCol});
+            }
+        }
+        return false;
+    }
+
+    private boolean isValidPawnCell(int row, int col){
+        return row >= 0 && row < INTERNAL_SIZE && col >= 0 && col < INTERNAL_SIZE
+                && row % 2 == 0 && col % 2 == 0;
     }
 
     // ─────────────────────────────────────────────────────────────
