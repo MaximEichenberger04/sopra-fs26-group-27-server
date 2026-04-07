@@ -123,8 +123,10 @@ public class MoveService {
 
     // Returns true if grid[r][c] is occupied by any wall segment.
     private boolean isWallAt(boolean[][] grid, int r, int c) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        if (r < 0 || r >= INTERNAL_SIZE || c < 0 || c >= INTERNAL_SIZE) {
+            return false;
+        }
+        return grid[r][c];
     }
 
     /**
@@ -132,14 +134,22 @@ public class MoveService {
      * any already-occupied cell in the grid.
      */
     private boolean wallOverlaps(boolean[][] grid, int row, int col, WallOrientation orientation) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        if (orientation == WallOrientation.HORIZONTAL) {
+            return isWallAt(grid, row, col - 1) || isWallAt(grid, row, col) || isWallAt(grid, row, col + 1);
+        } else {
+            return isWallAt(grid, row - 1, col) || isWallAt(grid, row, col) || isWallAt(grid, row + 1, col);
+        }
     }
 
     /** Returns the number of walls already placed by the given player. */
     private long countWallsUsedByPlayer(List<Wall> walls, Long userId) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        int wallCount = 0;
+        for (Wall w : walls) {
+            if (w.getUserId().equals(userId)) {
+                wallCount++;
+            }
+        }
+        return wallCount;
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -179,8 +189,12 @@ public class MoveService {
 
     // Returns true if any pawn other than {@code exclude} is at (r, c). 
     private boolean isPawnAt(List<Pawn> allPawns, Pawn exclude, int r, int c) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        for (Pawn p : allPawns) {
+            if (p != exclude && p.getRow() == r && p.getCol() == c) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -189,20 +203,27 @@ public class MoveService {
 
     //  look up user by token, throw 401 if not found    
     private User requireUser(String token) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        User user = userRepository.findByToken(token);
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
+        }
+        return user;
     }
 
     // load game from DB, throw 404 if not found
     private Game requireGame(Long gameId) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        return gameRepository.findById(gameId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
     }
 
   
     // Throws 400 if the game is not RUNNING, 403 if it is not this user's turn. 
     private void requireTurn(Game game, Long userId) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        if (game.getStatus() != RUNNING) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Game is not running");
+        }
+        if (!game.getCurrentTurnUserId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your turn");
+        }
     }
 }
