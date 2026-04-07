@@ -5,6 +5,8 @@ import ch.uzh.ifi.hase.soprafs26.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.repository.LobbyRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.GameGetDTO;
+import ch.uzh.ifi.hase.soprafs26.websocket.GameWebSocketHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -24,11 +26,17 @@ public class LobbyService {
 
     private final LobbyRepository lobbyRepository;
     private final UserRepository userRepository;
+    private final GameService gameService;
+    private final GameWebSocketHandler gameWebSocketHandler;
 
     public LobbyService(@Qualifier("lobbyRepository") LobbyRepository lobbyRepository,
-                        @Qualifier("userRepository") UserRepository userRepository) {
+                        @Qualifier("userRepository") UserRepository userRepository,
+                        GameService gameService,
+                        GameWebSocketHandler gameWebSocketHandler) {
         this.lobbyRepository = lobbyRepository;
         this.userRepository = userRepository;
+        this.gameService = gameService;
+        this.gameWebSocketHandler = gameWebSocketHandler;
     }
 
     public Lobby createLobby(Lobby newLobby, String token) {
@@ -116,7 +124,12 @@ public class LobbyService {
         lobbyRepository.flush();
     }
 
-    public void startLobby(Long lobbyId, String token) {
+    /**
+     * Transitions the lobby to INGAME, creates the game via GameService,
+     * broadcasts a refresh signal, and returns the new GameGetDTO.
+     * Only the host may call this; requires the lobby to be full.
+     */
+    public GameGetDTO startLobby(Long lobbyId, String token) {
         User authenticatedUser = userRepository.findByToken(token);
         if (authenticatedUser == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
@@ -126,7 +139,7 @@ public class LobbyService {
             new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found")
         );
 
-        if (!authenticatedUser.getId().equals(lobby.getHostId())){
+        if (!authenticatedUser.getId().equals(lobby.getHostId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the host can start the game!");
         }
 
@@ -140,6 +153,9 @@ public class LobbyService {
 
         lobby.setLobbyStatus(LobbyStatus.INGAME);
         lobbyRepository.saveAndFlush(lobby);
+
+        // TODO: call gameService.createGameFromLobby, broadcast GAME_STARTED, return GameGetDTO
+        throw new UnsupportedOperationException("not implemented");
     }
 
     public Lobby joinLobbyByInviteCode(String inviteCode, String token) {
@@ -213,7 +229,7 @@ public class LobbyService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You are not in this lobby");
         }
         
-        lobby.getPlayerIds().contains(authenticatedUser.getId());
+        lobby.getPlayerIds().remove(authenticatedUser.getId());
         lobby.setCurrentPlayers(lobby.getCurrentPlayers() - 1);
         if (lobby.getCurrentPlayers() < 1) {
             lobbyRepository.delete(lobby);
