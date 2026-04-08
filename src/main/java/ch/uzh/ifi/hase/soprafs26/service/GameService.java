@@ -1,6 +1,8 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
+import ch.uzh.ifi.hase.soprafs26.constant.GameStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.Game;
+import ch.uzh.ifi.hase.soprafs26.entity.Pawn;
 import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.LobbyRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
@@ -11,6 +13,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 /**
  * Handles game lifecycle: creation, retrieval, forfeit, win-condition, and turn advancement.
@@ -106,14 +110,20 @@ public class GameService {
      * Reads the pawn position from GameStateCache.
      *
      * Goal mapping (player index in game.playerIds):
-     *   index 0 → goal row = 0
-     *   index 1 → goal row = 16
-     *   index 2 → goal col = 16
-     *   index 3 → goal col = 0
+     *   index 0 => goal row = 0
+     *   index 1 => goal row = 16
      */
     public boolean checkWinCondition(Game game, Long userId) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        int index = game.getPlayerIds().indexOf(userId);
+        if (index < 0) return false;
+
+        Pawn pawn = gameStateCache.getPawn(game.getId(), userId);
+        if (pawn == null) return false;
+
+        if (index == 0) return pawn.getRow() == 0;  //index 0 => goal row = 0
+        if (index == 1) return pawn.getRow() == 16; //index 1 => goal row = 16
+
+        return false;
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -125,7 +135,19 @@ public class GameService {
      * Persists the change to the Game entity.
      */
     public void advanceTurn(Game game) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        List<Long> players = game.getPlayerIds();
+        int index = players.indexOf(game.getCurrentTurnUserId());
+        int next = (index + 1) % players.size();
+        game.setCurrentTurnUserId(players.get(next));
+        gameRepository.saveAndFlush(game);
+    }
+
+    // Ends the game with the given winner, evicts cache, broadcasts GAME_OVER.
+    public void endGame(Game game, Long winnerId) {
+        game.setWinnerId(winnerId);
+        game.setGameStatus(GameStatus.ENDED);
+        gameRepository.saveAndFlush(game);
+        gameStateCache.evictGame(game.getId());
+        gameWebSocketHandler.broadcastGameEvent("GAME_OVER", game.getId());
     }
 }
