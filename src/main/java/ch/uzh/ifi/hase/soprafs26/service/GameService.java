@@ -63,9 +63,30 @@ public class GameService {
      * Sets lobby.gameId so the client can navigate to /games/{id}.
      */
     public Game createGameFromLobby(Long lobbyId, String token) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
-    }
+        Lobby lobby = lobbyRepository.findById(lobbyId) // find lobby
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
+
+        User user = userRepository.findByToken(token); // find user
+        if (user==null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
+        // build game entity
+        Game game = new Game();
+        game.setLobbyId(lobbyId);
+        game.setCreatorId(lobby.getHostid());
+        game.setPlayerIds(new ArrayList<>(lobby.getPlayerIds()));
+        game.setCurrenTurnUserId(lobby.getPlayerIds().get(0));
+        game.setGameStatus(GameStatus.RUNNING);
+        game.setSizeBoard(9); // standard logical size (9x9 fields for pawn)
+        game.setWallsPerPlayer(lobby.getMaxPlayers() == 2 ? 10 : 5); // check if lobby has 2 or 4 players
+        
+        game = gameRepository.save(game);
+        gameRepository.flush();
+
+        gameStateCache.initGame(game.getId(), game.getPlayersIds());
+        lobby.setGameId(game.getId());
+        lobbyRepository.save(lobby);
+
+        return game;
+    }   
 
     // ─────────────────────────────────────────────────────────────
     //  Read
@@ -75,8 +96,9 @@ public class GameService {
      * Returns a GameGetDTO with embedded pawns and walls from the cache.
      */
     public GameGetDTO getGameById(Long gameId) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        Game game = gameRepository.findById(gameId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+        return buildGameGetDTO(game); // call build and return DTO
     }
 
     /**
@@ -84,8 +106,22 @@ public class GameService {
      * GameStateCache (pawns + walls).
      */
     public GameGetDTO buildGameGetDTO(Game game) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        // convert entity to DTO
+        GameGetDTO dto = DTOMapper.INSTANCE.convertEntityToGameGetDTO(game);
+
+        // manually attach pawns from the game cache
+        List<PawnGetDTO> pawnDTOs = gameStateCache.getPawns(game.getId()).stream()
+            .map(DTOMapper.INSTANCE::convertEntityToPawnGetDTO)
+            .collect(Collectors.toList());
+        dto.setPawns(pawnDTOs);
+
+        // manually attach walls from game cache
+        List<WallGetDTO> wallDTOs = gameStateCache.getWalls(game.getId()).stream()
+            .map(DTOMapper.INSTANCE::convertEntityToWallGetDTO)
+            .collect(Collectors.toList());
+        dto.setWalls(wallDTOs);
+
+        return dto;
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -97,8 +133,25 @@ public class GameService {
      * Evicts the game from the cache and broadcasts a final refresh.
      */
     public GameGetDTO forfeitGame(Long gameId, String token) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        Game game = gameRepository.findById(gameId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+        User user = userRepository.findByToken(token);
+        if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
+        
+        // The other player wins
+        Long winnerId = game.getPlayerIds().stream()
+            .filter(id -> !id.equals(user.getId()))
+            .findFirst()
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot forfeit"));
+
+        game.setGameStatus(GameStatus.ENDED);
+        game.setWinnerId(winnerId);
+        gameRepository.save(game);
+
+        // Free memory
+        gameStateCache.evictGame(gameId);
+
+        return buildGameGetDTO(game);
     }
 
     // ─────────────────────────────────────────────────────────────

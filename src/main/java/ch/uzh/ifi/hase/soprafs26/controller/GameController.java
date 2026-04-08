@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs26.controller;
 
+import ch.uzh.ifi.hase.soprafs26.websocket.GameWebSocketHandler;
 import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.MovePostDTO;
@@ -34,8 +35,7 @@ public class GameController {
     public GameGetDTO getGame(
             @PathVariable Long gameId,
             @RequestHeader("Authorization") String token) {
-        Game game = gameService.getGameById(gameId);
-        return DTOMapper.INSTANCE.converEntityToGameGetDTO(game);
+        return gameService.getGameById(gameId); //DTO already assembled in GameService through buildGameGetDTO
     }
 
     /**
@@ -49,9 +49,9 @@ public class GameController {
             @PathVariable Long gameId,
             @RequestBody MovePostDTO movePostDTO,
             @RequestHeader("Authorization") String token) {
-        Game game = moveService.processMove(gameId, movePostDTO, token);
+        GameGetDTO result = moveService.processMove(gameId, movePostDTO, token);
         webSocketHandler.broadcastGameEvent("MOVE", gameId);
-        return DTOMapper.INSTANCE.convertEntityToGameGetDTO(game);
+        return result;
     }
 
     /**
@@ -65,9 +65,9 @@ public class GameController {
             @PathVariable Long gameId,
             @RequestBody WallPostDTO wallPostDTO,
             @RequestHeader("Authorization") String token) {
-        Game game = moveService.applyWallPlacement(gameId, wallPostDTO, token);
+        GameGetDTO result = moveService.applyWallPlacement(gameId, wallPostDTO, token);
         webSocketHandler.broadcastGameEvent("WALL", gameId);
-        return DTOMapper.INSTANCE.convertEntityToGameGetDTO(game);
+        return result;
     }
 
     /**
@@ -80,8 +80,9 @@ public class GameController {
     public GameGetDTO forfeitGame(
             @PathVariable Long gameId,
             @RequestHeader("Authorization") String token) {
-        Game game = gameService.forfeitGame(gameId, token);
-        webSocketHandler.broadcastGameEvent("FORFEIT", gameId);
-        return DTOMapper.INSTANCE.convertEntityToGameGetDTO(game);
+        GameGetDTO result = gameService.forfeitGame(gameId, token);
+        gameWebSocketHandler.broadcastGameEvent("FORFEIT", gameId);
+        gameWebSocketHandler.broadcastGameEvent("GAME_OVER", gameId);
+        return result;
     }
 }

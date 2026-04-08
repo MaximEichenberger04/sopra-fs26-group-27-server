@@ -3,6 +3,7 @@ package ch.uzh.ifi.hase.soprafs26.service;
 import ch.uzh.ifi.hase.soprafs26.constant.LobbyStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
+import ch.uzh.ifi.hase.soprafs26.entity.Game;
 import ch.uzh.ifi.hase.soprafs26.repository.LobbyRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.GameGetDTO;
@@ -154,8 +155,9 @@ public class LobbyService {
         lobby.setLobbyStatus(LobbyStatus.INGAME);
         lobbyRepository.saveAndFlush(lobby);
 
-        // TODO: call gameService.createGameFromLobby, broadcast GAME_STARTED, return GameGetDTO
-        throw new UnsupportedOperationException("not implemented");
+        Game game = gameService.createGameFromLobby(lobbyId, token);
+        gameWebSocketHandler.broadcastGameEvent("GAME_STARTED", game.getId());
+        return gameService.buildGameGetDTO(game);
     }
 
     public Lobby joinLobbyByInviteCode(String inviteCode, String token) {
