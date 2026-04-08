@@ -182,7 +182,7 @@ public class MoveService {
      */
     private boolean bfs(boolean[][] grid, int startRow, int startCol, int targetRow, int targetCol) {
         boolean[][] visited = new boolean[INTERNAL_SIZE][INTERNAL_SIZE];
-        Queue<int[]> queue = new linkedlist<>();
+        Queue<int[]> queue = new LinkedList<>();
         queue.add(new int[]{startRow, startCol});
         visited[startRow][startCol] = true;
 
@@ -197,10 +197,10 @@ public class MoveService {
             int row = current[0];
             int col = current[1];
 
-            if (targetRow != null && row == targetRow) {
+            if (targetRow != -1 && row == targetRow) {
             return true;
             }
-            if (targetCol != null && col == targetCol) {
+            if (targetCol != -1 && col == targetCol) {
                 return true;
             }
 
@@ -211,8 +211,8 @@ public class MoveService {
                 if (!isValidPawnCell(newRow, newCol)){continue;}
                 if (visited[newRow][newCol]) {continue;}
 
-                int midRow = row + newRow / 2;
-                int midCol = col + newCol / 2;
+                int midRow = (row + newRow) / 2;
+                int midCol = (col + newCol) / 2;
                 if (isWallAt(grid, midRow, midCol)) {continue;}
 
                 visited[newRow][newCol] = true;
