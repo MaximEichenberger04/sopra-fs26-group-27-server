@@ -44,6 +44,13 @@ public interface DTOMapper {
 	@Mapping(source = "biography", target = "biography")
 	@Mapping(source = "avatarURL", target = "avatarURL")
 	@Mapping(source = "preferredLanguage", target = "preferredLanguage")
+	User convertUserPatchDTOtoEntity(UserPatchDTO userPatchDTO);
+
+	@Mapping(source = "username", target = "username")
+	@Mapping(source = "displayName", target = "displayName")
+	@Mapping(source = "biography", target = "biography")
+	@Mapping(source = "avatarURL", target = "avatarURL")
+	@Mapping(source = "preferredLanguage", target = "preferredLanguage")
 	@Mapping(source = "score", target = "score")
 	@Mapping(source = "xp", target = "xp")
 	@Mapping(source = "level", target = "level")
