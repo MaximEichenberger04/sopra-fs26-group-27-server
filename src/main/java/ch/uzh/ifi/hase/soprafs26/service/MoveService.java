@@ -108,8 +108,56 @@ public class MoveService {
      */
     private boolean isValidPawnMove(Pawn pawn, int targetRow, int targetCol,
                                     List<Pawn> allPawns, boolean[][] grid) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        if (!isValidPawnCell(targetRow, targetCol)) {
+            return false;
+        }
+        if (targetRow % 2 != 0 || targetCol % 2 != 0){
+            return false;
+        }
+        if (isPawnAt(allPawns, pawn, targetRow, targetCol)){
+            return false;
+        }
+        int pawnRow = pawn.getRow();
+        int pawnCol = pawn.getCol();
+        int dr = targetRow - pawnRow;
+        int dc = targetCol - pawnCol;
+
+        if (dr == 0 && dc == 0) {
+            return false;
+        }
+
+        if (Math.abs(dr) == 2 && Math.abs(dc) == 2) {
+            return isDiagonalValid(pawn, dr, dc, allPawns, grid);
+        }
+
+        if (dr == 0 && Math.abs(dc) == 2) {
+            int midCol = (pawnCol + targetCol) / 2;
+            return !isWallAt(grid, pawnRow, midCol);
+        }
+
+        if (dc == 0 && Math.abs(dr) == 2) {
+            int midRow = (pawnRow + targetRow) / 2;
+            return !isWallAt(grid, midRow, pawnCol);
+        }
+
+        if (Math.abs(dr) == 4 && dc == 0) {
+            int midRow = (pawnRow + targetRow) /2; // where pawn jumps over
+            int midMidRow = (pawnRow + midRow) / 2; // first wall check
+            int beyondMidRow = (midRow + targetRow) / 2; // second wall check
+            return isPawnAt(allPawns, pawn, midRow, pawnCol) && !isWallAt(grid, midMidRow, pawnCol)
+                    && !isWallAt(grid, beyondMidRow, pawnCol);
+        }
+
+        if (Math.abs(dc) == 4 && dr == 0) {
+            int midCol = (pawnCol + targetCol) /2; // where pawn jumps over
+            int midMidCol = (pawnCol + midCol) / 2; // first wall check
+            int beyondMidCol = (midCol + targetCol) / 2; // second wall check
+
+            return isPawnAt(allPawns, pawn, pawnRow, midCol) && !isWallAt(grid, pawnRow, midMidCol)
+                    && !isWallAt(grid, pawnRow, beyondMidCol);
+        }
+        
+        return false;
     }
 
     /**
@@ -118,8 +166,47 @@ public class MoveService {
      */
     private boolean isDiagonalValid(Pawn pawn, int dr, int dc,
                                     List<Pawn> allPawns, boolean[][] grid) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+
+        int pawnRow = pawn.getRow();
+        int pawnCol = pawn.getCol();
+        int verticalPawnRow = pawnRow + dr;
+        int verticalPawnCol = pawnCol;
+
+        if (isValidPawnCell(verticalPawnRow, verticalPawnCol) && isPawnAt(allPawns, pawn, verticalPawnRow, verticalPawnCol)){
+            int wallBetweenRow = (pawnRow + verticalPawnRow) / 2;
+            int wallBehindPawnRow = verticalPawnRow + dr / 2;
+            int wallSideCol = pawnCol + dc / 2;
+
+            boolean straightBlocked = isWallAt(grid, wallBehindPawnRow, pawnCol) ||
+                    !isValidPawnCell(verticalPawnRow + dr, verticalPawnCol);
+
+            boolean pathToAdjacentOpen = !isWallAt(grid, wallBetweenRow, pawnCol);
+            boolean pathToSideOpen = !isWallAt(grid, verticalPawnRow, wallSideCol);
+
+            if (straightBlocked && pathToAdjacentOpen && pathToSideOpen) {
+                return true;
+            }
+        }
+
+        int horizontalPawnRow = pawnRow;
+        int horizontalPawnCol = pawnCol + dc;
+
+        if (isValidPawnCell(horizontalPawnRow, horizontalPawnCol) && isPawnAt(allPawns, pawn, horizontalPawnRow, horizontalPawnCol)){
+            int wallBetweenCol = (pawnCol + horizontalPawnCol) / 2;
+            int wallBehindPawnCol = horizontalPawnCol + dc / 2;
+            int wallSideRow = pawnRow + dr / 2;
+
+            boolean straightBlocked = isWallAt(grid, pawnRow, wallBehindPawnCol) ||
+                    !isValidPawnCell(horizontalPawnRow, horizontalPawnCol + dc);
+
+            boolean pathToAdjacentOpen = !isWallAt(grid, pawnRow, wallBetweenCol);
+            boolean pathToSideOpen = !isWallAt(grid, wallSideRow, horizontalPawnCol);
+
+            if (straightBlocked && pathToAdjacentOpen && pathToSideOpen) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // ─────────────────────────────────────────────────────────────
