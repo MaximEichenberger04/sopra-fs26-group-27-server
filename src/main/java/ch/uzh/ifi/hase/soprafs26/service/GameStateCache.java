@@ -44,7 +44,9 @@ public class GameStateCache {
     private static final int INTERNAL_SIZE = 17;
     private static final int[][] START_POSITIONS = {
         {16, 8}, // player 0, starts bottom center, moves north
-        {0, 8}   // player 1, starts top center, moves south
+        {0, 8},   // player 1, starts top center, moves south
+        {8, 16}, // player 2 starts on the right, moves left
+        {8, 0}  //player 3 starts on left, moves right
     };
 
     private final Map<Long, boolean[][]> wallGrids = new ConcurrentHashMap<>();

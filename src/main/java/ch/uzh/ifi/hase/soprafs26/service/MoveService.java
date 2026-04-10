@@ -77,8 +77,40 @@ public class MoveService {
      * @throws org.springframework.web.server.ResponseStatusException 400 if the move is invalid
      */
     public GameGetDTO processMove(Long gameId, MovePostDTO dto, String token) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        User authenticatedUser = requireUser(token);
+        Long userId = authenticatedUser.getId();
+        Game game = requireGame(gameId);
+        requireTurn(game, userId);
+
+        int[] targetField = dto.getTargetField();
+        if (targetField == null || targetField.length != 2){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid target field");
+        }
+
+        int row = targetField[0];
+        int col = targetField[1];
+
+        List<Pawn> pawns = gameStateCache.getPawns(gameId);
+        boolean[][] grid = gameStateCache.getWallGrid(gameId);
+
+        Pawn currentPawn = gameStateCache.getPawn(gameId, userId);
+        if (currentPawn == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Pawn for current user not found");
+        }
+        if (!isValidPawnMove(currentPawn, row, col, pawns, grid)){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid pawn move");
+        }
+
+        gameStateCache.movePawn(gameId, userId, row, col);
+        if (gameService.checkWinCondition(game, userId)){
+            gameService.endGame(game, userId);
+        } else {
+            gameService.advanceTurn(game);
+            gameWebSocketHandler.broadcastGameState(gameId);
+        }
+    
+        return gameService.buildGameGetDTO(game);
+
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -94,9 +126,114 @@ public class MoveService {
      * @throws org.springframework.web.server.ResponseStatusException 400 on any invalid placement
      */
     public GameGetDTO applyWallPlacement(Long gameId, WallPostDTO dto, String token) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+
+        User authenticatedUser = requireUser(token);
+        Long userId = authenticatedUser.getId();
+        Game game = requireGame(gameId);
+        requireTurn(game, userId);
+
+        int[] targetField = dto.getTargetField();
+        if (targetField == null || targetField.length != 2) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid target field");
+        }
+        int row = targetField[0];
+        int col = targetField[1];
+        WallOrientation orientation = dto.getOrientation();
+        if (orientation == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Wall orientation is required");
+        }
+        if (!isValidWallCenter(row, col)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid wall position");
+        }
+
+        List<Wall> walls = gameStateCache.getWalls(gameId);
+        List<Pawn> pawns = gameStateCache.getPawns(gameId);
+        boolean[][] grid = gameStateCache.getWallGrid(gameId);
+
+        int usedWalls = countWallsUsedByPlayer(walls, userId);
+        if (usedWalls >= game.getWallsPerPlayer()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No walls remaining");
+        }
+        if (wallOverlaps(grid, row, col, orientation)){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Wall overlaps existing wall");
+        }
+
+        boolean[][] gridCopy =  copyWallGrid(grid); // create a copy of grid to test a new wall placement
+        simulateWallPlacement(gridCopy, row, col, orientation); 
+
+        if (!allPlayersHavePathToGoal(gridCopy, pawns)){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Wall placement blocks all paths to goal");
+        }
+
+        gameStateCache.placeWall(gameId, row, col, orientation, userId);
+        gameService.advanceTurn(game);
+        gameWebSocketHandler.broadcastGameState(gameId);
+        
+        return gameService.buildGameGetDTO(game);
     }
+
+    private boolean isValidWallCenter(int row, int col) {
+        return row > 0 && row < INTERNAL_SIZE - 1
+                && col > 0 && col < INTERNAL_SIZE - 1
+                && row % 2 == 1
+                && col % 2 == 1;
+    }
+
+    private boolean[][] copyWallGrid(boolean[][] originalGrid){
+        boolean[][] copy = new boolean[INTERNAL_SIZE][INTERNAL_SIZE];
+        for (int i = 0; i < INTERNAL_SIZE; i++){
+            System.arraycopy(originalGrid[i], 0, copy[i], 0, INTERNAL_SIZE);
+        }
+        return copy;
+    }
+
+    private void simulateWallPlacement(boolean[][] grid, int row, int col, WallOrientation orientation){
+        if (orientation == WallOrientation.HORIZONTAL){
+            grid[row][col] = true;
+            grid[row][col -1] = true;
+            grid[row][col + 1]= true;
+        }
+        else{
+            grid[row][col] = true;
+            grid[row - 1][col] = true;
+            grid[row + 1][col] = true;
+        }
+    }
+
+    private boolean allPlayersHavePathToGoal(boolean[][] gridCopy, List<Pawn> pawns){
+
+        for (int i = 0; i < pawns.size(); i++) {
+            Pawn pawn = pawns.get(i);
+            boolean hasPath;
+
+            if (pawns.size() == 2) {
+                if (i == 0) {
+                    hasPath = hasPathToGoalRow(gridCopy, pawn.getRow(), pawn.getCol(), 0);
+                } else {
+                    hasPath = hasPathToGoalRow(gridCopy, pawn.getRow(), pawn.getCol(), INTERNAL_SIZE - 1);
+                }
+            } else {
+                if (i == 0){
+                    hasPath = hasPathToGoalRow(gridCopy, pawn.getRow(), pawn.getCol(), 0);
+                }
+                 else if (i == 1) {
+                    hasPath = hasPathToGoalRow(gridCopy, pawn.getRow(), pawn.getCol(), INTERNAL_SIZE - 1);
+                } else if (i == 2) {
+                    hasPath = hasPathToGoalCol(gridCopy, pawn.getRow(), pawn.getCol(), 0);
+                } else {
+                    hasPath = hasPathToGoalCol(gridCopy, pawn.getRow(), pawn.getCol(), INTERNAL_SIZE - 1);
+                }
+            }
+
+            if (!hasPath) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+
 
     // ─────────────────────────────────────────────────────────────
     //  Move validation
@@ -111,9 +248,7 @@ public class MoveService {
         if (!isValidPawnCell(targetRow, targetCol)) {
             return false;
         }
-        if (targetRow % 2 != 0 || targetCol % 2 != 0){
-            return false;
-        }
+
         if (isPawnAt(allPawns, pawn, targetRow, targetCol)){
             return false;
         }
@@ -234,7 +369,7 @@ public class MoveService {
     }
 
     /** Returns the number of walls already placed by the given player. */
-    private long countWallsUsedByPlayer(List<Wall> walls, Long userId) {
+    private int countWallsUsedByPlayer(List<Wall> walls, Long userId) {
         int wallCount = 0;
         for (Wall w : walls) {
             if (w.getUserId().equals(userId)) {
@@ -350,7 +485,7 @@ public class MoveService {
   
     // Throws 400 if the game is not RUNNING, 403 if it is not this user's turn. 
     private void requireTurn(Game game, Long userId) {
-        if (game.getStatus() != RUNNING) {
+        if (game.getGameStatus() != GameStatus.RUNNING) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Game is not running");
         }
         if (!game.getCurrentTurnUserId().equals(userId)) {

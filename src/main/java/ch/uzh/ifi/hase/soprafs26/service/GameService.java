@@ -77,7 +77,7 @@ public class GameService {
         game.setGameStatus(GameStatus.RUNNING);
         game.setSizeBoard(9); // standard logical size (9x9 fields for pawn)
         game.setWallsPerPlayer(lobby.getMaxPlayers() == 2 ? 10 : 5); // check if lobby has 2 or 4 players
-        
+
         game = gameRepository.save(game);
         gameRepository.flush();
 
@@ -175,6 +175,8 @@ public class GameService {
 
         if (index == 0) return pawn.getRow() == 0;  //index 0 => goal row = 0
         if (index == 1) return pawn.getRow() == 16; //index 1 => goal row = 16
+        if (index == 2) return pawn.getCol() == 0; // index 3 => starts on right side -> goal col = 0
+        if (index == 3) return pawn.getCol() == 16;
 
         return false;
     }
