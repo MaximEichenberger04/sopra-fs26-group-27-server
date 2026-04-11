@@ -50,7 +50,11 @@ public class GameController {
             @RequestBody MovePostDTO movePostDTO,
             @RequestHeader("Authorization") String token) {
         GameGetDTO result = moveService.processMove(gameId, movePostDTO, token);
-        webSocketHandler.broadcastGameEvent("MOVE", gameId);
+        if (result.getWinnerId() != null) {
+            webSocketHandler.broadcastGameEvent("GAME_OVER", gameId);
+        } else {
+            webSocketHandler.broadcastGameEvent("MOVE", gameId);
+        }
         return result;
     }
 
@@ -81,8 +85,8 @@ public class GameController {
             @PathVariable Long gameId,
             @RequestHeader("Authorization") String token) {
         GameGetDTO result = gameService.forfeitGame(gameId, token);
-        gameWebSocketHandler.broadcastGameEvent("FORFEIT", gameId);
-        gameWebSocketHandler.broadcastGameEvent("GAME_OVER", gameId);
+        webSocketHandler.broadcastGameEvent("FORFEIT", gameId);
+        webSocketHandler.broadcastGameEvent("GAME_OVER", gameId);
         return result;
     }
 }

@@ -10,7 +10,6 @@ import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.MovePostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.WallPostDTO;
-import ch.uzh.ifi.hase.soprafs26.websocket.GameWebSocketHandler;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,19 +48,16 @@ public class MoveService {
     private final UserRepository userRepository;
     private final GameService gameService;
     private final GameStateCache gameStateCache;
-    private final GameWebSocketHandler gameWebSocketHandler;
 
     public MoveService(
             @Qualifier("gameRepository") GameRepository gameRepository,
             @Qualifier("userRepository") UserRepository userRepository,
             GameService gameService,
-            GameStateCache gameStateCache,
-            GameWebSocketHandler gameWebSocketHandler) {
+            GameStateCache gameStateCache) {
         this.gameRepository       = gameRepository;
         this.userRepository       = userRepository;
         this.gameService          = gameService;
         this.gameStateCache       = gameStateCache;
-        this.gameWebSocketHandler = gameWebSocketHandler;
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -102,14 +98,14 @@ public class MoveService {
         }
 
         gameStateCache.movePawn(gameId, userId, row, col);
-        if (gameService.checkWinCondition(game, userId)){
-            gameService.endGame(game, userId);
+        if (gameService.checkWinCondition(game, userId)) {
+            GameGetDTO result = gameService.buildGameGetDTO(game); // build BEFORE evict
+            gameService.endGame(game, userId);                     // evicts cache here
+            return result;
         } else {
             gameService.advanceTurn(game);
-            gameWebSocketHandler.broadcastGameState(gameId);
+            return gameService.buildGameGetDTO(game);
         }
-    
-        return gameService.buildGameGetDTO(game);
 
     }
 
@@ -167,7 +163,6 @@ public class MoveService {
 
         gameStateCache.placeWall(gameId, row, col, orientation, userId);
         gameService.advanceTurn(game);
-        gameWebSocketHandler.broadcastGameState(gameId);
         
         return gameService.buildGameGetDTO(game);
     }

@@ -3,11 +3,18 @@ package ch.uzh.ifi.hase.soprafs26.service;
 import ch.uzh.ifi.hase.soprafs26.constant.GameStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.Game;
 import ch.uzh.ifi.hase.soprafs26.entity.Pawn;
+import ch.uzh.ifi.hase.soprafs26.entity.Lobby;
+import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.LobbyRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.GameGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.PawnGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.WallGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs26.websocket.GameWebSocketHandler;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -15,6 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 /**
  * Handles game lifecycle: creation, retrieval, forfeit, win-condition, and turn advancement.
@@ -71,9 +80,9 @@ public class GameService {
         // build game entity
         Game game = new Game();
         game.setLobbyId(lobbyId);
-        game.setCreatorId(lobby.getHostid());
+        game.setCreatorId(lobby.getHostId());
         game.setPlayerIds(new ArrayList<>(lobby.getPlayerIds()));
-        game.setCurrenTurnUserId(lobby.getPlayerIds().get(0));
+        game.setCurrentTurnUserId(lobby.getPlayerIds().get(0));
         game.setGameStatus(GameStatus.RUNNING);
         game.setSizeBoard(9); // standard logical size (9x9 fields for pawn)
         game.setWallsPerPlayer(lobby.getMaxPlayers() == 2 ? 10 : 5); // check if lobby has 2 or 4 players
@@ -81,7 +90,7 @@ public class GameService {
         game = gameRepository.save(game);
         gameRepository.flush();
 
-        gameStateCache.initGame(game.getId(), game.getPlayersIds());
+        gameStateCache.initGame(game.getId(), game.getPlayerIds());
         lobby.setGameId(game.getId());
         lobbyRepository.save(lobby);
 
@@ -203,6 +212,5 @@ public class GameService {
         game.setGameStatus(GameStatus.ENDED);
         gameRepository.saveAndFlush(game);
         gameStateCache.evictGame(game.getId());
-        gameWebSocketHandler.broadcastGameEvent("GAME_OVER", game.getId());
     }
 }
