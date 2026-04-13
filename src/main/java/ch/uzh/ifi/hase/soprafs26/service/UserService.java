@@ -102,8 +102,8 @@ public class UserService {
 	}
 
 	public User updateUser(Long id, String token, User userInput) {
-		User requestinUser = userRepository.findByToken(token);
-		if (requestinUser == null || !requestinUser.getId().equals(id)) {
+		User requestingUser = userRepository.findByToken(token);
+		if (requestingUser == null || !requestingUser.getId().equals(id)) {
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN,
 					"You can only update your own user information");
 		}
@@ -113,7 +113,7 @@ public class UserService {
 		if (userInput.getUsername() != null && !userInput.getUsername().isBlank()) {
 			if (!userInput.getUsername().equals(existingUser.getUsername())) {
 				User conflict = userRepository.findByUsername(userInput.getUsername());
-				if (conflict != null) {
+				if (conflict != null) { // Check if Username already exists
 					throw new ResponseStatusException(HttpStatus.CONFLICT,
 							"This username is already taken. Please choose another one.");
 				}

@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPostDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPatchDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs26.service.UserService;
 
@@ -80,14 +81,14 @@ public class UserController {
 		return DTOMapper.INSTANCE.convertEntityToUserGetDTO(user);
 	}
 
-	@PutMapping("/users/{id}")
+	@PatchMapping("/users/{id}")
 	@ResponseStatus(HttpStatus.OK)
 	@ResponseBody
 	public UserGetDTO updateUser(@PathVariable Long id,
-			@RequestBody UserPostDTO userPostDTO,
+			@RequestBody UserPatchDTO userPatchDTO,
 			@RequestHeader(value = "Authorization", required = false) String token) {
 		userService.validateToken(token);
-		User userInput = DTOMapper.INSTANCE.convertUserPostDTOtoEntity(userPostDTO);
+		User userInput = DTOMapper.INSTANCE.convertUserPatchDTOtoEntity(userPatchDTO);
 		User updatedUser = userService.updateUser(id, token, userInput);
 		return DTOMapper.INSTANCE.convertEntityToUserGetDTO(updatedUser);
 	}
