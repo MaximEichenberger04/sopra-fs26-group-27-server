@@ -6,6 +6,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+import org.springframework.web.socket.TextMessage;
+import java.io.IOException;
 
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -32,14 +34,14 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        sessions.add(session);
+        log.info("WebSocket connected: {}", session.getId());
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        sessions.remove(session);
+        log.info("WebSocket disconnected: {}", session.getId());
     }
 
     /**
@@ -56,7 +58,13 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
      * @param gameId the affected game
      */
     public void broadcastGameEvent(String type, Long gameId) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        String payload = String.format("{\"type\":\"%s\",\"gameId\":\"%d\"}", type, gameId);
+        TextMessage msg = new TextMessage(payload);
+        for (WebSocketSession s : sessions) {
+            if (s.isOpen()) {
+                try { s.sendMessage(msg); }
+                catch (IOException e) { log.warn("send failed: {}", s.getId()); }
+            }
+        }
     }
 }

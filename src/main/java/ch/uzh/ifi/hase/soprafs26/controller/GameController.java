@@ -1,10 +1,13 @@
 package ch.uzh.ifi.hase.soprafs26.controller;
 
+import ch.uzh.ifi.hase.soprafs26.websocket.GameWebSocketHandler;
+import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.MovePostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.WallPostDTO;
 import ch.uzh.ifi.hase.soprafs26.service.GameService;
 import ch.uzh.ifi.hase.soprafs26.service.MoveService;
+import ch.uzh.ifi.hase.soprafs26.entity.Game;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,10 +17,12 @@ public class GameController {
 
     private final GameService gameService;
     private final MoveService moveService;
+    private final GameWebSocketHandler webSocketHandler;
 
-    GameController(GameService gameService, MoveService moveService) {
+    GameController(GameService gameService, MoveService moveService, GameWebSocketHandler webSocketHandler) {
         this.gameService = gameService;
         this.moveService = moveService;
+        this.webSocketHandler = webSocketHandler;
     }
 
     /**
@@ -30,9 +35,7 @@ public class GameController {
     public GameGetDTO getGame(
             @PathVariable Long gameId,
             @RequestHeader("Authorization") String token) {
-
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        return gameService.getGameById(gameId); //DTO already assembled in GameService through buildGameGetDTO
     }
 
     /**
@@ -46,9 +49,13 @@ public class GameController {
             @PathVariable Long gameId,
             @RequestBody MovePostDTO movePostDTO,
             @RequestHeader("Authorization") String token) {
-
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        GameGetDTO result = moveService.processMove(gameId, movePostDTO, token);
+        if (result.getWinnerId() != null) {
+            webSocketHandler.broadcastGameEvent("GAME_OVER", gameId);
+        } else {
+            webSocketHandler.broadcastGameEvent("MOVE", gameId);
+        }
+        return result;
     }
 
     /**
@@ -62,9 +69,9 @@ public class GameController {
             @PathVariable Long gameId,
             @RequestBody WallPostDTO wallPostDTO,
             @RequestHeader("Authorization") String token) {
-
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        GameGetDTO result = moveService.applyWallPlacement(gameId, wallPostDTO, token);
+        webSocketHandler.broadcastGameEvent("WALL", gameId);
+        return result;
     }
 
     /**
@@ -77,8 +84,9 @@ public class GameController {
     public GameGetDTO forfeitGame(
             @PathVariable Long gameId,
             @RequestHeader("Authorization") String token) {
-
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        GameGetDTO result = gameService.forfeitGame(gameId, token);
+        webSocketHandler.broadcastGameEvent("FORFEIT", gameId);
+        webSocketHandler.broadcastGameEvent("GAME_OVER", gameId);
+        return result;
     }
 }

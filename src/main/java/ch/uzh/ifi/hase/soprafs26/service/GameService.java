@@ -1,16 +1,29 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
+import ch.uzh.ifi.hase.soprafs26.constant.GameStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.Game;
+import ch.uzh.ifi.hase.soprafs26.entity.Pawn;
+import ch.uzh.ifi.hase.soprafs26.entity.Lobby;
+import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.LobbyRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.GameGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.PawnGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.WallGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs26.websocket.GameWebSocketHandler;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 /**
  * Handles game lifecycle: creation, retrieval, forfeit, win-condition, and turn advancement.
@@ -59,9 +72,30 @@ public class GameService {
      * Sets lobby.gameId so the client can navigate to /games/{id}.
      */
     public Game createGameFromLobby(Long lobbyId, String token) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
-    }
+        Lobby lobby = lobbyRepository.findById(lobbyId) // find lobby
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
+
+        User user = userRepository.findByToken(token); // find user
+        if (user==null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
+        // build game entity
+        Game game = new Game();
+        game.setLobbyId(lobbyId);
+        game.setCreatorId(lobby.getHostId());
+        game.setPlayerIds(new ArrayList<>(lobby.getPlayerIds()));
+        game.setCurrentTurnUserId(lobby.getPlayerIds().get(0));
+        game.setGameStatus(GameStatus.RUNNING);
+        game.setSizeBoard(9); // standard logical size (9x9 fields for pawn)
+        game.setWallsPerPlayer(lobby.getMaxPlayers() == 2 ? 10 : 5); // check if lobby has 2 or 4 players
+
+        game = gameRepository.save(game);
+        gameRepository.flush();
+
+        gameStateCache.initGame(game.getId(), game.getPlayerIds());
+        lobby.setGameId(game.getId());
+        lobbyRepository.save(lobby);
+
+        return game;
+    }   
 
     // ─────────────────────────────────────────────────────────────
     //  Read
@@ -71,8 +105,9 @@ public class GameService {
      * Returns a GameGetDTO with embedded pawns and walls from the cache.
      */
     public GameGetDTO getGameById(Long gameId) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        Game game = gameRepository.findById(gameId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+        return buildGameGetDTO(game); // call build and return DTO
     }
 
     /**
@@ -80,8 +115,22 @@ public class GameService {
      * GameStateCache (pawns + walls).
      */
     public GameGetDTO buildGameGetDTO(Game game) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        // convert entity to DTO
+        GameGetDTO dto = DTOMapper.INSTANCE.convertEntityToGameGetDTO(game);
+
+        // manually attach pawns from the game cache
+        List<PawnGetDTO> pawnDTOs = gameStateCache.getPawns(game.getId()).stream()
+            .map(DTOMapper.INSTANCE::convertEntityToPawnGetDTO)
+            .collect(Collectors.toList());
+        dto.setPawns(pawnDTOs);
+
+        // manually attach walls from game cache
+        List<WallGetDTO> wallDTOs = gameStateCache.getWalls(game.getId()).stream()
+            .map(DTOMapper.INSTANCE::convertEntityToWallGetDTO)
+            .collect(Collectors.toList());
+        dto.setWalls(wallDTOs);
+
+        return dto;
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -93,8 +142,25 @@ public class GameService {
      * Evicts the game from the cache and broadcasts a final refresh.
      */
     public GameGetDTO forfeitGame(Long gameId, String token) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        Game game = gameRepository.findById(gameId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+        User user = userRepository.findByToken(token);
+        if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
+        
+        // The other player wins
+        Long winnerId = game.getPlayerIds().stream()
+            .filter(id -> !id.equals(user.getId()))
+            .findFirst()
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot forfeit"));
+
+        game.setGameStatus(GameStatus.ENDED);
+        game.setWinnerId(winnerId);
+        gameRepository.save(game);
+
+        // Free memory
+        gameStateCache.evictGame(gameId);
+
+        return buildGameGetDTO(game);
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -106,14 +172,22 @@ public class GameService {
      * Reads the pawn position from GameStateCache.
      *
      * Goal mapping (player index in game.playerIds):
-     *   index 0 → goal row = 0
-     *   index 1 → goal row = 16
-     *   index 2 → goal col = 16
-     *   index 3 → goal col = 0
+     *   index 0 => goal row = 0
+     *   index 1 => goal row = 16
      */
     public boolean checkWinCondition(Game game, Long userId) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        int index = game.getPlayerIds().indexOf(userId);
+        if (index < 0) return false;
+
+        Pawn pawn = gameStateCache.getPawn(game.getId(), userId);
+        if (pawn == null) return false;
+
+        if (index == 0) return pawn.getRow() == 0;  //index 0 => goal row = 0
+        if (index == 1) return pawn.getRow() == 16; //index 1 => goal row = 16
+        if (index == 2) return pawn.getCol() == 0; // index 3 => starts on right side -> goal col = 0
+        if (index == 3) return pawn.getCol() == 16;
+
+        return false;
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -125,7 +199,18 @@ public class GameService {
      * Persists the change to the Game entity.
      */
     public void advanceTurn(Game game) {
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        List<Long> players = game.getPlayerIds();
+        int index = players.indexOf(game.getCurrentTurnUserId());
+        int next = (index + 1) % players.size();
+        game.setCurrentTurnUserId(players.get(next));
+        gameRepository.saveAndFlush(game);
+    }
+
+    // Ends the game with the given winner, evicts cache, broadcasts GAME_OVER.
+    public void endGame(Game game, Long winnerId) {
+        game.setWinnerId(winnerId);
+        game.setGameStatus(GameStatus.ENDED);
+        gameRepository.saveAndFlush(game);
+        gameStateCache.evictGame(game.getId());
     }
 }

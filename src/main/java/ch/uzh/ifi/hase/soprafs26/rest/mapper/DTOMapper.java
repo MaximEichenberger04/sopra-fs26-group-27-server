@@ -113,8 +113,8 @@ public interface DTOMapper {
 	@Mapping(source = "wallsPerPlayer", target = "wallsPerPlayer")
 	@Mapping(source = "winnerId", target = "winnerId")
 	@Mapping(source = "playerIds", target = "playerIds")
-	@Mapping(target = "pawns", ignore = true)
-	@Mapping(target = "walls", ignore = true)
+	@Mapping(target = "pawns", ignore = true) // lives in GameStateCache (memory)
+	@Mapping(target = "walls", ignore = true) // lives in GameStateCache (memory)
 	GameGetDTO convertEntityToGameGetDTO(Game game);
 
 	@Mapping(source = "id", target = "id")
