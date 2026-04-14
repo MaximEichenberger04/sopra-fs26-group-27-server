@@ -98,8 +98,7 @@ public class LobbyController {
             @PathVariable Long lobbyId,
             @RequestHeader("Authorization") String token) {
 
-        // TODO
-        throw new UnsupportedOperationException("not implemented");
+        return lobbyService.startLobby(lobbyId, token);
     }
 
     /**
