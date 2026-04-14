@@ -48,7 +48,8 @@ jobs:
         uses: google-github-actions/deploy-appengine@v0.2.0
         with:
           deliverables: app.yaml
-          version: v1
+          version: ${{ github.run_id }} # github decides version
+          promote: true # use new deployment version
           credentials: ${{ secrets.GCP_SERVICE_CREDENTIALS }}
 
       - name: Test
