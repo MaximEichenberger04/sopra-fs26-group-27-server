@@ -166,4 +166,19 @@ public class UserService {
 		return existingUser;
 	}
 
+	public void logoutUser(String token) {
+
+        User user = userRepository.findByToken(token);
+
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+        }
+
+        user.setStatus(UserStatus.OFFLINE);
+        user.setToken(UUID.randomUUID().toString()); 
+
+        userRepository.save(user);
+        userRepository.flush();   
+    }
+
 }

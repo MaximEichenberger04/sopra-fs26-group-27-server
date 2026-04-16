@@ -93,4 +93,11 @@ public class UserController {
 		return DTOMapper.INSTANCE.convertEntityToUserGetDTO(updatedUser);
 	}
 
+	@PutMapping("/logout")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@ResponseBody
+	public void logoutUser(@RequestHeader(value = "Authorization", required = false) String token) {
+		userService.logoutUser(token);
+	}
+
 }
