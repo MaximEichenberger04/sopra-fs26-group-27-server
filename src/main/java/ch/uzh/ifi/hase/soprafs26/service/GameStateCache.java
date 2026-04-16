@@ -174,7 +174,11 @@ public class GameStateCache {
 
     // Appends a message to the chat history for the given game.
     public void addChatMessage(Long gameId, ChatMessage message) {
-        chatMessages.get(gameId).add(message);
+        List<ChatMessage> history = chatMessages.get(gameId);
+        if (history == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game state not found for game " + gameId);
+        }
+        history.add(message);
     }
 
     // Returns the full chat history for the given game, or an empty list if not found.
