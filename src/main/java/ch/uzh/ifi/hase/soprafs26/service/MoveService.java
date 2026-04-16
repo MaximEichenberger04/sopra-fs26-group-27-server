@@ -99,9 +99,7 @@ public class MoveService {
 
         gameStateCache.movePawn(gameId, userId, row, col);
         if (gameService.checkWinCondition(game, userId)) {
-            GameGetDTO result = gameService.buildGameGetDTO(game); // build BEFORE evict
-            gameService.endGame(game, userId);                     // evicts cache here
-            return result;
+            return gameService.endGame(game, userId);
         } else {
             gameService.advanceTurn(game);
             return gameService.buildGameGetDTO(game);

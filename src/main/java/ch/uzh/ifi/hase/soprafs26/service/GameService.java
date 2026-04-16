@@ -23,7 +23,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.stream.Collectors;
+import ch.uzh.ifi.hase.soprafs26.entity.Wall;
 
 /**
  * Handles game lifecycle: creation, retrieval, forfeit, win-condition, and turn advancement.
@@ -130,6 +133,17 @@ public class GameService {
             .collect(Collectors.toList());
         dto.setWalls(wallDTOs);
 
+        // compute remaining wall budget per player
+        Map<Long, Long> usedWalls = gameStateCache.getWalls(game.getId()).stream()
+            .collect(Collectors.groupingBy(Wall::getUserId, Collectors.counting()));
+
+        Map<Long, Integer> remainingWalls = new HashMap<>();
+        for (Long playerId : game.getPlayerIds()) {
+            int used = usedWalls.getOrDefault(playerId, 0L).intValue();
+            remainingWalls.put(playerId, game.getWallsPerPlayer() - used);
+        }
+        dto.setRemainingWalls(remainingWalls);
+
         return dto;
     }
 
@@ -207,10 +221,12 @@ public class GameService {
     }
 
     // Ends the game with the given winner, evicts cache, broadcasts GAME_OVER.
-    public void endGame(Game game, Long winnerId) {
+    public GameGetDTO endGame(Game game, Long winnerId) {
         game.setWinnerId(winnerId);
         game.setGameStatus(GameStatus.ENDED);
         gameRepository.saveAndFlush(game);
+        GameGetDTO dto = buildGameGetDTO(game);
         gameStateCache.evictGame(game.getId());
+        return dto;
     }
 }

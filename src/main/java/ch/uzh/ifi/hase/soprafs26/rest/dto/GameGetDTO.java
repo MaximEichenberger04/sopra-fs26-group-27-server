@@ -3,6 +3,7 @@ package ch.uzh.ifi.hase.soprafs26.rest.dto;
 import ch.uzh.ifi.hase.soprafs26.constant.GameStatus;
 
 import java.util.List;
+import java.util.Map;
 
 public class GameGetDTO {
 
@@ -19,6 +20,7 @@ public class GameGetDTO {
     // Embedded board state, populated manually in GameService, not by MapStruct
     private List<PawnGetDTO> pawns;
     private List<WallGetDTO> walls;
+    private Map<Long, Integer> remainingWalls;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -52,4 +54,7 @@ public class GameGetDTO {
 
     public List<WallGetDTO> getWalls() { return walls; }
     public void setWalls(List<WallGetDTO> walls) { this.walls = walls; }
+
+    public Map<Long, Integer> getRemainingWalls() { return remainingWalls; }
+    public void setRemainingWalls(Map<Long, Integer> remainingWalls) { this.remainingWalls = remainingWalls; }
 }
