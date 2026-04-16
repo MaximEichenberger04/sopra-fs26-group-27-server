@@ -10,22 +10,17 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 public class WebSocketConfig implements WebSocketConfigurer {
 
     private final GameWebSocketHandler gameWebSocketHandler;
-    private final ChatWebSocketHandler chatWebSocketHandler;
 
-    public WebSocketConfig(GameWebSocketHandler gameWebSocketHandler,
-                           ChatWebSocketHandler chatWebSocketHandler) {
+    public WebSocketConfig(GameWebSocketHandler gameWebSocketHandler) {
         this.gameWebSocketHandler = gameWebSocketHandler;
-        this.chatWebSocketHandler = chatWebSocketHandler;
     }
 
     /**
-     * Registers WebSocket handlers:
-     *   /game-refresh-websocket, game state refresh (all sessions, flat list)
-     *   /chat-refresh-websocket, in-game chat (sessions grouped by gameId query param)
+     * Registers WebSocket handler:
+     *   /game-refresh-websocket, game state refresh (all sessions, flat list), chat refresh
      */
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(gameWebSocketHandler, "/game-refresh-websocket").setAllowedOrigins("*");
-        registry.addHandler(chatWebSocketHandler, "/chat-refresh-websocket").setAllowedOrigins("*");
     }
 }
