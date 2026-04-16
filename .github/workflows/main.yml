@@ -35,21 +35,26 @@ jobs:
           SONAR_ORGANIZATION: ${{ secrets.SONAR_ORGANIZATION }}
 
   deploy:
-    name: Deploying to Google Cloud
+    name: Deploying to Google Cloud Run
     runs-on: ubuntu-latest
-    # needs: test
+    # needs: test  # uncomment when tests are stable
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Deploy to App Engine
-        id: deploy
-        uses: google-github-actions/deploy-appengine@v0.2.0
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
         with:
-          deliverables: app.yaml
-          version: v1
-          credentials: ${{ secrets.GCP_SERVICE_CREDENTIALS }}
+          credentials_json: ${{ secrets.GCP_SERVICE_CREDENTIALS }}
 
-      - name: Test
-        run: curl "${{ steps.deploy.outputs.url }}"
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: sopra-fs26-group-27-server
+          image: docker.io/${{ secrets.dockerhub_username }}/${{ secrets.dockerhub_repo_name }}:latest
+          region: europe-west6
+          flags: >
+            --allow-unauthenticated
+            --port 8080
+            --timeout 3600
