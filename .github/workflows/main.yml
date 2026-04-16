@@ -51,7 +51,7 @@ jobs:
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
-          service: sopra-fs26-group-27-server
+          service: sopra-fs26-server
           image: docker.io/${{ secrets.dockerhub_username }}/${{ secrets.dockerhub_repo_name }}:latest
           region: europe-west6
           flags: >
