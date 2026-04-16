@@ -21,6 +21,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * Message format sent to clients:
  *   {"type":"MOVE","gameId":"<id>"}
  *   {"type":"WALL","gameId":"<id>"}
+ *   {"type":"CHAT","gameId":"<id>"}
  *   {"type":"FORFEIT","gameId":"<id>"}
  *   {"type":"GAME_STARTED","gameId":"<id>"}
  *   {"type":"GAME_OVER","gameId":"<id>"}
@@ -51,10 +52,11 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
      *   broadcastGameEvent("GAME_STARTED", gameId), called by LobbyService.startLobby
      *   broadcastGameEvent("MOVE",         gameId), called by MoveService.processMove
      *   broadcastGameEvent("WALL",         gameId), called by MoveService.applyWallPlacement
+     *   broadcastGameEvent("CHAT",         gameId), called by ChatService.sendMessage
      *   broadcastGameEvent("FORFEIT",      gameId), called by GameService.forfeitGame
      *   broadcastGameEvent("GAME_OVER",    gameId), called by GameService.forfeitGame / MoveService.processMove (win)
      *
-     * @param type   one of: GAME_STARTED, MOVE, WALL, FORFEIT, GAME_OVER
+     * @param type   one of: GAME_STARTED, MOVE, WALL, CHAT, FORFEIT, GAME_OVER
      * @param gameId the affected game
      */
     public void broadcastGameEvent(String type, Long gameId) {
