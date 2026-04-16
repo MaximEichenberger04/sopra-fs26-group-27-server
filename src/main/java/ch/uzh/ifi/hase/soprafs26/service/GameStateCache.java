@@ -2,6 +2,7 @@ package ch.uzh.ifi.hase.soprafs26.service;
  
 import ch.uzh.ifi.hase.soprafs26.constant.AbilityType;
 import ch.uzh.ifi.hase.soprafs26.constant.WallOrientation;
+import ch.uzh.ifi.hase.soprafs26.entity.ChatMessage;
 import ch.uzh.ifi.hase.soprafs26.entity.Pawn;
 import ch.uzh.ifi.hase.soprafs26.entity.PoisonZone;
 import ch.uzh.ifi.hase.soprafs26.entity.Wall;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * In-memory store for all active game state (walls and pawns).
@@ -62,6 +64,7 @@ public class GameStateCache {
     private final Map<Long, boolean[][]> wallGrids = new ConcurrentHashMap<>();
     private final Map<Long, List<Wall>>  walls     = new ConcurrentHashMap<>();
     private final Map<Long, List<Pawn>>  pawns     = new ConcurrentHashMap<>();
+    private final Map<Long, List<ChatMessage>> chatMessages = new ConcurrentHashMap<>();
 
     // Chaos Gamemode (additional)
     private final Map<Long, Map<Long, List<AbilityType>>> playerInventories = new ConcurrentHashMap<>();
@@ -82,6 +85,7 @@ public class GameStateCache {
         }
         wallGrids.put(gameId, new boolean[INTERNAL_SIZE][INTERNAL_SIZE]);
         walls.put(gameId, new ArrayList<>());
+        chatMessages.put(gameId, new CopyOnWriteArrayList<>());
 
         // Creates a pawn for each player, assigns an ID, user, and starting position, and stores all pawns for this game
         List<Pawn> pawnList = new ArrayList<>();
@@ -230,6 +234,16 @@ public class GameStateCache {
         return Collections.unmodifiableList(playerIds);
     }
 
+    // Appends a message to the chat history for the given game.
+    public void addChatMessage(Long gameId, ChatMessage message) {
+        chatMessages.get(gameId).add(message);
+    }
+
+    // Returns the full chat history for the given game, or an empty list if not found.
+    public List<ChatMessage> getChatHistory(Long gameId) {
+        return chatMessages.getOrDefault(gameId, List.of());
+    }   
+
     // Removes all state for a finished game to free memory. 
     public void evictGame(Long gameId) {
         wallGrids.remove(gameId);
@@ -243,6 +257,7 @@ public class GameStateCache {
         bonusActions.remove(gameId);
         poisonZones.remove(gameId);
         extraWalls.remove(gameId);
+        chatMessages.remove(gameId);
     }
 
     // Player card inventory methods
