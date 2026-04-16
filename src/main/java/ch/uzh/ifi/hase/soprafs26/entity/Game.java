@@ -43,6 +43,14 @@ public class Game implements Serializable {
     @Column(name = "user_id")
     private List<Long> playerIds = new ArrayList<>();
 
+    @ElementCollection
+    @CollectionTable(name = "game_active_players", joinColumns = @JoinColumn(name = "game_id"))
+    @Column(name = "user_id")
+    private List<Long> activePlayerIds = new ArrayList<>();
+
+    public List<Long> getActivePlayerIds() { return activePlayerIds; }
+    public void setActivePlayerIds(List<Long> activePlayerIds) { this.activePlayerIds = activePlayerIds; }
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

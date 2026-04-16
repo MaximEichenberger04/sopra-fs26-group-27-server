@@ -22,6 +22,11 @@ public class GameGetDTO {
     private List<WallGetDTO> walls;
     private Map<Long, Integer> remainingWalls;
 
+    private List<Long> activePlayerIds; // need this for automatic disconnect logic
+
+    public List<Long> getActivePlayerIds() { return activePlayerIds; }
+    public void setActivePlayerIds(List<Long> activePlayerIds) { this.activePlayerIds = activePlayerIds; }
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

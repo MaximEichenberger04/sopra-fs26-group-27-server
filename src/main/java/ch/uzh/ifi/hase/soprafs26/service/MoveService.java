@@ -76,6 +76,10 @@ public class MoveService {
         User authenticatedUser = requireUser(token);
         Long userId = authenticatedUser.getId();
         Game game = requireGame(gameId);
+
+        if (!game.getActivePlayerIds().contains(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are no longer active in this game");
+        }
         requireTurn(game, userId);
 
         int[] targetField = dto.getTargetField();
@@ -124,6 +128,9 @@ public class MoveService {
         User authenticatedUser = requireUser(token);
         Long userId = authenticatedUser.getId();
         Game game = requireGame(gameId);
+        if (!game.getActivePlayerIds().contains(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are no longer active in this game");
+        }
         requireTurn(game, userId);
 
         int[] targetField = dto.getTargetField();
@@ -155,7 +162,7 @@ public class MoveService {
         boolean[][] gridCopy =  copyWallGrid(grid); // create a copy of grid to test a new wall placement
         simulateWallPlacement(gridCopy, row, col, orientation); 
 
-        if (!allPlayersHavePathToGoal(gridCopy, pawns)){
+        if (!allPlayersHavePathToGoal(game, gridCopy, pawns)){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Wall placement blocks all paths to goal");
         }
 
@@ -193,29 +200,34 @@ public class MoveService {
         }
     }
 
-    private boolean allPlayersHavePathToGoal(boolean[][] gridCopy, List<Pawn> pawns){
+    private boolean allPlayersHavePathToGoal(Game game, boolean[][] gridCopy, List<Pawn> pawns){
+        Map<Long, Pawn> pawnByUserId = pawns.stream()
+        .collect(Collectors.toMap(Pawn::getUserId, p -> p));
 
-        for (int i = 0; i < pawns.size(); i++) {
-            Pawn pawn = pawns.get(i);
+        for (Long activeUserId : game.getActivePlayerIds()) {
+            int originalIndex = game.getPlayerIds().indexOf(activeUserId);
+            if (originalIndex < 0) {
+                return false;
+            }
+
+            Pawn pawn = pawnByUserId.get(activeUserId);
+            if (pawn == null) {
+                return false;
+            }
+
             boolean hasPath;
-
-            if (pawns.size() == 2) {
-                if (i == 0) {
-                    hasPath = hasPathToGoalRow(gridCopy, pawn.getRow(), pawn.getCol(), 0);
-                } else {
-                    hasPath = hasPathToGoalRow(gridCopy, pawn.getRow(), pawn.getCol(), INTERNAL_SIZE - 1);
-                }
-            } else {
-                if (i == 0){
-                    hasPath = hasPathToGoalRow(gridCopy, pawn.getRow(), pawn.getCol(), 0);
-                }
-                 else if (i == 1) {
-                    hasPath = hasPathToGoalRow(gridCopy, pawn.getRow(), pawn.getCol(), INTERNAL_SIZE - 1);
-                } else if (i == 2) {
-                    hasPath = hasPathToGoalCol(gridCopy, pawn.getRow(), pawn.getCol(), 0);
-                } else {
-                    hasPath = hasPathToGoalCol(gridCopy, pawn.getRow(), pawn.getCol(), INTERNAL_SIZE - 1);
-                }
+            if (originalIndex == 0){
+                hasPath = hasPathToGoalRow(gridCopy, pawn.getRow(), pawn.getCol(), 0);
+            }
+            else if (originalIndex == 1) {
+                hasPath = hasPathToGoalRow(gridCopy, pawn.getRow(), pawn.getCol(), INTERNAL_SIZE - 1);
+            } else if (originalIndex == 2) {
+                hasPath = hasPathToGoalCol(gridCopy, pawn.getRow(), pawn.getCol(), 0);
+            } else if (originalIndex == 3) {
+                hasPath = hasPathToGoalCol(gridCopy, pawn.getRow(), pawn.getCol(), INTERNAL_SIZE - 1);
+            }
+            else{
+                return false;
             }
 
             if (!hasPath) {

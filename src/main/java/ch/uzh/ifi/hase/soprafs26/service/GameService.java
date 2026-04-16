@@ -85,6 +85,7 @@ public class GameService {
         game.setLobbyId(lobbyId);
         game.setCreatorId(lobby.getHostId());
         game.setPlayerIds(new ArrayList<>(lobby.getPlayerIds()));
+        game.setActivePlayerIds(new ArrayList<>(lobby.getPlayerIds())); //automatic disconnect logic
         game.setCurrentTurnUserId(lobby.getPlayerIds().get(0));
         game.setGameStatus(GameStatus.RUNNING);
         game.setSizeBoard(9); // standard logical size (9x9 fields for pawn)
@@ -161,18 +162,56 @@ public class GameService {
         User user = userRepository.findByToken(token);
         if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
         
-        // The other player wins
-        Long winnerId = game.getPlayerIds().stream()
-            .filter(id -> !id.equals(user.getId()))
-            .findFirst()
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot forfeit"));
+        if (game.getGameStatus() == GameStatus.ENDED) {
+            return buildGameGetDTO(game);
+        }
 
-        game.setGameStatus(GameStatus.ENDED);
-        game.setWinnerId(winnerId);
-        gameRepository.save(game);
+        removePlayerFromGame(game, user.getId());
 
-        // Free memory
-        gameStateCache.evictGame(gameId);
+        if (game.getActivePlayerIds().size() == 1) {
+            Long winnerId = game.getActivePlayerIds().get(0);
+            return endGame(game, winnerId);
+        }
+
+        if (game.getCurrentTurnUserId().equals(user.getId())) {
+            advanceTurn(game);
+        } else {
+            gameRepository.saveAndFlush(game);
+        }
+
+        return buildGameGetDTO(game);
+    }
+
+    private void removePlayerFromGame(Game game, Long userId) {
+        List<Long> activePlayers = new ArrayList<>(game.getActivePlayerIds());
+        activePlayers.remove(userId);
+        game.setActivePlayerIds(activePlayers);
+    }
+
+    public GameGetDTO forfeitDisconnectedPlayer(Long gameId, Long disconnectedUserId) {
+        Game game = gameRepository.findById(gameId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+
+        if (game.getGameStatus() == GameStatus.ENDED) {
+            return buildGameGetDTO(game);
+        }
+
+        if (!game.getActivePlayerIds().contains(disconnectedUserId)) {
+            return buildGameGetDTO(game);
+        }
+
+        removePlayerFromGame(game, disconnectedUserId);
+
+        if (game.getActivePlayerIds().size() == 1) {
+            Long winnerId = game.getActivePlayerIds().get(0);
+            return endGame(game, winnerId);
+        }
+
+        if (game.getCurrentTurnUserId().equals(disconnectedUserId)) {
+            advanceTurn(game);
+        } else {
+            gameRepository.saveAndFlush(game);
+        }
 
         return buildGameGetDTO(game);
     }
@@ -217,6 +256,21 @@ public class GameService {
         int index = players.indexOf(game.getCurrentTurnUserId());
         int next = (index + 1) % players.size();
         game.setCurrentTurnUserId(players.get(next));
+        gameRepository.saveAndFlush(game);
+
+        List<Long> activePlayers = game.getActivePlayerIds();
+        if (activePlayers == null || activePlayers.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No active players left");
+        }
+
+        int index = activePlayers.indexOf(game.getCurrentTurnUserId());
+        if (index == -1) {
+            game.setCurrentTurnUserId(activePlayers.get(0)); // fallback incase current turn player is disconnected before turn advancement
+        } else {
+            int next = (index + 1) % activePlayers.size();
+            game.setCurrentTurnUserId(activePlayers.get(next));
+        }
+
         gameRepository.saveAndFlush(game);
     }
 
