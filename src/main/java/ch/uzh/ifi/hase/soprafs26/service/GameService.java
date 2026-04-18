@@ -12,7 +12,7 @@ import ch.uzh.ifi.hase.soprafs26.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.PawnGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.WallGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
-import ch.uzh.ifi.hase.soprafs26.websocket.GameWebSocketHandler;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import org.slf4j.Logger;
@@ -50,19 +50,17 @@ public class GameService {
     private final LobbyRepository lobbyRepository;
     private final UserRepository userRepository;
     private final GameStateCache gameStateCache;
-    private final GameWebSocketHandler gameWebSocketHandler;
+
 
     public GameService(
             @Qualifier("gameRepository")  GameRepository gameRepository,
             @Qualifier("lobbyRepository") LobbyRepository lobbyRepository,
             @Qualifier("userRepository")  UserRepository userRepository,
-            GameStateCache gameStateCache,
-            GameWebSocketHandler gameWebSocketHandler) {
+            GameStateCache gameStateCache) {
         this.gameRepository       = gameRepository;
         this.lobbyRepository      = lobbyRepository;
         this.userRepository       = userRepository;
         this.gameStateCache       = gameStateCache;
-        this.gameWebSocketHandler = gameWebSocketHandler;
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -174,8 +172,9 @@ public class GameService {
         }
 
         if (game.getCurrentTurnUserId().equals(user.getId())) {
-            advanceTurn(game);
-        } else {
+            advanceTurn(game, user.getId());
+        }
+         else {
             gameRepository.saveAndFlush(game);
         }
 
@@ -208,7 +207,7 @@ public class GameService {
         }
 
         if (game.getCurrentTurnUserId().equals(disconnectedUserId)) {
-            advanceTurn(game);
+            advanceTurn(game, disconnectedUserId);
         } else {
             gameRepository.saveAndFlush(game);
         }
@@ -252,26 +251,43 @@ public class GameService {
      * Persists the change to the Game entity.
      */
     public void advanceTurn(Game game) {
-        List<Long> players = game.getPlayerIds();
-        int index = players.indexOf(game.getCurrentTurnUserId());
-        int next = (index + 1) % players.size();
-        game.setCurrentTurnUserId(players.get(next));
-        gameRepository.saveAndFlush(game);
+        advanceTurn(game, null);
+    }
 
+    public void advanceTurn(Game game, Long removedUserId) {
         List<Long> activePlayers = game.getActivePlayerIds();
         if (activePlayers == null || activePlayers.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No active players left");
         }
 
-        int index = activePlayers.indexOf(game.getCurrentTurnUserId());
-        if (index == -1) {
-            game.setCurrentTurnUserId(activePlayers.get(0)); // fallback incase current turn player is disconnected before turn advancement
-        } else {
+        Long currentTurnUserId = game.getCurrentTurnUserId();
+        int index = activePlayers.indexOf(currentTurnUserId);
+
+        if (index != -1) {
             int next = (index + 1) % activePlayers.size();
             game.setCurrentTurnUserId(activePlayers.get(next));
+            gameRepository.saveAndFlush(game);
+            return;
         }
 
-        gameRepository.saveAndFlush(game);
+        if (removedUserId != null) {
+            List<Long> originalOrder = game.getPlayerIds();
+            int removedIndex = originalOrder.indexOf(removedUserId);
+            if (removedIndex == -1) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Removed player not found in original order");
+            }
+
+            for (int step = 1; step <= originalOrder.size(); step++) {
+                Long candidate = originalOrder.get((removedIndex + step) % originalOrder.size());
+                if (activePlayers.contains(candidate)) {
+                    game.setCurrentTurnUserId(candidate);
+                    gameRepository.saveAndFlush(game);
+                    return;
+                }
+            }
+        }
+
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not determine next active player");
     }
 
     // Ends the game with the given winner, evicts cache, broadcasts GAME_OVER.

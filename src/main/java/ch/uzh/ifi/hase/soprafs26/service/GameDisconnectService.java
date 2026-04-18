@@ -5,6 +5,7 @@ import ch.uzh.ifi.hase.soprafs26.entity.Game;
 import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs26.websocket.GameWebSocketHandler;
 import org.springframework.stereotype.Service;
+import org.springframework.context.annotation.Lazy;
 
 import java.util.Map;
 import java.util.concurrent.*;
@@ -23,7 +24,7 @@ public class GameDisconnectService {
 
     public GameDisconnectService(GameRepository gameRepository,
                                  GameService gameService,
-                                 GameWebSocketHandler gameWebSocketHandler) {
+                                 @Lazy GameWebSocketHandler gameWebSocketHandler) {
         this.gameRepository = gameRepository;
         this.gameService = gameService;
         this.gameWebSocketHandler = gameWebSocketHandler;

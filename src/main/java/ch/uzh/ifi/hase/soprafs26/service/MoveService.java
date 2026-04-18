@@ -20,6 +20,8 @@ import org.springframework.http.HttpStatus;
 import ch.uzh.ifi.hase.soprafs26.constant.GameStatus;
 import java.util.Queue;
 import java.util.LinkedList;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Handles pawn moves and wall placements for a Quoridor game.
