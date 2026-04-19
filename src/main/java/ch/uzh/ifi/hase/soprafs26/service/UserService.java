@@ -13,6 +13,7 @@ import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.time.LocalDate;
 
@@ -31,6 +32,16 @@ public class UserService {
 
 	private final UserRepository userRepository;
 
+	private static final Map<String, Integer> COSMETIC_PRICES = Map.ofEntries(
+			Map.entry("border-crimson", 300), Map.entry("border-emerald", 300),
+			Map.entry("border-royal", 300), Map.entry("border-fire", 500),
+			Map.entry("border-ice", 500), Map.entry("border-rainbow", 1000),
+			Map.entry("border-shadow", 800),
+			Map.entry("pawn-lava", 400), Map.entry("pawn-ocean", 400),
+			Map.entry("pawn-galaxy", 600), Map.entry("pawn-forest", 400),
+			Map.entry("pawn-diamond", 800), Map.entry("pawn-gold", 1200),
+			Map.entry("pawn-void", 600), Map.entry("pawn-rose", 400));
+
 	public UserService(@Qualifier("userRepository") UserRepository userRepository) {
 		this.userRepository = userRepository;
 	}
@@ -43,6 +54,7 @@ public class UserService {
 		newUser.setToken(UUID.randomUUID().toString());
 		newUser.setStatus(UserStatus.ONLINE);
 		newUser.setCreationDate(LocalDate.now());
+		newUser.setCoins(1000);
 		checkIfUserExists(newUser);
 		// saves the given entity but data is only persisted in the database once
 		// flush() is called
@@ -133,6 +145,22 @@ public class UserService {
 			existingUser.setAvatarURL(userInput.getAvatarURL());
 		}
 
+		if (userInput.getEquippedBorder() != null) {
+			if (userInput.getEquippedBorder().isBlank()) {
+				existingUser.setEquippedBorder(null);
+			} else {
+				existingUser.setEquippedBorder(userInput.getEquippedBorder());
+			}
+		}
+
+		if (userInput.getEquippedPawnSkin() != null) {
+			if (userInput.getEquippedPawnSkin().isBlank()) {
+				existingUser.setEquippedPawnSkin(null);
+			} else {
+				existingUser.setEquippedPawnSkin(userInput.getEquippedPawnSkin());
+			}
+		}
+
 		// Update password (requires current password for verification)
 		if (userInput.getPassword() != null && !userInput.getPassword().isBlank()) {
 			// 1. Check current password FIRST
@@ -166,19 +194,46 @@ public class UserService {
 		return existingUser;
 	}
 
+	public User buyCosmetic(Long id, String token, String cosmeticId) {
+		User user = userRepository.findByToken(token);
+		if (user == null || !user.getId().equals(id)) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+					"You can only buy cosmetics for your own user account");
+		}
+
+		Integer price = COSMETIC_PRICES.get(cosmeticId);
+		if (price == null) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown cosmetic");
+		}
+
+		String owned = user.getOwnedCosmetics() != null ? user.getOwnedCosmetics() : "";
+		if (owned.contains(cosmeticId)) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You already own this cosmetic");
+		}
+
+		if (user.getCoins() < price) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Not enough coins");
+		}
+
+		user.setCoins(user.getCoins() - price);
+		user.setOwnedCosmetics(owned.isEmpty() ? cosmeticId : owned + "," + cosmeticId);
+		userRepository.save(user);
+		return user;
+	}
+
 	public void logoutUser(String token) {
 
-        User user = userRepository.findByToken(token);
+		User user = userRepository.findByToken(token);
 
-        if (user == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
-        }
+		if (user == null) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+		}
 
-        user.setStatus(UserStatus.OFFLINE);
-        user.setToken(UUID.randomUUID().toString()); 
+		user.setStatus(UserStatus.OFFLINE);
+		user.setToken(UUID.randomUUID().toString());
 
-        userRepository.save(user);
-        userRepository.flush();   
-    }
+		userRepository.save(user);
+		userRepository.flush();
+	}
 
 }

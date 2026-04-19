@@ -1,15 +1,17 @@
 package ch.uzh.ifi.hase.soprafs26.rest.dto;
 
 public class UserPatchDTO {
-    private String displayName;
+	private String displayName;
 	private String username;
 	private String password;
 	private String avatarURL;
-    private String preferredLanguage;
+	private String preferredLanguage;
 	private String biography;
-    private String currentPassword;
+	private String currentPassword;
+	private String equippedBorder;
+	private String equippedPawnSkin;
 
-    public String getDisplayName() {
+	public String getDisplayName() {
 		return displayName;
 	}
 
@@ -57,11 +59,27 @@ public class UserPatchDTO {
 		this.preferredLanguage = preferredLanguage;
 	}
 
-    public String getCurrentPassword() {
+	public String getCurrentPassword() {
 		return currentPassword;
 	}
 
 	public void setCurrentPassword(String currentPassword) {
 		this.currentPassword = currentPassword;
+	}
+
+	public String getEquippedBorder() {
+		return equippedBorder;
+	}
+
+	public void setEquippedBorder(String equippedBorder) {
+		this.equippedBorder = equippedBorder;
+	}
+
+	public String getEquippedPawnSkin() {
+		return equippedPawnSkin;
+	}
+
+	public void setEquippedPawnSkin(String equippedPawnSkin) {
+		this.equippedPawnSkin = equippedPawnSkin;
 	}
 }

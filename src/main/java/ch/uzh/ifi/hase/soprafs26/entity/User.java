@@ -57,6 +57,18 @@ public class User implements Serializable {
 	@Column(nullable = true)
 	private String preferredLanguage;
 
+	@Column(nullable = true)
+	private int coins;
+
+	@Column(nullable = true)
+	private String ownedCosmetics;
+
+	@Column(nullable = true)
+	private String equippedBorder;
+
+	@Column(nullable = true)
+	private String equippedPawnSkin;
+
 	@Transient
 	private String currentPassword;
 
@@ -152,6 +164,38 @@ public class User implements Serializable {
 
 	public void setPreferredLanguage(String preferredLanguage) {
 		this.preferredLanguage = preferredLanguage;
+	}
+
+	public int getCoins() {
+		return coins;
+	}
+
+	public void setCoins(int coins) {
+		this.coins = coins;
+	}
+
+	public String getOwnedCosmetics() {
+		return ownedCosmetics;
+	}
+
+	public void setOwnedCosmetics(String ownedCosmetics) {
+		this.ownedCosmetics = ownedCosmetics;
+	}
+
+	public String getEquippedBorder() {
+		return equippedBorder;
+	}
+
+	public void setEquippedBorder(String equippedBorder) {
+		this.equippedBorder = equippedBorder;
+	}
+
+	public String getEquippedPawnSkin() {
+		return equippedPawnSkin;
+	}
+
+	public void setEquippedPawnSkin(String equippedPawnSkin) {
+		this.equippedPawnSkin = equippedPawnSkin;
 	}
 
 	public LocalDate getCreationDate() {
