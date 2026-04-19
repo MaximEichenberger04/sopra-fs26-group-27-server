@@ -46,6 +46,8 @@ public interface DTOMapper {
 	@Mapping(source = "biography", target = "biography")
 	@Mapping(source = "avatarURL", target = "avatarURL")
 	@Mapping(source = "preferredLanguage", target = "preferredLanguage")
+	@Mapping(source = "equippedBorder", target = "equippedBorder")
+	@Mapping(source = "equippedPawnSkin", target = "equippedPawnSkin")
 	User convertUserPatchDTOtoEntity(UserPatchDTO userPatchDTO);
 
 	@Mapping(source = "username", target = "username")
@@ -61,6 +63,10 @@ public interface DTOMapper {
 	@Mapping(source = "status", target = "status")
 	@Mapping(source = "password", target = "password")
 	@Mapping(source = "currentPassword", target = "currentPassword")
+	@Mapping(source = "coins", target = "coins")
+	@Mapping(source = "ownedCosmetics", target = "ownedCosmetics")
+	@Mapping(source = "equippedBorder", target = "equippedBorder")
+	@Mapping(source = "equippedPawnSkin", target = "equippedPawnSkin")
 	User convertUserPostDTOtoEntity(UserPostDTO userPostDTO);
 
 	@Mapping(source = "id", target = "id")
@@ -75,6 +81,10 @@ public interface DTOMapper {
 	@Mapping(source = "token", target = "token")
 	@Mapping(source = "creationDate", target = "creationDate")
 	@Mapping(source = "status", target = "status")
+	@Mapping(source = "coins", target = "coins")
+	@Mapping(source = "ownedCosmetics", target = "ownedCosmetics")
+	@Mapping(source = "equippedBorder", target = "equippedBorder")
+	@Mapping(source = "equippedPawnSkin", target = "equippedPawnSkin")
 	UserGetDTO convertEntityToUserGetDTO(User user);
 
 	// LOBBY MAPPINGS
@@ -102,7 +112,8 @@ public interface DTOMapper {
 	Lobby convertLobbyPutDTOtoEntity(LobbyPutDTO lobbyPutDTO);
 
 	// GAME MAPPINGS
-	// Note: pawns and walls lists are populated manually in GameService, ignored here.
+	// Note: pawns and walls lists are populated manually in GameService, ignored
+	// here.
 
 	@Mapping(source = "id", target = "id")
 	@Mapping(source = "lobbyId", target = "lobbyId")
