@@ -42,6 +42,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class GameStateCache {
 
     private static final int INTERNAL_SIZE = 17;
+    private static final int MAX_CARDS_HELD = 3;
+    private static final int TURNS_PER_DRAW_CYCLE = 6; // 2 players × 3 rounds = 6 turns between each draw opportunity.
     private static final int[][] START_POSITIONS = {
         {16, 8}, // player 0, starts bottom center, moves north
         {0, 8},   // player 1, starts top center, moves south
@@ -49,15 +51,24 @@ public class GameStateCache {
         {8, 0}  //player 3 starts on left, moves right
     };
 
+    // Classic Gamemode
     private final Map<Long, boolean[][]> wallGrids = new ConcurrentHashMap<>();
     private final Map<Long, List<Wall>>  walls     = new ConcurrentHashMap<>();
     private final Map<Long, List<Pawn>>  pawns     = new ConcurrentHashMap<>();
 
+    // Chaos Gamemode (additional)
+    private final Map<Long, Map<Long, List<AbilityType>>> playerInventories = new ConcurrentHashMap<>();
+    private final Map<Long, Set<Long>>                    pendingCardDraw   = new ConcurrentHashMap<>();
+    private final Map<Long, Integer>                      turnCounter       = new ConcurrentHashMap<>();
+    private final Map<Long, Set<Long>>                    frozenPlayers     = new ConcurrentHashMap<>();
+    private final Map<Long, Long>                         bonusActionPlayer = new ConcurrentHashMap<>();
+    private final Map<Long, List<PoisonZone>>             poisonZones       = new ConcurrentHashMap<>();
+    private final Map<Long, Map<Long, Integer>>           extraWalls        = new ConcurrentHashMap<>();
     /**
      * Initialises an empty wall grid and places pawns at their
      * starting positions for the given player list.
      */
-    public void initGame(Long gameId, List<Long> playerIds) {
+    public void initGame(Long gameId, List<Long> playerIds, boolean isChaosMode) {
         if (playerIds.size() > START_POSITIONS.length){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
                 "Too many players. Maximum supported is " + START_POSITIONS.length);
@@ -76,6 +87,20 @@ public class GameStateCache {
             pawnList.add(pawn);
         }
         pawns.put(gameId, pawnList);
+
+        if (!isChaosMode) return;
+        // Per-player structures for Chaos mode
+        Map<Long, List<AbilityType>> inventories = new HashMap<>();
+        Map<Long, Integer>           wallBonuses = new HashMap<>();
+        for (Long playerId : playerIds) {
+            inventories.put(playerId, new ArrayList<>());
+            wallBonuses.put(playerId, 0);
+        }
+        playerInventories.put(gameId, inventories);
+        extraWalls.put(gameId, wallBonuses);
+ 
+        frozenPlayers.put(gameId, new HashSet<>());
+        poisonZones.put(gameId, new ArrayList<>());
     }
 
 
@@ -173,5 +198,145 @@ public class GameStateCache {
         wallGrids.remove(gameId);
         walls.remove(gameId);
         pawns.remove(gameId);
+        // Chaos mode
+        turnCounter.remove(gameId);
+        pendingCardDraw.remove(gameId);
+        playerInventories.remove(gameId);
+        frozenPlayers.remove(gameId);
+        bonusActionPlayer.remove(gameId);
+        poisonZones.remove(gameId);
+        extraWalls.remove(gameId);
+    }
+
+    // Player card inventory methods
+    public void incrementTurnCounter(Long gameId, List<Long> playerIds) {
+        Integer current = turnCounter.get(gameId);
+        if (current == null) return; // not a chaos game
+ 
+        int next = current + 1;
+        turnCounter.put(gameId, next);
+ 
+        // Every TURNS_PER_DRAW_CYCLE turns, open the draw window for eligible players
+        if (next % TURNS_PER_DRAW_CYCLE == 0) {
+            Set<Long> pending = pendingCardDraw.get(gameId);
+            Map<Long, List<AbilityType>> inventories = playerInventories.get(gameId);
+            for (Long playerId : playerIds) {
+                List<AbilityType> hand = inventories != null
+                    ? inventories.getOrDefault(playerId, Collections.emptyList())
+                    : Collections.emptyList();
+                // Only offer a draw if there is room in the inventory
+                if (hand.size() < MAX_CARDS_HELD) {
+                    pending.add(playerId);
+                }
+            }
+        }
+    }
+
+    public boolean hasPendingCardDraw(Long gameId, Long userId) {
+        Set<Long> pending = pendingCardDraw.get(gameId);
+        return pending != null && pending.contains(userId);
+    }
+
+    public int getTurnCounter(Long gameId) {
+        Integer count = turnCounter.get(gameId);
+        return count != null ? count : 0;
+    }
+
+    public void grantCard(Long gameId, Long userId, AbilityType card) {
+        Map<Long, List<AbilityType>> inventories = requireInventories(gameId);
+        List<AbilityType> hand = inventories.computeIfAbsent(userId, k -> new ArrayList<>());
+ 
+        if (hand.size() >= MAX_CARDS_HELD) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "Inventory is full (" + MAX_CARDS_HELD + " cards max)");
+        }
+        hand.add(card);
+        Set<Long> pending = pendingCardDraw.get(gameId);
+        if (pending != null) pending.remove(userId);
+    }
+
+    public List<AbilityType> getInventory(Long gameId, Long userId) {
+        Map<Long, List<AbilityType>> inventories = playerInventories.get(gameId);
+        if (inventories == null) return Collections.emptyList();
+        List<AbilityType> hand = inventories.get(userId);
+        return hand != null ? Collections.unmodifiableList(hand) : Collections.emptyList();
+    }
+
+    public void removeCardFromInventory(Long gameId, Long userId, AbilityType type) {
+        Map<Long, List<AbilityType>> inventories = playerInventories.get(gameId);
+        List<AbilityType> hand = inventories.getOrDefault(userId, Collections.emptyList());
+
+        if (!hand.remove(type)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "Card " + type + " not found in your inventory");
+        }
+    }
+
+    // Freeze Ability methods
+    public void freezePlayer(Long gameId, Long userId) {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+ 
+    public boolean isFrozen(Long gameId, Long userId) {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+ 
+    public void clearFreeze(Long gameId, Long userId) {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+
+    // Bonus action methods (used by freeze, +2 Walls, 2 Moves)
+    public void setBonusAction(Long gameId, Long userId) {
+        bonusActionPlayer.put(gameId, userId);
+    }
+ 
+    public boolean hasBonusAction(Long gameId, Long userId) {
+        return userId.equals(bonusActionPlayer.get(gameId));
+    }
+ 
+    public void clearBonusAction(Long gameId) {
+        bonusActionPlayer.remove(gameId);
+    }
+
+    public Long getBonusActionPlayer(Long gameId) {
+        return bonusActionPlayer.get(gameId);
+    }
+
+    // Poison Ability methods
+    public void addPoisonZone(Long gameId, int topLeftRow, int topLeftCol) {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+ 
+    public List<PoisonZone> getPoisonZones(Long gameId) {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+ 
+    public void tickPoisonZones(Long gameId) {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+
+    public boolean isPoisoned(Long gameId, int row, int col) {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+
+    // +2 Walls methods
+    public void addExtraWalls(Long gameId, Long userId, int count) {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+ 
+    /** Returns the bonus wall count for this player (0 if none). */
+    public int getExtraWalls(Long gameId, Long userId) {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+
+    // Wall mutation methods (used by fireball, earthquake)
+    public void clearWallsInRegion(Long gameId, int minRow, int minCol, int maxRow, int maxCol) {
+        // fireball
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+ 
+    public void updateWalls(Long gameId, List<Wall> updatedWalls) {
+        // earthquake
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 }

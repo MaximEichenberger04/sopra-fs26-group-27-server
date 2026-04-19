@@ -38,6 +38,9 @@ public class Game implements Serializable {
     @Column(nullable = true)
     private Long winnerId;
 
+    @Column(nullable = false)
+    private boolean chaosMode = false;
+
     @ElementCollection
     @CollectionTable(name = "game_players", joinColumns = @JoinColumn(name = "game_id"))
     @Column(name = "user_id")
@@ -69,4 +72,7 @@ public class Game implements Serializable {
 
     public List<Long> getPlayerIds() { return playerIds; }
     public void setPlayerIds(List<Long> playerIds) { this.playerIds = playerIds; }
+    
+    public boolean isChaosMode() { return chaosMode; }
+    public void setChaosMode(boolean chaosMode) { this.chaosMode = chaosMode; }
 }

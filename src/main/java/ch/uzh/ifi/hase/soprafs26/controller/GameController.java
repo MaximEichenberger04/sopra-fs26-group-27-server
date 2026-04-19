@@ -89,4 +89,35 @@ public class GameController {
         webSocketHandler.broadcastGameEvent("GAME_OVER", gameId);
         return result;
     }
+
+    /**
+     * POST /games/{gameId}/ability
+     * Use an ability from the calling player's inventory
+    */
+
+    @PostMapping("/{gameId}/ability")
+    @ResponseStatus(HttpStatus.OK)
+    public GameGetDTO useAbility(
+            @PathVariable Long gameId,
+            @RequestBody AbilityPostDTO abilityPostDTO,
+            @RequestHeader("Authorization") String token) {
+        GameGetDTO result = abilityService.useAbility(gameId, abilityPostDTO, token);
+        webSocketHandler.broadcastGameEvent("ABILITY_USED", gameId);
+        return result;
+    }
+
+    /**
+     * POST /games/{gameId}/ability/draw
+     * Draw a card from the deck into the calling player's inventory
+    */
+
+    @PostMapping("/{gameId}/ability/draw")
+    @ResponseStatus(HttpStatus.OK)
+    public GameGetDTO drawAbilityCard(
+            @PathVariable Long gameId,
+            @RequestHeader("Authorization") String token) {
+        GameGetDTO result = abilityService.drawCard(gameId, token);
+        webSocketHandler.broadcastGameEvent("ABILITY_DRAW", gameId);
+        return result;
+    }
 }
