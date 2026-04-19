@@ -41,6 +41,9 @@ public class Game implements Serializable {
     @Column(nullable = false)
     private boolean chaosMode = false;
 
+    @Column(nullable = false)
+    private boolean chaosMode = false;
+
     @ElementCollection
     @CollectionTable(name = "game_players", joinColumns = @JoinColumn(name = "game_id"))
     @Column(name = "user_id")

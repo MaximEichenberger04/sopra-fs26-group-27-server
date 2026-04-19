@@ -1,0 +1,37 @@
+package ch.uzh.ifi.hase.soprafs26.entity;
+
+/**
+ * Represents an active poison zone on the board.
+ *
+ * Plain POJO — not persisted, held in GameStateCache like Pawn and Wall.
+ *
+ * A poison zone occupies a 2×2 logical field on the 9×9 board, which maps to
+ * a 4×4 block in the 17×17 internal grid 
+ *
+ * Lifetime: 4 half-turns after placement (enemy move → friendly move → enemy move → gone).
+ * roundsRemaining is decremented by MoveService each time any player completes
+ * a turn. When it reaches 0 the zone is removed from the cache.
+ *
+ * Collision rules (enforced by AbilityService / MoveService):
+ *   - Cannot be placed on a cell currently occupied by any pawn.
+ *   - Pawns may not enter any of the four cells covered by the zone.
+ */
+public class PoisonZone {
+
+    private Long id;
+    private int topLeftRow;
+    private int topLeftCol;
+    private int roundsRemaining;
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public int getTopLeftRow() { return topLeftRow; }
+    public void setTopLeftRow(int topLeftRow) { this.topLeftRow = topLeftRow; }
+
+    public int getTopLeftCol() { return topLeftCol; }
+    public void setTopLeftCol(int topLeftCol) { this.topLeftCol = topLeftCol; }
+
+    public int getRoundsRemaining() { return roundsRemaining; }
+    public void setRoundsRemaining(int roundsRemaining) { this.roundsRemaining = roundsRemaining; }
+}
