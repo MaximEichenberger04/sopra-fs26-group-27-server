@@ -15,6 +15,10 @@ public class UserPostDTO {
 	private int score;
 	private int xp;
 	private int level;
+	private int coins;
+	private String ownedCosmetics;
+	private String equippedBorder;
+	private String equippedPawnSkin;
 	private LocalDate creationDate;
 	private String token;
 	private UserStatus status;
@@ -90,6 +94,38 @@ public class UserPostDTO {
 
 	public void setLevel(int level) {
 		this.level = level;
+	}
+
+	public int getCoins() {
+		return coins;
+	}
+
+	public void setCoins(int coins) {
+		this.coins = coins;
+	}
+
+	public String getOwnedCosmetics() {
+		return ownedCosmetics;
+	}
+
+	public void setOwnedCosmetics(String ownedCosmetics) {
+		this.ownedCosmetics = ownedCosmetics;
+	}
+
+	public String getEquippedBorder() {
+		return equippedBorder;
+	}
+
+	public void setEquippedBorder(String equippedBorder) {
+		this.equippedBorder = equippedBorder;
+	}
+
+	public String getEquippedPawnSkin() {
+		return equippedPawnSkin;
+	}
+
+	public void setEquippedPawnSkin(String equippedPawnSkin) {
+		this.equippedPawnSkin = equippedPawnSkin;
 	}
 
 	public LocalDate getCreationDate() {

@@ -12,6 +12,7 @@ import ch.uzh.ifi.hase.soprafs26.service.UserService;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * User Controller
@@ -90,6 +91,17 @@ public class UserController {
 		userService.validateToken(token);
 		User userInput = DTOMapper.INSTANCE.convertUserPatchDTOtoEntity(userPatchDTO);
 		User updatedUser = userService.updateUser(id, token, userInput);
+		return DTOMapper.INSTANCE.convertEntityToUserGetDTO(updatedUser);
+	}
+
+	@PostMapping("/users/{id}/cosmetics/buy")
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	public UserGetDTO buyCosmetic(@PathVariable Long id,
+			@RequestBody Map<String, String> body,
+			@RequestHeader(value = "Authorization", required = false) String token) {
+		userService.validateToken(token);
+		User updatedUser = userService.buyCosmetic(id, token, body.get("cosmeticId"));
 		return DTOMapper.INSTANCE.convertEntityToUserGetDTO(updatedUser);
 	}
 
