@@ -52,17 +52,20 @@ public class GameService {
     private final LobbyRepository lobbyRepository;
     private final UserRepository userRepository;
     private final GameStateCache gameStateCache;
+    private final ChatCache chatCache;
 
 
     public GameService(
             @Qualifier("gameRepository")  GameRepository gameRepository,
             @Qualifier("lobbyRepository") LobbyRepository lobbyRepository,
             @Qualifier("userRepository")  UserRepository userRepository,
-            GameStateCache gameStateCache) {
+            GameStateCache gameStateCache,
+            ChatCache chatCache) {
         this.gameRepository       = gameRepository;
         this.lobbyRepository      = lobbyRepository;
         this.userRepository       = userRepository;
         this.gameStateCache       = gameStateCache;
+        this.chatCache            = chatCache;
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -347,6 +350,7 @@ public class GameService {
         gameRepository.saveAndFlush(game);
         GameGetDTO dto = buildGameGetDTO(game);
         gameStateCache.evictGame(game.getId());
+        chatCache.evictGame(game.getId());
         return dto;
     }
 }

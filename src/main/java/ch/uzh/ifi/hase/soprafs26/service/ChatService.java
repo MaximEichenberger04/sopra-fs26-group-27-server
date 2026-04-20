@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
  * Business logic for in-game chat.
  *
  * Validates incoming messages, assigns IDs and timestamps, stores them in
- * GameStateCache, and provides history retrieval.
+ * ChatCache, and provides history retrieval.
  *
  * Chat is in-memory only. History is discarded when evictGame is called on game end.
  */
@@ -32,11 +32,11 @@ public class ChatService {
     // Thread-safe counter: multiple WebSocket threads (one websocket connection per player) may call sendMessage at the same time.
     private final AtomicLong messageIdCounter = new AtomicLong(0);
 
-    private final GameStateCache gameStateCache;
+    private final ChatCache chatCache;
     private final GameRepository gameRepository;
 
-    public ChatService(GameStateCache gameStateCache, GameRepository gameRepository) {
-        this.gameStateCache = gameStateCache;
+    public ChatService(ChatCache chatCache, GameRepository gameRepository) {
+        this.chatCache = chatCache;
         this.gameRepository = gameRepository;
     }
 
@@ -78,7 +78,7 @@ public class ChatService {
         message.setGifUrl(dto.getGifUrl());
         message.setTimestamp(System.currentTimeMillis());
 
-        gameStateCache.addChatMessage(gameId, message);
+        chatCache.addGameMessage(gameId, message);
         return toDTO(message);
     }
 
@@ -87,7 +87,7 @@ public class ChatService {
         if (!gameRepository.existsById(gameId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found: " + gameId);
         }
-        return gameStateCache.getChatHistory(gameId).stream()
+        return chatCache.getGameHistory(gameId).stream()
             .map(this::toDTO)
             .collect(Collectors.toList());
     }
