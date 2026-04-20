@@ -168,7 +168,7 @@ public class GameStateCache {
         return null; // pawn was not found
     }
 
-    // Removes all state for a finished game to free memory. 
+    // Removes all state for a finished game to free memory.
     public void evictGame(Long gameId) {
         wallGrids.remove(gameId);
         walls.remove(gameId);
