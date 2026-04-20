@@ -1,4 +1,4 @@
-name: Deploy Project to App Engine
+name: Deploy Project to Google Cloud Run
 
 on:
   push:
