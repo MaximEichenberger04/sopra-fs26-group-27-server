@@ -142,6 +142,7 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         return session != null && session.isOpen();
     }
 
+
     public void broadcastGameEvent(String type, Long gameId) {
         broadcastGameEvent(type, gameId, null, null);
     }
