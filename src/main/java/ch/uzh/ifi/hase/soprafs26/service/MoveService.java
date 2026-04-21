@@ -78,6 +78,10 @@ public class MoveService {
         Game game = requireGame(gameId);
         requireTurn(game, userId);
 
+        if (gameStateCache.isFrozen(gameId, userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are frozen and cannot move this turn");
+        }
+
         int[] targetField = dto.getTargetField();
         if (targetField == null || targetField.length != 2){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid target field");
@@ -161,6 +165,10 @@ public class MoveService {
 
         gameStateCache.placeWall(gameId, row, col, orientation, userId);
         gameService.advanceTurn(game);
+
+        if (gameStateCache.isFrozen(gameId, userId)) {
+            gameStateCache.clearFreeze(gameId, userId); 
+        }
         
         return gameService.buildGameGetDTO(game);
     }

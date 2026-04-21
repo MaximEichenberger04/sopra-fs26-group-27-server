@@ -125,6 +125,9 @@ public class AbilityService {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Unknown ability type: " + dto.getAbilityType());
         }
+        if (gameStateCache.isFrozen(gameId, user.getId())) {
+            gameStateCache.clearFreeze(gameId, user.getId()); 
+        }
     }
 
     private void applyFireball(Long gameId, int targetRow, int targetCol) {
@@ -150,7 +153,17 @@ public class AbilityService {
     }
 
     private void applyFreeze(Long gameId, Long casterUserId, Long targetUserId) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        if (casterUserId.equals(targetUserId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot freeze yourself");
+        }
+        if (!gameStateCache.getPlayers(gameId).contains(targetUserId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Target user is not in the game");
+        }
+        if (gameStateCache.isFrozen(gameId, targetUserId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Target user is already frozen");
+        }
+        gameStateCache.freezePlayer(gameId, targetUserId);
+        gameStateCache.setBonusAction(gameId, casterUserId);
     }
 
     private void applyPoison(Long gameId, int targetRow, int targetCol) {

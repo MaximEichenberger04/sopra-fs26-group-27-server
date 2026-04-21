@@ -294,15 +294,15 @@ public class GameStateCache {
 
     // Freeze Ability methods
     public void freezePlayer(Long gameId, Long userId) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        frozenPlayers.add(userId);
     }
  
     public boolean isFrozen(Long gameId, Long userId) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        return frozenPlayers.getOrDefault(gameId, Collections.emptySet()).contains(userId);
     }
  
     public void clearFreeze(Long gameId, Long userId) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        frozenPlayers.remove(userId);
     }
 
     // Bonus action methods (used by freeze, +2 Walls, 2 Moves)
