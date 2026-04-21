@@ -153,36 +153,51 @@ public class AbilityService {
 
     // Guards for validation logic
     private User requireUser(String token) {
-        // TODO: userRepository.findByToken(token), throw 401 if null
-        throw new UnsupportedOperationException("Not implemented yet");
+        User user = userRepository.findByToken(token);
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
+        }
+        return user;
     }
 
     private Game requireGame(Long gameId) {
-        // TODO: gameRepository.findById(gameId).orElseThrow(404)
-        // TODO: check gameStatus == RUNNING
-        throw new UnsupportedOperationException("Not implemented yet");
+        return gameRepository.findById(gameId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
     }
 
     private void requireTurnOrBonusAction(Game game, Long userId) {
-        // TODO: check game.isChaosMode()
-        // TODO: check currentTurnUserId == userId OR gameStateCache.hasBonusAction(gameId, userId)
-        throw new UnsupportedOperationException("Not implemented yet");
+        if (game.getGameStatus() != GameStatus.RUNNING) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Game is not running");
+        }
+        if (!game.isChaosMode()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can not use abilities in non-chaos mode");
+        }
+        if (!game.getCurrentTurnUserId().equals(userId) || gameStateCache.hasBonusAction(game.getId(), userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your turn");
+        } 
     }
 
     private void requireCardInInventory(Long gameId, Long userId, AbilityType type) {
-        // TODO: gameStateCache.getInventory(gameId, userId).contains(type)
-        throw new UnsupportedOperationException("Not implemented yet");
+        if (!gameStateCache.getInventory(gameId, userId).contains(type)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Card not in inventory");
+        }
     }
 
     private void requireTargetCoords(AbilityPostDTO dto) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        if (dto.getTargetRow() == null || dto.getTargetCol() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Target coordinates required");
+        }
     }
  
     private void requireTargetUser(AbilityPostDTO dto) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        if (dto.getTargetUserId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Target user required");
+        }
     }
  
     private void validateBoardCoord(int row, int col, String ability) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        if (row < 0 || row >= INTERNAL_SIZE || col < 0 || col >= INTERNAL_SIZE) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid target coordinates for " + ability);
+        }
     }
 }
