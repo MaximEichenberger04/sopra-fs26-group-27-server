@@ -503,10 +503,42 @@ public class AbilityService {
     }
 
     public GameGetDTO useAbility(Long gameId, AbilityPostDTO dto, String token) {
-        /** Switch cases for abilities: require target coordinates/user
-        *   (if positional ability) + execution of ability (apply*Ability*)
-        */
-        throw new UnsupportedOperationException("Not implemented yet");
+        User user = requireUser(token);
+        Long userId = user.getId();
+        Game game = requireGame(gameId);
+        requireTurnOrBonusAction(game, userId);
+        requireCardInInventory(gameId, userId, dto.getAbilityType());
+
+        switch (dto.getAbilityType()) { // check for each ability what we need to do
+            case FIREBALL:
+                requireTargetCoords(dto);
+                applyFireball(gameId, dto.getTargetRow(), dto.getTargetCol());
+                break;
+            case EARTHQUAKE:
+                requireTargetCoords(dto);
+                applyEarthquake(gameId, dto.getTargetRow(), dto.getTargetCol());
+                break;
+            case FREEZE:
+                requireTargetUser(dto);
+                applyFreeze(gameId, dto.getTargetUserId());
+                break;
+            case POISON:
+                requireTargetCoords(dto);
+                applyPoison(gameId, dto.getTargetRow(), dto.getTargetCol());
+                break;
+            case PLUS_TWO_WALLS:
+                applyPlusTwoWalls(gameId, userId);
+                break;
+            case TWO_MOVES:
+                applyTwoMoves(gameId, userId);
+                break;
+            default:
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Unknown ability type: " + dto.getAbilityType());
+        }
+        if (gameStateCache.isFrozen(gameId, user.getId())) {
+            gameStateCache.clearFreeze(gameId, user.getId()); 
+        }
     }
 
     private void applyFireball(Long gameId, int targetRow, int targetCol) {
@@ -518,7 +550,17 @@ public class AbilityService {
     }
 
     private void applyFreeze(Long gameId, Long casterUserId, Long targetUserId) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        if (casterUserId.equals(targetUserId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot freeze yourself");
+        }
+        if (!gameStateCache.getPlayers(gameId).contains(targetUserId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Target user is not in the game");
+        }
+        if (gameStateCache.isFrozen(gameId, targetUserId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Target user is already frozen");
+        }
+        gameStateCache.freezePlayer(gameId, targetUserId);
+        gameStateCache.setBonusAction(gameId, casterUserId);
     }
 
     private void applyPoison(Long gameId, int targetRow, int targetCol) {

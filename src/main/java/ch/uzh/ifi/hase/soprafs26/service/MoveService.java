@@ -88,6 +88,10 @@ public class MoveService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are frozen and cannot move this turn");
         }
 
+        if (gameStateCache.isFrozen(gameId, userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are frozen and cannot move this turn");
+        }
+
         int[] targetField = dto.getTargetField();
         if (targetField == null || targetField.length != 2){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid target field");
