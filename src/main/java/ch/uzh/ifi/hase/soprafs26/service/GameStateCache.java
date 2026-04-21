@@ -135,6 +135,26 @@ public class GameStateCache {
         walls.get(gameId).add(wall);
     }
 
+    public void removeWall(Long gameId, int row, int col, WallOrientation orientation) {
+        boolean[][] grid = wallGrids.get(gameId);
+        if (grid == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game state not found for game " + gameId);
+        }
+        if (orientation == WallOrientation.HORIZONTAL){
+            grid[row][col -1] = false;
+            grid[row][col   ] = false;
+            grid[row][col +1] = false;
+        } else { // VERTICAL
+            grid[row - 1][col] = false;
+            grid[row    ][col] = false;
+            grid[row + 1][col] = false;   
+        }
+        
+        // remove the wall from the walls list of the game
+        List<Wall> wallList = walls.get(gameId);
+        wallList.removeIf(w -> w.getRow() == row && w.getCol() == col && w.getOrientation() == orientation);
+    }
+
     /**
      * Updates the pawn position for the given player.
      * Must be called after move validation.

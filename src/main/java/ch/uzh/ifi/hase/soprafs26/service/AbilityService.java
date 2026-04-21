@@ -128,7 +128,21 @@ public class AbilityService {
     }
 
     private void applyFireball(Long gameId, int targetRow, int targetCol) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        Game game = requireGame(gameId);
+        validateBoardCoord(targetRow , targetCol , "FIREBALL"); 
+        List<Wall> walls = gameStateCache.getWalls(gameId);
+        for (int r = targetRow - 1; r <= targetRow + 3; r++) {
+            for (int c = targetCol - 1; c <= targetCol + 3; c++) {
+                for (Wall wall : walls) {
+                    if (wall.getRow() == r && wall.getCol() == c) {
+                        toRemove.add(wall);
+                    }
+                }
+            }
+        }
+        for (Wall wall : toRemove) {
+            gameStateCache.removeWall(gameId, wall.getRow(), wall.getCol(), wall.getOrientation());
+        }
     }
 
     private void applyEarthquake(Long gameId, int targetRow, int targetCol) {
@@ -196,8 +210,42 @@ public class AbilityService {
     }
  
     private void validateBoardCoord(int row, int col, String ability) {
-        if (row < 0 || row >= INTERNAL_SIZE || col < 0 || col >= INTERNAL_SIZE) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid target coordinates for " + ability);
-        }
+        switch (ability) {
+            case FIREBALL:
+                    if (row -1 < 0  || col -1  < 0 ) {
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "Fireball area of effect out of bounds");
+                    }
+                    if (row + 3 >= INTERNAL_SIZE || col + 3 >= INTERNAL_SIZE) {
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "Fireball area of effect out of bounds");
+                    }
+                    break;
+
+            case POISON:
+                    if (row -1 < 0  || col -1  < 0 ) {
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "Fireball area of effect out of bounds");
+                    }
+                    if (row + 3 >= INTERNAL_SIZE || col + 3 >= INTERNAL_SIZE) {
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "Fireball area of effect out of bounds");
+                    }
+                    break;
+
+            case EARTHQUAKE:
+                    if (row -1 < 0  || col -1  < 0 ) {
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "Fireball area of effect out of bounds");
+                    }
+                    if (row + 5 >= INTERNAL_SIZE || col + 5 >= INTERNAL_SIZE) {
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "Fireball area of effect out of bounds");
+                    }
+                    break;
+        
+            default:
+                break;
+        } 
     }
 }
