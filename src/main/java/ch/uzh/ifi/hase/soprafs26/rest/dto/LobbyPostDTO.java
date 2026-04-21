@@ -1,11 +1,12 @@
 package ch.uzh.ifi.hase.soprafs26.rest.dto;
 
 public class LobbyPostDTO {
-    
+
     private String name;
     private String gameMode;
     private Integer maxPlayers;
     private Long hostId;
+    private String mapTheme;
 
     public String getName() {
         return name;
@@ -37,5 +38,13 @@ public class LobbyPostDTO {
 
     public void setHostId(Long hostId) {
         this.hostId = hostId;
+    }
+
+    public String getMapTheme() {
+        return mapTheme;
+    }
+
+    public void setMapTheme(String mapTheme) {
+        this.mapTheme = mapTheme;
     }
 }
