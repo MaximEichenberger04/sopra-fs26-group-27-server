@@ -15,36 +15,95 @@ public class LobbyGetDTO {
     private LobbyStatus lobbyStatus;
     private String gameMode;
     private List<Long> playerIds;
+    private String mapTheme;
 
-    public Long getId() {return id;}
-    public void setId(Long id) {this.id = id;}
+    public Long getId() {
+        return id;
+    }
 
-    public String getName() {return name;}
-    public void setName(String name) {this.name = name;}
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public String getInviteCode() {return inviteCode;}
-    public void setInviteCode(String inviteCode) {this.inviteCode = inviteCode;}
+    public String getName() {
+        return name;
+    }
 
-    public int getMaxPlayers() {return maxPlayers;}
-    public void setMaxPlayers(int maxPlayers) {this.maxPlayers = maxPlayers;}
+    public void setName(String name) {
+        this.name = name;
+    }
 
-    public Long getHostId() {return hostId;}
-    public void setHostId(Long hostId) {this.hostId = hostId;}
+    public String getInviteCode() {
+        return inviteCode;
+    }
 
-    public int getCurrentPlayers() {return currentPlayers;}
-    public void setCurrentPlayers(int currentPlayers) {this.currentPlayers = currentPlayers;}
+    public void setInviteCode(String inviteCode) {
+        this.inviteCode = inviteCode;
+    }
 
-    public LobbyStatus getLobbyStatus() { return lobbyStatus; }  // returns enum
-    public void setLobbyStatus(LobbyStatus lobbyStatus) { this.lobbyStatus = lobbyStatus; }  // sets enum
+    public int getMaxPlayers() {
+        return maxPlayers;
+    }
 
-    public String getGameMode() {return gameMode;}
-    public void setGameMode(String gameMode) {this.gameMode = gameMode;}
+    public void setMaxPlayers(int maxPlayers) {
+        this.maxPlayers = maxPlayers;
+    }
 
-    public List<Long> getPlayerIds() {return playerIds;}
-    public void setPlayerIds(List<Long> playerIds) {this.playerIds = playerIds;}
+    public Long getHostId() {
+        return hostId;
+    }
+
+    public void setHostId(Long hostId) {
+        this.hostId = hostId;
+    }
+
+    public int getCurrentPlayers() {
+        return currentPlayers;
+    }
+
+    public void setCurrentPlayers(int currentPlayers) {
+        this.currentPlayers = currentPlayers;
+    }
+
+    public LobbyStatus getLobbyStatus() {
+        return lobbyStatus;
+    } // returns enum
+
+    public void setLobbyStatus(LobbyStatus lobbyStatus) {
+        this.lobbyStatus = lobbyStatus;
+    } // sets enum
+
+    public String getGameMode() {
+        return gameMode;
+    }
+
+    public void setGameMode(String gameMode) {
+        this.gameMode = gameMode;
+    }
+
+    public List<Long> getPlayerIds() {
+        return playerIds;
+    }
+
+    public void setPlayerIds(List<Long> playerIds) {
+        this.playerIds = playerIds;
+    }
 
     private Long gameId;
 
-    public Long getGameId() {return gameId;}
-    public void setGameId(Long gameId) {this.gameId = gameId;}
+    public Long getGameId() {
+        return gameId;
+    }
+
+    public void setGameId(Long gameId) {
+        this.gameId = gameId;
+    }
+
+    public String getMapTheme() {
+        return mapTheme;
+    }
+
+    public void setMapTheme(String mapTheme) {
+        this.mapTheme = mapTheme;
+    }
 }

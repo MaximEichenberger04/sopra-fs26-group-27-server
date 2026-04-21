@@ -99,16 +99,19 @@ public interface DTOMapper {
 	@Mapping(source = "gameMode", target = "gameMode")
 	@Mapping(source = "playerIds", target = "playerIds")
 	@Mapping(source = "gameId", target = "gameId")
+	@Mapping(source = "mapTheme", target = "mapTheme")
 	LobbyGetDTO convertEntityToLobbyGetDTO(Lobby lobby);
 
 	@Mapping(source = "name", target = "name")
 	@Mapping(source = "gameMode", target = "gameMode")
 	@Mapping(source = "maxPlayers", target = "maxPlayers")
+	@Mapping(source = "mapTheme", target = "mapTheme")
 	Lobby convertLobbyPostDTOtoEntity(LobbyPostDTO lobbyPostDTO);
 
 	@Mapping(source = "name", target = "name")
 	@Mapping(source = "gameMode", target = "gameMode")
 	@Mapping(source = "maxPlayers", target = "maxPlayers")
+	@Mapping(source = "mapTheme", target = "mapTheme")
 	Lobby convertLobbyPutDTOtoEntity(LobbyPutDTO lobbyPutDTO);
 
 	// GAME MAPPINGS
@@ -127,6 +130,7 @@ public interface DTOMapper {
 	@Mapping(target = "pawns", ignore = true) // lives in GameStateCache (memory)
 	@Mapping(target = "walls", ignore = true) // lives in GameStateCache (memory)
 	@Mapping(source = "activePlayerIds", target = "activePlayerIds")
+	@Mapping(source = "mapTheme", target = "mapTheme")
 	GameGetDTO convertEntityToGameGetDTO(Game game);
 
 	@Mapping(source = "id", target = "id")

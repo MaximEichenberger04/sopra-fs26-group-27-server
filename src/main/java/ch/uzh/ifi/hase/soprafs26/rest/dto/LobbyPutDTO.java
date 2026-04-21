@@ -1,10 +1,11 @@
 package ch.uzh.ifi.hase.soprafs26.rest.dto;
 
 public class LobbyPutDTO {
-    
+
     private String name;
     private String gameMode;
     private Integer maxPlayers;
+    private String mapTheme;
 
     public String getName() {
         return name;
@@ -28,5 +29,13 @@ public class LobbyPutDTO {
 
     public void setMaxPlayers(Integer maxPlayers) {
         this.maxPlayers = maxPlayers;
+    }
+
+    public String getMapTheme() {
+        return mapTheme;
+    }
+
+    public void setMapTheme(String mapTheme) {
+        this.mapTheme = mapTheme;
     }
 }
