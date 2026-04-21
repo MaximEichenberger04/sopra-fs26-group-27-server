@@ -38,7 +38,7 @@ public class AbilityService {
     private static final int INTERNAL_SIZE = 17;
     private static final int WALL_CAP = 10;
 
-    private static final Object[][] CARD_WEIGHTS = { // weighted probabilities
+    private static final Object[][] CARD_WEIGHTS = { // weighted probabilities 
         { AbilityType.PLUS_TWO_WALLS, 20 },
         { AbilityType.TWO_MOVES,      20 },
         { AbilityType.FIREBALL,       15 },
@@ -65,14 +65,66 @@ public class AbilityService {
     }
 
     public GameGetDTO drawCard(Long gameId, String token) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        User user = requireUser(token);
+        Game game = requireGame(gameId);
+        if(!game.isChaosMode()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "Ability cards are only available in chaos mode");
+        }
+        abilityType card = rollWeightedCard();
+        gameStateCache.grantCard(gameId, user.getId(), card); // give card to inventory
+        return gameService.buildGameGetDTO(game);
+    }
+
+    // private helper method used by drawCard to pick a random card
+    private AbilityType rollWeightedCard() {
+        int totalWeight = 0;
+        for(Object[] entry : CARD_WEIGHTS) {
+            totalWeight += (int) entry[1]; // total sum weights
+        }
+        int roll = random.nextInt(totalWeight); // get random int (0-99)
+        for(Object[] entry: CARD_WEIGHTS) {
+            roll -= (int) entry[1]; // remove weight from roll
+            if (roll < 0) { // if roll becomes negative, we take this ability card
+                return (AbilityType) entry[0];
+            }
+        }
     }
 
     public GameGetDTO useAbility(Long gameId, AbilityPostDTO dto, String token) {
-        /** Switch cases for abilities: require target coordinates/user
-        *   (if positional ability) + execution of ability (apply*Ability*)
-        */
-        throw new UnsupportedOperationException("Not implemented yet");
+        User user = requireUser(token);
+        Long userId = user.getId();
+        Game game = requireGame(gameId);
+        requireTurnOrBonusAction(game, userId);
+        requireCardInInventory(gameId, userId, dto.getAbilityType());
+
+        switch (dto.getAbilityType()) { // check for each ability what we need to do
+            case FIREBALL:
+                requireTargetCoords(dto);
+                applyFireball(gameId, dto.getTargetRow(), dto.getTargetCol());
+                break;
+            case EARTHQUAKE:
+                requireTargetCoords(dto);
+                applyEarthquake(gameId, dto.getTargetRow(), dto.getTargetCol());
+                break;
+            case FREEZE:
+                requireTargetUser(dto);
+                applyFreeze(gameId, dto.getTargetUserId());
+                break;
+            case POISON:
+                requireTargetCoords(dto);
+                applyPoison(gameId, dto.getTargetRow(), dto.getTargetCol());
+                break;
+            case PLUS_TWO_WALLS:
+                applyPlusTwoWalls(gameId, userId);
+                break;
+            case TWO_MOVES:
+                applyTwoMoves(gameId, userId);
+                break;
+            default:
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Unknown ability type: " + dto.getAbilityType());
+        }
     }
 
     private void applyFireball(Long gameId, int targetRow, int targetCol) {
