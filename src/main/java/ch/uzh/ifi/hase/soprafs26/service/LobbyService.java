@@ -31,9 +31,9 @@ public class LobbyService {
     private final GameWebSocketHandler gameWebSocketHandler;
 
     public LobbyService(@Qualifier("lobbyRepository") LobbyRepository lobbyRepository,
-                        @Qualifier("userRepository") UserRepository userRepository,
-                        GameService gameService,
-                        GameWebSocketHandler gameWebSocketHandler) {
+            @Qualifier("userRepository") UserRepository userRepository,
+            GameService gameService,
+            GameWebSocketHandler gameWebSocketHandler) {
         this.lobbyRepository = lobbyRepository;
         this.userRepository = userRepository;
         this.gameService = gameService;
@@ -98,9 +98,8 @@ public class LobbyService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
         }
 
-        Lobby existingLobby = lobbyRepository.findById(lobbyId).orElseThrow(() ->
-            new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found")
-        );
+        Lobby existingLobby = lobbyRepository.findById(lobbyId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
 
         if (!authenticatedUser.getId().equals(existingLobby.getHostId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the host can make changes to the lobby!");
@@ -121,6 +120,10 @@ public class LobbyService {
             existingLobby.setMaxPlayers(lobbyChange.getMaxPlayers());
         }
 
+        if (lobbyChange.getMapTheme() != null && !lobbyChange.getMapTheme().isBlank()) {
+            existingLobby.setMapTheme(lobbyChange.getMapTheme());
+        }
+
         lobbyRepository.save(existingLobby);
         lobbyRepository.flush();
     }
@@ -136,9 +139,8 @@ public class LobbyService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
         }
 
-        Lobby lobby = lobbyRepository.findById(lobbyId).orElseThrow(() ->
-            new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found")
-        );
+        Lobby lobby = lobbyRepository.findById(lobbyId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
 
         if (!authenticatedUser.getId().equals(lobby.getHostId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the host can start the game!");
@@ -175,14 +177,14 @@ public class LobbyService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lobby is currently not joinable");
         }
 
-        if (lobby.getPlayerIds().contains(authenticatedUser.getId())){
+        if (lobby.getPlayerIds().contains(authenticatedUser.getId())) {
             return lobby; // user is already in the lobby so return it without changing anything
         }
 
         if (lobby.getCurrentPlayers() >= lobby.getMaxPlayers()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lobby is full");
         }
-        
+
         lobby.getPlayerIds().add(authenticatedUser.getId());
         lobby.setCurrentPlayers(lobby.getCurrentPlayers() + 1);
         lobbyRepository.saveAndFlush(lobby);
@@ -195,15 +197,14 @@ public class LobbyService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
         }
 
-        Lobby lobby = lobbyRepository.findById(lobbyId).orElseThrow(() ->
-            new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found")
-        );
+        Lobby lobby = lobbyRepository.findById(lobbyId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
 
         if (lobby.getLobbyStatus() != LobbyStatus.WAITING) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lobby is currently not joinable");
         }
 
-        if (lobby.getPlayerIds().contains(authenticatedUser.getId())){
+        if (lobby.getPlayerIds().contains(authenticatedUser.getId())) {
             return lobby; // user is already in the lobby so return it without changing anything
         }
 
@@ -223,14 +224,14 @@ public class LobbyService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
         }
 
-        Lobby lobby = lobbyRepository.findById(lobbyId).orElseThrow(() ->
-            new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found")
-        );
-        
-        if (!lobby.getPlayerIds().contains(authenticatedUser.getId())) { // check that leave lobby only works for users in lobby arraylist
+        Lobby lobby = lobbyRepository.findById(lobbyId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
+
+        if (!lobby.getPlayerIds().contains(authenticatedUser.getId())) { // check that leave lobby only works for users
+                                                                         // in lobby arraylist
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You are not in this lobby");
         }
-        
+
         lobby.getPlayerIds().remove(authenticatedUser.getId());
         lobby.setCurrentPlayers(lobby.getCurrentPlayers() - 1);
         if (lobby.getCurrentPlayers() < 1) {
@@ -251,5 +252,3 @@ public class LobbyService {
         return UUID.randomUUID().toString().replace("-", "").substring(0, 6).toUpperCase();
     }
 }
-
-    

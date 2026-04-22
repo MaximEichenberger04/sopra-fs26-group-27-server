@@ -29,14 +29,16 @@ import java.util.stream.Collectors;
 import ch.uzh.ifi.hase.soprafs26.entity.Wall;
 
 /**
- * Handles game lifecycle: creation, retrieval, forfeit, win-condition, and turn advancement.
+ * Handles game lifecycle: creation, retrieval, forfeit, win-condition, and turn
+ * advancement.
  *
- * Game metadata (status, playerIds, turn, winnerId) is persisted via JPA (Game entity).
+ * Game metadata (status, playerIds, turn, winnerId) is persisted via JPA (Game
+ * entity).
  * Game state (pawn positions, walls) lives in GameStateCache, not in the DB.
  *
  * Starting positions on a 9×9 board (17×17 internal grid):
- *   Player 0: row=16, col=8  →  goal row = 0   (starts south, moves north)
- *   Player 1: row=0,  col=8  →  goal row = 16  (starts north, moves south)
+ * Player 0: row=16, col=8 → goal row = 0 (starts south, moves north)
+ * Player 1: row=0, col=8 → goal row = 16 (starts north, moves south)
  *
  * Wall budget: 10 per player.
  */
@@ -52,22 +54,21 @@ public class GameService {
     private final GameStateCache gameStateCache;
     private final ChatCache chatCache;
 
-
     public GameService(
-            @Qualifier("gameRepository")  GameRepository gameRepository,
+            @Qualifier("gameRepository") GameRepository gameRepository,
             @Qualifier("lobbyRepository") LobbyRepository lobbyRepository,
-            @Qualifier("userRepository")  UserRepository userRepository,
+            @Qualifier("userRepository") UserRepository userRepository,
             GameStateCache gameStateCache,
             ChatCache chatCache) {
-        this.gameRepository       = gameRepository;
-        this.lobbyRepository      = lobbyRepository;
-        this.userRepository       = userRepository;
-        this.gameStateCache       = gameStateCache;
-        this.chatCache            = chatCache;
+        this.gameRepository = gameRepository;
+        this.lobbyRepository = lobbyRepository;
+        this.userRepository = userRepository;
+        this.gameStateCache = gameStateCache;
+        this.chatCache = chatCache;
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  Create
+    // Create
     // ─────────────────────────────────────────────────────────────
 
     /**
@@ -77,20 +78,25 @@ public class GameService {
      */
     public Game createGameFromLobby(Long lobbyId, String token) {
         Lobby lobby = lobbyRepository.findById(lobbyId) // find lobby
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lobby not found"));
 
         User user = userRepository.findByToken(token); // find user
-        if (user==null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
+        if (user == null)
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
+
         // build game entity
         Game game = new Game();
         game.setLobbyId(lobbyId);
         game.setCreatorId(lobby.getHostId());
         game.setPlayerIds(new ArrayList<>(lobby.getPlayerIds()));
-        game.setActivePlayerIds(new ArrayList<>(lobby.getPlayerIds())); //automatic disconnect logic
+        game.setActivePlayerIds(new ArrayList<>(lobby.getPlayerIds())); // automatic disconnect logic
         game.setCurrentTurnUserId(lobby.getPlayerIds().get(0));
         game.setGameStatus(GameStatus.RUNNING);
         game.setSizeBoard(9); // standard logical size (9x9 fields for pawn)
         game.setWallsPerPlayer(lobby.getMaxPlayers() == 2 ? 10 : 5); // check if lobby has 2 or 4 players
+
+        // ---> TRANSFERS MAP THEME FROM LOBBY TO GAME <---
+        game.setMapTheme(lobby.getMapTheme());
 
         game = gameRepository.save(game);
         gameRepository.flush();
@@ -101,10 +107,10 @@ public class GameService {
         lobbyRepository.save(lobby);
 
         return game;
-    }   
+    }
 
     // ─────────────────────────────────────────────────────────────
-    //  Read
+    // Read
     // ─────────────────────────────────────────────────────────────
 
     /**
@@ -112,7 +118,7 @@ public class GameService {
      */
     public GameGetDTO getGameById(Long gameId) {
         Game game = gameRepository.findById(gameId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
         return buildGameGetDTO(game); // call build and return DTO
     }
 
@@ -126,19 +132,19 @@ public class GameService {
 
         // manually attach pawns from the game cache
         List<PawnGetDTO> pawnDTOs = gameStateCache.getPawns(game.getId()).stream()
-            .map(DTOMapper.INSTANCE::convertEntityToPawnGetDTO)
-            .collect(Collectors.toList());
+                .map(DTOMapper.INSTANCE::convertEntityToPawnGetDTO)
+                .collect(Collectors.toList());
         dto.setPawns(pawnDTOs);
 
         // manually attach walls from game cache
         List<WallGetDTO> wallDTOs = gameStateCache.getWalls(game.getId()).stream()
-            .map(DTOMapper.INSTANCE::convertEntityToWallGetDTO)
-            .collect(Collectors.toList());
+                .map(DTOMapper.INSTANCE::convertEntityToWallGetDTO)
+                .collect(Collectors.toList());
         dto.setWalls(wallDTOs);
 
         // compute remaining wall budget per player
         Map<Long, Long> usedWalls = gameStateCache.getWalls(game.getId()).stream()
-            .collect(Collectors.groupingBy(Wall::getUserId, Collectors.counting()));
+                .collect(Collectors.groupingBy(Wall::getUserId, Collectors.counting()));
 
         Map<Long, Integer> remainingWalls = new HashMap<>();
         for (Long playerId : game.getPlayerIds()) {
@@ -151,7 +157,7 @@ public class GameService {
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  Forfeit
+    // Forfeit
     // ─────────────────────────────────────────────────────────────
 
     /**
@@ -160,10 +166,11 @@ public class GameService {
      */
     public GameGetDTO forfeitGame(Long gameId, String token) {
         Game game = gameRepository.findById(gameId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
         User user = userRepository.findByToken(token);
-        if (user == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
-        
+        if (user == null)
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
+
         if (game.getGameStatus() == GameStatus.ENDED) {
             return buildGameGetDTO(game);
         }
@@ -177,8 +184,7 @@ public class GameService {
 
         if (game.getCurrentTurnUserId().equals(user.getId())) {
             advanceTurn(game, user.getId());
-        }
-         else {
+        } else {
             gameRepository.saveAndFlush(game);
         }
 
@@ -193,7 +199,7 @@ public class GameService {
 
     public GameGetDTO forfeitDisconnectedPlayer(Long gameId, Long disconnectedUserId) {
         Game game = gameRepository.findById(gameId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
 
         if (game.getGameStatus() == GameStatus.ENDED) {
             return buildGameGetDTO(game);
@@ -220,7 +226,7 @@ public class GameService {
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  Win condition
+    // Win condition
     // ─────────────────────────────────────────────────────────────
 
     /**
@@ -228,30 +234,37 @@ public class GameService {
      * Reads the pawn position from GameStateCache.
      *
      * Goal mapping (player index in game.playerIds):
-     *   index 0 => goal row = 0
-     *   index 1 => goal row = 16
+     * index 0 => goal row = 0
+     * index 1 => goal row = 16
      */
     public boolean checkWinCondition(Game game, Long userId) {
         int index = game.getPlayerIds().indexOf(userId);
-        if (index < 0) return false;
+        if (index < 0)
+            return false;
 
         Pawn pawn = gameStateCache.getPawn(game.getId(), userId);
-        if (pawn == null) return false;
+        if (pawn == null)
+            return false;
 
-        if (index == 0) return pawn.getRow() == 0;  //index 0 => goal row = 0
-        if (index == 1) return pawn.getRow() == 16; //index 1 => goal row = 16
-        if (index == 2) return pawn.getCol() == 0; // index 3 => starts on right side -> goal col = 0
-        if (index == 3) return pawn.getCol() == 16;
+        if (index == 0)
+            return pawn.getRow() == 0; // index 0 => goal row = 0
+        if (index == 1)
+            return pawn.getRow() == 16; // index 1 => goal row = 16
+        if (index == 2)
+            return pawn.getCol() == 0; // index 3 => starts on right side -> goal col = 0
+        if (index == 3)
+            return pawn.getCol() == 16;
 
         return false;
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  Turn management
+    // Turn management
     // ─────────────────────────────────────────────────────────────
 
     /**
-     * Advances currentTurnUserId to the next player in the playerIds list (round-robin).
+     * Advances currentTurnUserId to the next player in the playerIds list
+     * (round-robin).
      * Persists the change to the Game entity.
      */
     public void advanceTurn(Game game) {

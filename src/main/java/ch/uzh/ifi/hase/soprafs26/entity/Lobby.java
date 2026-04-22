@@ -1,4 +1,5 @@
 package ch.uzh.ifi.hase.soprafs26.entity;
+
 import ch.uzh.ifi.hase.soprafs26.constant.LobbyStatus;
 import jakarta.persistence.*;
 
@@ -21,8 +22,8 @@ public class Lobby implements Serializable {
     @Column(nullable = false)
     private String name; // lobby name
 
-	@Column(nullable = false)
-	private LobbyStatus lobbyStatus; 
+    @Column(nullable = false)
+    private LobbyStatus lobbyStatus;
 
     @Column(nullable = false)
     private Long hostId; // user id from host
@@ -47,13 +48,16 @@ public class Lobby implements Serializable {
     @Column(nullable = true)
     private Long gameId;
 
-    public Long getId() {
-		return id;
-	}
+    @Column(nullable = false)
+    private String mapTheme;
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
 
     public String getName() {
         return name;
@@ -125,5 +129,13 @@ public class Lobby implements Serializable {
 
     public void setGameId(Long gameId) {
         this.gameId = gameId;
+    }
+
+    public String getMapTheme() {
+        return mapTheme;
+    }
+
+    public void setMapTheme(String mapTheme) {
+        this.mapTheme = mapTheme;
     }
 }
