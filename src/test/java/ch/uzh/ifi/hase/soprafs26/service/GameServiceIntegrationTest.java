@@ -432,6 +432,8 @@ public class GameServiceIntegrationTest {
         assertEquals(8, pawn4.getRow());
         assertEquals(0, pawn4.getCol());
     }
+    }
+
 
     private User createAndSaveUser(String username, String token) {
         User user = new User();
