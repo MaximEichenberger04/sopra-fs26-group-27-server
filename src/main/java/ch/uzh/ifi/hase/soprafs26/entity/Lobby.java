@@ -3,12 +3,8 @@ package ch.uzh.ifi.hase.soprafs26.entity;
 import ch.uzh.ifi.hase.soprafs26.constant.LobbyStatus;
 import jakarta.persistence.*;
 
-import ch.uzh.ifi.hase.soprafs26.constant.LobbyStatus;
 import java.io.Serializable;
-import java.lang.annotation.Inherited;
 
-import jakarta.persistence.*;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
