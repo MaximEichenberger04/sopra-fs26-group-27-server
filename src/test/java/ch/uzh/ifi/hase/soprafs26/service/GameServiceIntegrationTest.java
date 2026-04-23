@@ -15,28 +15,19 @@ import ch.uzh.ifi.hase.soprafs26.rest.dto.GameGetDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.web.server.ResponseStatusException;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Full Spring context integration tests for GameService.
- *
- * Uses an in-memory H2 database (configured in src/test/resources/application.properties).
- * Each test runs in its own transaction that is rolled back, except where
- * @DirtiesContext is needed to reset the cache state.
- */
 
 @WebAppConfiguration
 @SpringBootTest
@@ -61,8 +52,12 @@ public class GameServiceIntegrationTest {
     @Autowired
     private UserRepository userRepository;
 
-    private User user1;
-    private User user2;
+    // Named users for the main 2-player tests
+    private User hostUser;
+    private User guestUser;
+    private Lobby lobby; // 2-player lobby for hostUser + guestUser
+
+    // Extra users for 4-player test
     private User user3;
     private User user4;
 
@@ -72,70 +67,63 @@ public class GameServiceIntegrationTest {
         lobbyRepository.deleteAll();
         userRepository.deleteAll();
 
-        user1 = createAndSaveUser("user1", "token1");
-        user2 = createAndSaveUser("user2", "token2");
+        hostUser = createAndSaveUser("host", "host-token");
+        guestUser = createAndSaveUser("guest", "guest-token");
         user3 = createAndSaveUser("user3", "token3");
         user4 = createAndSaveUser("user4", "token4");
-    }
 
-    @Test
-    public void createGameFromLobby_twoPlayers_successfullyPersistsGameAndInitializesCache() {
-        // given
-        Lobby lobby = new Lobby();
+        lobby = new Lobby();
         lobby.setName("Test Lobby");
         lobby.setLobbyStatus(LobbyStatus.WAITING);
-        lobby.setHostId(user1.getId());
+        lobby.setHostId(hostUser.getId());
         lobby.setMaxPlayers(2);
         lobby.setCurrentPlayers(2);
         lobby.setGameMode("Classic");
-        lobby.setInviteCode("ABC123");
-        lobby.setPlayerIds(Arrays.asList(user1.getId(), user2.getId()));
-        lobby.setMapTheme("Classic");
-
+        lobby.setInviteCode(UUID.randomUUID().toString());
+        lobby.setMapTheme("medieval");
+        lobby.setPlayerIds(Arrays.asList(hostUser.getId(), guestUser.getId()));
         lobby = lobbyRepository.saveAndFlush(lobby);
+    }
 
-        // when
-        Game createdGame = gameService.createGameFromLobby(lobby.getId(), user1.getToken());
+    // ─────────────────────────────────────────────────────────────
+    // createGameFromLobby
+    // ─────────────────────────────────────────────────────────────
 
-        // then: game entity
+    @Test
+    public void createGameFromLobby_twoPlayers_successfullyPersistsGameAndInitializesCache() {
+        Game createdGame = gameService.createGameFromLobby(lobby.getId(), hostUser.getToken());
+
         assertNotNull(createdGame.getId());
         assertEquals(GameStatus.RUNNING, createdGame.getGameStatus());
         assertEquals(lobby.getId(), createdGame.getLobbyId());
-        assertEquals(user1.getId(), createdGame.getCreatorId());
-        assertEquals(user1.getId(), createdGame.getCurrentTurnUserId());
+        assertEquals(hostUser.getId(), createdGame.getCreatorId());
+        assertEquals(hostUser.getId(), createdGame.getCurrentTurnUserId());
         assertEquals(9, createdGame.getSizeBoard());
         assertEquals(10, createdGame.getWallsPerPlayer());
-        assertEquals("Classic", createdGame.getMapTheme());
-        assertEquals(Arrays.asList(user1.getId(), user2.getId()), createdGame.getPlayerIds());
-        assertEquals(Arrays.asList(user1.getId(), user2.getId()), createdGame.getActivePlayerIds());
+        assertEquals("medieval", createdGame.getMapTheme());
+        assertEquals(Arrays.asList(hostUser.getId(), guestUser.getId()), createdGame.getPlayerIds());
+        assertEquals(Arrays.asList(hostUser.getId(), guestUser.getId()), createdGame.getActivePlayerIds());
 
-        // then: persisted game exists
         Game persistedGame = gameRepository.findById(createdGame.getId()).orElse(null);
         assertNotNull(persistedGame);
         assertEquals(GameStatus.RUNNING, persistedGame.getGameStatus());
 
-        // then: lobby was updated with gameId
         Lobby updatedLobby = lobbyRepository.findById(lobby.getId()).orElse(null);
         assertNotNull(updatedLobby);
         assertEquals(createdGame.getId(), updatedLobby.getGameId());
 
-        // then: cache was initialized with correct pawn start positions
         List<Pawn> pawns = gameStateCache.getPawns(createdGame.getId());
         assertEquals(2, pawns.size());
 
-        Pawn pawn1 = gameStateCache.getPawn(createdGame.getId(), user1.getId());
-        Pawn pawn2 = gameStateCache.getPawn(createdGame.getId(), user2.getId());
-
+        Pawn pawn1 = gameStateCache.getPawn(createdGame.getId(), hostUser.getId());
+        Pawn pawn2 = gameStateCache.getPawn(createdGame.getId(), guestUser.getId());
         assertNotNull(pawn1);
         assertNotNull(pawn2);
-
         assertEquals(16, pawn1.getRow());
         assertEquals(8, pawn1.getCol());
-
         assertEquals(0, pawn2.getRow());
         assertEquals(8, pawn2.getCol());
 
-        // then: no walls at game start
         assertTrue(gameStateCache.getWalls(createdGame.getId()).isEmpty());
         assertEquals(17, gameStateCache.getWallGrid(createdGame.getId()).length);
         assertEquals(17, gameStateCache.getWallGrid(createdGame.getId())[0].length);
@@ -143,30 +131,26 @@ public class GameServiceIntegrationTest {
 
     @Test
     public void createGameFromLobby_fourPlayers_setsCorrectWallBudgetAndStartPositions() {
-        // given
-        Lobby lobby = new Lobby();
-        lobby.setName("Four Player Lobby");
-        lobby.setLobbyStatus(LobbyStatus.WAITING);
-        lobby.setHostId(user1.getId());
-        lobby.setMaxPlayers(4);
-        lobby.setCurrentPlayers(4);
-        lobby.setGameMode("Classic");
-        lobby.setInviteCode("FOUR42");
-        lobby.setPlayerIds(Arrays.asList(user1.getId(), user2.getId(), user3.getId(), user4.getId()));
-        lobby.setMapTheme("Magic Forest");
+        Lobby fourPlayerLobby = new Lobby();
+        fourPlayerLobby.setName("Four Player Lobby");
+        fourPlayerLobby.setLobbyStatus(LobbyStatus.WAITING);
+        fourPlayerLobby.setHostId(hostUser.getId());
+        fourPlayerLobby.setMaxPlayers(4);
+        fourPlayerLobby.setCurrentPlayers(4);
+        fourPlayerLobby.setGameMode("Classic");
+        fourPlayerLobby.setInviteCode(UUID.randomUUID().toString());
+        fourPlayerLobby.setPlayerIds(Arrays.asList(hostUser.getId(), guestUser.getId(), user3.getId(), user4.getId()));
+        fourPlayerLobby.setMapTheme("Magic Forest");
+        fourPlayerLobby = lobbyRepository.saveAndFlush(fourPlayerLobby);
 
-        lobby = lobbyRepository.saveAndFlush(lobby);
+        Game createdGame = gameService.createGameFromLobby(fourPlayerLobby.getId(), hostUser.getToken());
 
-        // when
-        Game createdGame = gameService.createGameFromLobby(lobby.getId(), user1.getToken());
-
-        // then
         assertNotNull(createdGame.getId());
         assertEquals(5, createdGame.getWallsPerPlayer());
         assertEquals("Magic Forest", createdGame.getMapTheme());
 
-        Pawn pawn1 = gameStateCache.getPawn(createdGame.getId(), user1.getId());
-        Pawn pawn2 = gameStateCache.getPawn(createdGame.getId(), user2.getId());
+        Pawn pawn1 = gameStateCache.getPawn(createdGame.getId(), hostUser.getId());
+        Pawn pawn2 = gameStateCache.getPawn(createdGame.getId(), guestUser.getId());
         Pawn pawn3 = gameStateCache.getPawn(createdGame.getId(), user3.getId());
         Pawn pawn4 = gameStateCache.getPawn(createdGame.getId(), user4.getId());
 
@@ -174,30 +158,10 @@ public class GameServiceIntegrationTest {
         assertNotNull(pawn2);
         assertNotNull(pawn3);
         assertNotNull(pawn4);
-
-        assertEquals(16, pawn1.getRow());
-        assertEquals(8, pawn1.getCol());
-
-        assertEquals(0, pawn2.getRow());
-        assertEquals(8, pawn2.getCol());
-
-        assertEquals(8, pawn3.getRow());
-        assertEquals(16, pawn3.getCol());
-
-        assertEquals(8, pawn4.getRow());
-        assertEquals(0, pawn4.getCol());
-    }
-  
-    @Test
-    void createGameFromLobby_persistsGameAndSetsLobbyGameId() {
-        Game game = gameService.createGameFromLobby(lobby.getId(), "host-token");
-
-        assertNotNull(game.getId());
-        assertEquals(GameStatus.RUNNING, game.getGameStatus());
-        assertTrue(gameRepository.findById(game.getId()).isPresent());
-
-        Lobby updatedLobby = lobbyRepository.findById(lobby.getId()).orElseThrow();
-        assertEquals(game.getId(), updatedLobby.getGameId());
+        assertEquals(16, pawn1.getRow()); assertEquals(8, pawn1.getCol());
+        assertEquals(0,  pawn2.getRow()); assertEquals(8, pawn2.getCol());
+        assertEquals(8,  pawn3.getRow()); assertEquals(16, pawn3.getCol());
+        assertEquals(8,  pawn4.getRow()); assertEquals(0,  pawn4.getCol());
     }
 
     @Test
@@ -226,6 +190,9 @@ public class GameServiceIntegrationTest {
         assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
     }
 
+    // ─────────────────────────────────────────────────────────────
+    // getGameById / buildGameGetDTO
+    // ─────────────────────────────────────────────────────────────
 
     @Test
     void getGameById_returnsCorrectDTO() {
@@ -248,24 +215,22 @@ public class GameServiceIntegrationTest {
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
     }
 
-
     @Test
     void buildGameGetDTO_freshGame_allPlayersHaveFullWallBudget() {
         Game game = gameService.createGameFromLobby(lobby.getId(), "host-token");
-
         GameGetDTO dto = gameService.getGameById(game.getId());
-
         assertEquals(10, dto.getRemainingWalls().get(hostUser.getId()));
         assertEquals(10, dto.getRemainingWalls().get(guestUser.getId()));
     }
 
+    // ─────────────────────────────────────────────────────────────
+    // forfeitGame
+    // ─────────────────────────────────────────────────────────────
 
     @Test
     void forfeitGame_hostForfeits_guestWins() {
         Game game = gameService.createGameFromLobby(lobby.getId(), "host-token");
-
         GameGetDTO result = gameService.forfeitGame(game.getId(), "host-token");
-
         assertEquals(guestUser.getId(), result.getWinnerId());
         assertEquals(GameStatus.ENDED, result.getGameStatus());
     }
@@ -273,9 +238,7 @@ public class GameServiceIntegrationTest {
     @Test
     void forfeitGame_guestForfeits_hostWins() {
         Game game = gameService.createGameFromLobby(lobby.getId(), "host-token");
-
         GameGetDTO result = gameService.forfeitGame(game.getId(), "guest-token");
-
         assertEquals(hostUser.getId(), result.getWinnerId());
         assertEquals(GameStatus.ENDED, result.getGameStatus());
     }
@@ -283,9 +246,7 @@ public class GameServiceIntegrationTest {
     @Test
     void forfeitGame_alreadyEnded_doesNotChangeWinner() {
         Game game = gameService.createGameFromLobby(lobby.getId(), "host-token");
-        gameService.forfeitGame(game.getId(), "host-token"); // ends game with guest as winner
-
-        // second call should be idempotent
+        gameService.forfeitGame(game.getId(), "host-token");
         GameGetDTO result = gameService.forfeitGame(game.getId(), "host-token");
         assertEquals(guestUser.getId(), result.getWinnerId());
         assertEquals(GameStatus.ENDED, result.getGameStatus());
@@ -294,19 +255,19 @@ public class GameServiceIntegrationTest {
     @Test
     void forfeitGame_invalidToken_throwsUnauthorized() {
         Game game = gameService.createGameFromLobby(lobby.getId(), "host-token");
-
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> gameService.forfeitGame(game.getId(), "bogus-token"));
         assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
     }
 
+    // ─────────────────────────────────────────────────────────────
+    // forfeitDisconnectedPlayer
+    // ─────────────────────────────────────────────────────────────
 
     @Test
     void forfeitDisconnectedPlayer_removesPlayerAndEndsGame() {
         Game game = gameService.createGameFromLobby(lobby.getId(), "host-token");
-
         GameGetDTO result = gameService.forfeitDisconnectedPlayer(game.getId(), hostUser.getId());
-
         assertEquals(guestUser.getId(), result.getWinnerId());
         assertEquals(GameStatus.ENDED, result.getGameStatus());
     }
@@ -314,13 +275,14 @@ public class GameServiceIntegrationTest {
     @Test
     void forfeitDisconnectedPlayer_playerNotInActiveList_isIdempotent() {
         Game game = gameService.createGameFromLobby(lobby.getId(), "host-token");
-        // disconnect host first time
         gameService.forfeitDisconnectedPlayer(game.getId(), hostUser.getId());
-        // second disconnect of same player should not throw
         assertDoesNotThrow(() ->
                 gameService.forfeitDisconnectedPlayer(game.getId(), hostUser.getId()));
     }
 
+    // ─────────────────────────────────────────────────────────────
+    // advanceTurn
+    // ─────────────────────────────────────────────────────────────
 
     @Test
     void advanceTurn_rotatesBetweenTwoPlayers() {
@@ -329,35 +291,39 @@ public class GameServiceIntegrationTest {
 
         gameService.advanceTurn(game);
         Long secondTurn = game.getCurrentTurnUserId();
-
         assertNotEquals(firstTurn, secondTurn);
 
         gameService.advanceTurn(game);
         assertEquals(firstTurn, game.getCurrentTurnUserId());
     }
 
+    // ─────────────────────────────────────────────────────────────
+    // checkWinCondition
+    // ─────────────────────────────────────────────────────────────
 
     @Test
     void checkWinCondition_freshGame_neitherPlayerHasWon() {
         Game game = gameService.createGameFromLobby(lobby.getId(), "host-token");
-
-        // Pawns start in the middle of their respective sides, not at the goal
         assertFalse(gameService.checkWinCondition(game, hostUser.getId()));
         assertFalse(gameService.checkWinCondition(game, guestUser.getId()));
     }
 
+    // ─────────────────────────────────────────────────────────────
+    // endGame
+    // ─────────────────────────────────────────────────────────────
 
     @Test
     void endGame_persistsWinnerAndStatus() {
         Game game = gameService.createGameFromLobby(lobby.getId(), "host-token");
-
         gameService.endGame(game, guestUser.getId());
-
         Game persisted = gameRepository.findById(game.getId()).orElseThrow();
         assertEquals(GameStatus.ENDED, persisted.getGameStatus());
         assertEquals(guestUser.getId(), persisted.getWinnerId());
     }
 
+    // ─────────────────────────────────────────────────────────────
+    // Helper
+    // ─────────────────────────────────────────────────────────────
 
     private User createAndSaveUser(String username, String token) {
         User user = new User();
