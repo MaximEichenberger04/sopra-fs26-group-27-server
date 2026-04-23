@@ -1,13 +1,11 @@
 package ch.uzh.ifi.hase.soprafs26.controller;
 
 import ch.uzh.ifi.hase.soprafs26.websocket.GameWebSocketHandler;
-import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.MovePostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.WallPostDTO;
 import ch.uzh.ifi.hase.soprafs26.service.GameService;
 import ch.uzh.ifi.hase.soprafs26.service.MoveService;
-import ch.uzh.ifi.hase.soprafs26.entity.Game;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 

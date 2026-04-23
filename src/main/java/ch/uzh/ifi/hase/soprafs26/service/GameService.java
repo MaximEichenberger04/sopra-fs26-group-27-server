@@ -15,8 +15,6 @@ import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,8 +43,6 @@ import ch.uzh.ifi.hase.soprafs26.entity.Wall;
 @Service
 @Transactional
 public class GameService {
-
-    private static final Logger log = LoggerFactory.getLogger(GameService.class);
 
     private final GameRepository gameRepository;
     private final LobbyRepository lobbyRepository;
