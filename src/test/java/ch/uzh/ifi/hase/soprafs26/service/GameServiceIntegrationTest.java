@@ -356,6 +356,8 @@ public class GameServiceIntegrationTest {
         Game persisted = gameRepository.findById(game.getId()).orElseThrow();
         assertEquals(GameStatus.ENDED, persisted.getGameStatus());
         assertEquals(guestUser.getId(), persisted.getWinnerId());
+    }
+
 
     private User createAndSaveUser(String username, String token) {
         User user = new User();
