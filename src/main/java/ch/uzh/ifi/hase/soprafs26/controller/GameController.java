@@ -7,10 +7,7 @@ import ch.uzh.ifi.hase.soprafs26.rest.dto.WallPostDTO;
 import ch.uzh.ifi.hase.soprafs26.service.AbilityService;
 import ch.uzh.ifi.hase.soprafs26.service.GameService;
 import ch.uzh.ifi.hase.soprafs26.service.MoveService;
-import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
-import ch.uzh.ifi.hase.soprafs26.entity.User;
-import ch.uzh.ifi.hase.soprafs26.websocket.GameWebSocketHandler;
- 
+import ch.uzh.ifi.hase.soprafs26.entity.Game;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
