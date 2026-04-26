@@ -1,6 +1,7 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
 import ch.uzh.ifi.hase.soprafs26.constant.GameStatus;
+import ch.uzh.ifi.hase.soprafs26.constant.LobbyStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.Game;
 import ch.uzh.ifi.hase.soprafs26.entity.Pawn;
 import ch.uzh.ifi.hase.soprafs26.entity.Lobby;
@@ -308,6 +309,13 @@ public class GameService {
         game.setWinnerId(winnerId);
         game.setGameStatus(GameStatus.ENDED);
         gameRepository.saveAndFlush(game);
+
+        Lobby lobby = lobbyRepository.findById(game.getLobbyId()).orElse(null);
+        if (lobby != null) {
+            lobby.setLobbyStatus(LobbyStatus.FINISHED);
+            lobbyRepository.saveAndFlush(lobby);
+        }
+        
         GameGetDTO dto = buildGameGetDTO(game);
         gameStateCache.evictGame(game.getId());
         chatCache.evictGame(game.getId());
