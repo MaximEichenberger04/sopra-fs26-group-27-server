@@ -61,7 +61,7 @@ public class GameStateCache {
     private final Map<Long, Set<Long>>                    pendingCardDraw   = new ConcurrentHashMap<>();
     private final Map<Long, Integer>                      turnCounter       = new ConcurrentHashMap<>();
     private final Map<Long, Set<Long>>                    frozenPlayers     = new ConcurrentHashMap<>();
-    private final Map<Long, Long>                         bonusActionPlayer = new ConcurrentHashMap<>();
+    private final Map<Long, Map<Long, Integer>>           bonusActions      = new ConcurrentHashMap<>();
     private final Map<Long, List<PoisonZone>>             poisonZones       = new ConcurrentHashMap<>();
     private final Map<Long, Map<Long, Integer>>           extraWalls        = new ConcurrentHashMap<>();
     /**
@@ -223,7 +223,7 @@ public class GameStateCache {
         pendingCardDraw.remove(gameId);
         playerInventories.remove(gameId);
         frozenPlayers.remove(gameId);
-        bonusActionPlayer.remove(gameId);
+        bonusActions.remove(gameId);
         poisonZones.remove(gameId);
         extraWalls.remove(gameId);
     }
@@ -306,20 +306,29 @@ public class GameStateCache {
     }
 
     // Bonus action methods (used by freeze, +2 Walls, 2 Moves)
-    public void setBonusAction(Long gameId, Long userId) {
-        bonusActionPlayer.put(gameId, userId);
-    }
- 
-    public boolean hasBonusAction(Long gameId, Long userId) {
-        return userId.equals(bonusActionPlayer.get(gameId));
-    }
- 
-    public void clearBonusAction(Long gameId) {
-        bonusActionPlayer.remove(gameId);
+    public void setBonusAction(Long gameId, Long userId, int count) {
+        bonusActions
+            .computeIfAbsent(gameId, k -> new ConcurrentHashMap<>())
+            .merge(userId, count, Integer::sum); 
     }
 
-    public Long getBonusActionPlayer(Long gameId) {
-        return bonusActionPlayer.get(gameId);
+    public boolean hasBonusAction(Long gameId, Long userId) {
+        Map<Long, Integer> gameMap = bonusActions.get(gameId);
+        if (gameMap == null) return false;
+        Integer remaining = gameMap.get(userId);
+        return remaining != null && remaining > 0;
+    }
+
+    // Consumes one bonus action, removes entry when exhausted
+    public void consumeBonusAction(Long gameId, Long userId) {
+        Map<Long, Integer> gameMap = bonusActions.get(gameId);
+        if (gameMap == null) return;
+        gameMap.computeIfPresent(userId, (k, v) -> v <= 1 ? null : v - 1);
+    }
+
+    public void clearBonusAction(Long gameId, Long userId) {
+        Map<Long, Integer> gameMap = bonusActions.get(gameId);
+        if (gameMap != null) gameMap.remove(userId);
     }
 
     // Poison Ability methods

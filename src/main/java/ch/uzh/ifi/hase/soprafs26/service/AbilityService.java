@@ -163,7 +163,7 @@ public class AbilityService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Target user is already frozen");
         }
         gameStateCache.freezePlayer(gameId, targetUserId);
-        gameStateCache.setBonusAction(gameId, casterUserId);
+        gameStateCache.setBonusAction(gameId, casterUserId, 1);
     }
 
     private void applyPoison(Long gameId, int targetRow, int targetCol) {
@@ -175,7 +175,8 @@ public class AbilityService {
     }
 
     private void applyTwoMoves(Long gameId, Long userId) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        gameStateCache.setBonusAction(gameId, userId, 2);
+        gameStateCache.removeCardFromInventory(gameId, userId, AbilityType.TWO_MOVES);
     }
 
     // Guards for validation logic

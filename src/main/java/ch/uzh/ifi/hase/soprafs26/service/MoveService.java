@@ -102,13 +102,22 @@ public class MoveService {
         }
 
         gameStateCache.movePawn(gameId, userId, row, col);
+
         if (gameService.checkWinCondition(game, userId)) {
             return gameService.endGame(game, userId);
-        } else {
-            gameService.advanceTurn(game);
-            return gameService.buildGameGetDTO(game);
         }
 
+        if (gameStateCache.hasBonusAction(gameId, userId)) {
+            gameStateCache.consumeBonusAction(gameId, userId);
+
+            if (!gameStateCache.hasBonusAction(gameId, userId)) {
+                gameService.advanceTurn(game);
+            }
+        } else {
+            gameService.advanceTurn(game);
+        }
+
+        return gameService.buildGameGetDTO(game);
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -164,7 +173,15 @@ public class MoveService {
         }
 
         gameStateCache.placeWall(gameId, row, col, orientation, userId);
-        gameService.advanceTurn(game);
+
+        if (gameStateCache.hasBonusAction(gameId, userId)) {
+            gameStateCache.consumeBonusAction(gameId, userId);
+            if (!gameStateCache.hasBonusAction(gameId, userId)) {
+                gameService.advanceTurn(game);
+            }
+        } else {
+            gameService.advanceTurn(game);
+        }
 
         if (gameStateCache.isFrozen(gameId, userId)) {
             gameStateCache.clearFreeze(gameId, userId); 
@@ -489,7 +506,9 @@ public class MoveService {
         if (game.getGameStatus() != GameStatus.RUNNING) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Game is not running");
         }
-        if (!game.getCurrentTurnUserId().equals(userId)) {
+        boolean isCurrentTurn = game.getCurrentTurnUserId().equals(userId);
+        boolean hasBonusAction = gameStateCache.hasBonusAction(game.getId(), userId);
+        if (!isCurrentTurn && !hasBonusAction) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your turn");
         }
     }
