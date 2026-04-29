@@ -1,6 +1,8 @@
 package ch.uzh.ifi.hase.soprafs26.controller;
 
 import ch.uzh.ifi.hase.soprafs26.websocket.GameWebSocketHandler;
+import ch.uzh.ifi.hase.soprafs26.entity.User;
+import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.MovePostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.WallPostDTO;
@@ -16,11 +18,14 @@ public class GameController {
     private final GameService gameService;
     private final MoveService moveService;
     private final GameWebSocketHandler webSocketHandler;
+    private final UserRepository userRepository;
 
-    GameController(GameService gameService, MoveService moveService, GameWebSocketHandler webSocketHandler) {
+    GameController(GameService gameService, MoveService moveService, GameWebSocketHandler webSocketHandler,
+            UserRepository userRepository) {
         this.gameService = gameService;
         this.moveService = moveService;
         this.webSocketHandler = webSocketHandler;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -83,8 +88,17 @@ public class GameController {
             @PathVariable Long gameId,
             @RequestHeader("Authorization") String token) {
         GameGetDTO result = gameService.forfeitGame(gameId, token);
-        webSocketHandler.broadcastGameEvent("FORFEIT", gameId);
-        webSocketHandler.broadcastGameEvent("GAME_OVER", gameId);
+        User user = userRepository.findByToken(token);
+        if (user != null) {
+            webSocketHandler.broadcastGameEvent("PLAYER_FORFEITED", gameId, user.getId(), null);
+        } else {
+            webSocketHandler.broadcastGameEvent("FORFEIT", gameId);
+        }
+        if (result.getWinnerId() != null) {
+            webSocketHandler.broadcastGameEvent("GAME_OVER", gameId);
+        } else {
+            webSocketHandler.broadcastGameEvent("GAME_UPDATED", gameId);
+        }
         return result;
     }
 }
