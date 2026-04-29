@@ -33,10 +33,12 @@ public class UserService {
 	private final UserRepository userRepository;
 
 	private static final Map<String, Integer> COSMETIC_PRICES = Map.ofEntries(
-			Map.entry("border-crimson", 300), Map.entry("border-emerald", 300),
-			Map.entry("border-royal", 300), Map.entry("border-fire", 500),
-			Map.entry("border-ice", 500), Map.entry("border-rainbow", 1000),
-			Map.entry("border-shadow", 800),
+			Map.entry("border-wood", 300), Map.entry("border-builder", 300),
+			Map.entry("border-slime", 300), Map.entry("border-emerald", 500),
+			Map.entry("border-ice", 500), Map.entry("border-knight", 500),
+			Map.entry("border-fire", 800), Map.entry("border-shadow", 800),
+			Map.entry("border-royal", 800), Map.entry("border-diamond", 1200),
+			Map.entry("border-wizard", 1200), Map.entry("border-rainbow", 99999),
 			Map.entry("pawn-lava", 400), Map.entry("pawn-ocean", 400),
 			Map.entry("pawn-galaxy", 600), Map.entry("pawn-forest", 400),
 			Map.entry("pawn-diamond", 800), Map.entry("pawn-gold", 1200),
