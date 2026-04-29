@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 public class ChatService {
 
     private static final int MAX_TEXT_LENGTH = 500;
-    private static final String KLIPY_PREFIX = "https://media.klipy.com/";
+    private static final String KLIPY_PREFIX = "https://static.klipy.com/";
 
     // Thread-safe counter: multiple WebSocket threads (one websocket connection per player) may call sendMessage at the same time.
     private final AtomicLong messageIdCounter = new AtomicLong(0);
