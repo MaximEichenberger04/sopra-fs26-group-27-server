@@ -100,24 +100,31 @@ public class MoveService {
         if (!isValidPawnMove(currentPawn, row, col, pawns, grid)){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid pawn move");
         }
+        if (game.isChaosMode() && gameStateCache.isPoisoned(gameId, row, col)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot move into a poison zone");
+        }
 
         gameStateCache.movePawn(gameId, userId, row, col);
 
         if (gameService.checkWinCondition(game, userId)) {
             return gameService.endGame(game, userId);
-        }
-
-        if (gameStateCache.hasBonusAction(gameId, userId)) {
-            gameStateCache.consumeBonusAction(gameId, userId);
-
-            if (!gameStateCache.hasBonusAction(gameId, userId)) {
+        } else {
+            if (gameStateCache.hasBonusAction(gameId, userId)) {
+                gameStateCache.clearBonusAction(gameId, userId);
+                return gameService.buildGameGetDTO(game, userId);
+            }
+            gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
+            gameStateCache.tickPoisonZones(gameId);
+            gameService.advanceTurn(game);
+            // Skip frozen player
+            if (gameStateCache.isFrozen(gameId, game.getCurrentTurnUserId())) {
+                gameStateCache.clearFreeze(gameId, game.getCurrentTurnUserId());
+                gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
+                gameStateCache.tickPoisonZones(gameId);
                 gameService.advanceTurn(game);
             }
-        } else {
-            gameService.advanceTurn(game);
+            return gameService.buildGameGetDTO(game);
         }
-
-        return gameService.buildGameGetDTO(game);
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -156,9 +163,11 @@ public class MoveService {
         List<Wall> walls = gameStateCache.getWalls(gameId);
         List<Pawn> pawns = gameStateCache.getPawns(gameId);
         boolean[][] grid = gameStateCache.getWallGrid(gameId);
-
+        
         int usedWalls = countWallsUsedByPlayer(walls, userId);
-        if (usedWalls >= game.getWallsPerPlayer()) {
+        int extraWalls = gameStateCache.getExtraWalls(gameId, userId);
+        int totalBudget = game.getWallsPerPlayer() + extraWalls;
+        if (usedWalls >= totalBudget) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No walls remaining");
         }
         if (wallOverlaps(grid, row, col, orientation)){
@@ -175,18 +184,24 @@ public class MoveService {
         gameStateCache.placeWall(gameId, row, col, orientation, userId);
 
         if (gameStateCache.hasBonusAction(gameId, userId)) {
-            gameStateCache.consumeBonusAction(gameId, userId);
-            if (!gameStateCache.hasBonusAction(gameId, userId)) {
-                gameService.advanceTurn(game);
-            }
-        } else {
+            gameStateCache.clearBonusAction(gameId, userId);
+            return gameService.buildGameGetDTO(game, userId);
+        }
+        gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
+        gameStateCache.tickPoisonZones(gameId);
+        gameService.advanceTurn(game);
+
+        if (gameStateCache.isFrozen(gameId, userId)) {
+            gameStateCache.clearFreeze(gameId, userId);
+        }
+        // Skip frozen next player
+        if (gameStateCache.isFrozen(gameId, game.getCurrentTurnUserId())) {
+            gameStateCache.clearFreeze(gameId, game.getCurrentTurnUserId());
+            gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
+            gameStateCache.tickPoisonZones(gameId);
             gameService.advanceTurn(game);
         }
 
-        if (gameStateCache.isFrozen(gameId, userId)) {
-            gameStateCache.clearFreeze(gameId, userId); 
-        }
-        
         return gameService.buildGameGetDTO(game);
     }
 

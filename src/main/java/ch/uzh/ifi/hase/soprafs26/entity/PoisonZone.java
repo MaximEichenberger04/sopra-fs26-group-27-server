@@ -8,7 +8,7 @@ package ch.uzh.ifi.hase.soprafs26.entity;
  * A poison zone occupies a 2×2 logical field on the 9×9 board, which maps to
  * a 4×4 block in the 17×17 internal grid 
  *
- * Lifetime: 4 half-turns after placement (enemy move → friendly move → enemy move → gone).
+ * Lifetime: 3 half-turns after placement (enemy move → friendly move → enemy move → gone).
  * roundsRemaining is decremented by MoveService each time any player completes
  * a turn. When it reaches 0 the zone is removed from the cache.
  *

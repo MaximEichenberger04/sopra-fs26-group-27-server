@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs26.rest.dto;
 
+import ch.uzh.ifi.hase.soprafs26.constant.AbilityType;
 import ch.uzh.ifi.hase.soprafs26.constant.GameStatus;
 
 import java.util.List;
@@ -21,6 +22,14 @@ public class GameGetDTO {
     private List<PawnGetDTO> pawns;
     private List<WallGetDTO> walls;
     private Map<Long, Integer> remainingWalls;
+
+    // Chaos mode extras
+    private boolean chaosMode;
+    private List<AbilityType> myInventory;          // only the requesting player's cards
+    private List<PoisonZoneDTO> poisonZones;
+    private List<Long> frozenPlayerIds;
+    private boolean canDrawCard;                    // true if this player has a pending draw
+    private int turnCounter;                        // current global turn count
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -57,4 +66,22 @@ public class GameGetDTO {
 
     public Map<Long, Integer> getRemainingWalls() { return remainingWalls; }
     public void setRemainingWalls(Map<Long, Integer> remainingWalls) { this.remainingWalls = remainingWalls; }
+
+    public boolean isChaosMode() { return chaosMode; }
+    public void setChaosMode(boolean chaosMode) { this.chaosMode = chaosMode; }
+
+    public List<AbilityType> getMyInventory() { return myInventory; }
+    public void setMyInventory(List<AbilityType> myInventory) { this.myInventory = myInventory; }
+
+    public List<PoisonZoneDTO> getPoisonZones() { return poisonZones; }
+    public void setPoisonZones(List<PoisonZoneDTO> poisonZones) { this.poisonZones = poisonZones; }
+
+    public boolean isCanDrawCard() { return canDrawCard; }
+    public void setCanDrawCard(boolean canDrawCard) { this.canDrawCard = canDrawCard; }
+
+    public int getTurnCounter() { return turnCounter; }
+    public void setTurnCounter(int turnCounter) { this.turnCounter = turnCounter; }
+
+    public List<Long> getFrozenPlayerIds() { return frozenPlayerIds; }
+    public void setFrozenPlayerIds(List<Long> frozenPlayerIds) { this.frozenPlayerIds = frozenPlayerIds; }
 }

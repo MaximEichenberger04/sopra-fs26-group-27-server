@@ -1,17 +1,22 @@
 package ch.uzh.ifi.hase.soprafs26.service;
-
+ 
+import ch.uzh.ifi.hase.soprafs26.constant.AbilityType;
 import ch.uzh.ifi.hase.soprafs26.constant.WallOrientation;
 import ch.uzh.ifi.hase.soprafs26.entity.Pawn;
+import ch.uzh.ifi.hase.soprafs26.entity.PoisonZone;
 import ch.uzh.ifi.hase.soprafs26.entity.Wall;
-
+ 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
-
+ 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -44,6 +49,8 @@ public class GameStateCache {
     private static final int INTERNAL_SIZE = 17;
     private static final int MAX_CARDS_HELD = 3;
     private static final int TURNS_PER_DRAW_CYCLE = 6; // 2 players × 3 rounds = 6 turns between each draw opportunity.
+    private static final int POISON_INITIAL_ROUNDS = 4;
+
     private static final int[][] START_POSITIONS = {
         {16, 8}, // player 0, starts bottom center, moves north
         {0, 8},   // player 1, starts top center, moves south
@@ -98,9 +105,10 @@ public class GameStateCache {
         }
         playerInventories.put(gameId, inventories);
         extraWalls.put(gameId, wallBonuses);
- 
         frozenPlayers.put(gameId, new HashSet<>());
         poisonZones.put(gameId, new ArrayList<>());
+        pendingCardDraw.put(gameId, new HashSet<>());
+        turnCounter.put(gameId, 0);
     }
 
 
@@ -213,6 +221,15 @@ public class GameStateCache {
         return null; // pawn was not found
     }
 
+    // Returns the list of player IDs registered for this game.
+    public List<Long> getPlayers(Long gameId) {
+        List<Pawn> pawnList = pawns.get(gameId);
+        if (pawnList == null) return Collections.emptyList();
+        List<Long> playerIds = new ArrayList<>();
+        for (Pawn p : pawnList) playerIds.add(p.getUserId());
+        return Collections.unmodifiableList(playerIds);
+    }
+
     // Removes all state for a finished game to free memory. 
     public void evictGame(Long gameId) {
         wallGrids.remove(gameId);
@@ -281,6 +298,11 @@ public class GameStateCache {
         List<AbilityType> hand = inventories.get(userId);
         return hand != null ? Collections.unmodifiableList(hand) : Collections.emptyList();
     }
+    
+    public Map<Long, List<AbilityType>> getAllInventories(Long gameId) {
+        Map<Long, List<AbilityType>> inventories = playerInventories.get(gameId);
+        return inventories != null ? Collections.unmodifiableMap(inventories) : Collections.emptyMap();
+    }
 
     public void removeCardFromInventory(Long gameId, Long userId, AbilityType type) {
         Map<Long, List<AbilityType>> inventories = playerInventories.get(gameId);
@@ -294,7 +316,7 @@ public class GameStateCache {
 
     // Freeze Ability methods
     public void freezePlayer(Long gameId, Long userId) {
-        frozenPlayers.add(userId);
+        frozenPlayers.get(gameId).add(userId);
     }
  
     public boolean isFrozen(Long gameId, Long userId) {
@@ -302,7 +324,8 @@ public class GameStateCache {
     }
  
     public void clearFreeze(Long gameId, Long userId) {
-        frozenPlayers.remove(userId);
+        Set<Long> frozen = frozenPlayers.get(gameId);
+        if (frozen != null) frozen.remove(userId);
     }
 
     // Bonus action methods (used by freeze, +2 Walls, 2 Moves)
@@ -333,39 +356,88 @@ public class GameStateCache {
 
     // Poison Ability methods
     public void addPoisonZone(Long gameId, int topLeftRow, int topLeftCol) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        List<PoisonZone> zones = requirePoisonZones(gameId);
+
+        // Check no pawn is already on any of the 4 cells
+        List<Pawn> pawnList = getPawns(gameId);
+        for (int dr = 0; dr <= 2; dr += 2) {
+            for (int dc = 0; dc <= 2; dc += 2) {
+                int r = topLeftRow + dr;
+                int c = topLeftCol + dc;
+                for (Pawn p : pawnList) {
+                    if (p.getRow() == r && p.getCol() == c) {
+                        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "Cannot place poison zone on a cell occupied by a pawn");
+                    }
+                }
+            }
+        }
+
+        PoisonZone zone = new PoisonZone();
+        zone.setId((long) (zones.size() + 1));
+        zone.setTopLeftRow(topLeftRow);
+        zone.setTopLeftCol(topLeftCol);
+        zone.setRoundsRemaining(POISON_INITIAL_ROUNDS);
+        zones.add(zone);
     }
  
     public List<PoisonZone> getPoisonZones(Long gameId) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        List<PoisonZone> zones = poisonZones.get(gameId);
+        return zones != null ? Collections.unmodifiableList(zones) : Collections.emptyList();
     }
  
     public void tickPoisonZones(Long gameId) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        List<PoisonZone> zones = poisonZones.get(gameId);
+        if (zones == null) return;
+        zones.forEach(z -> z.setRoundsRemaining(z.getRoundsRemaining() - 1));
+        zones.removeIf(z -> z.getRoundsRemaining() <= 0);
     }
 
     public boolean isPoisoned(Long gameId, int row, int col) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        List<PoisonZone> zones = poisonZones.get(gameId);
+        if (zones == null) return false;
+        for (PoisonZone z : zones) {
+            // Zone covers topLeftRow, topLeftRow+2 and topLeftCol, topLeftCol+2
+            boolean rowInZone = (row == z.getTopLeftRow() || row == z.getTopLeftRow() + 2);
+            boolean colInZone = (col == z.getTopLeftCol() || col == z.getTopLeftCol() + 2);
+            if (rowInZone && colInZone) return true;
+        }
+        return false;
     }
 
     // +2 Walls methods
     public void addExtraWalls(Long gameId, Long userId, int count) {
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
- 
-    /** Returns the bonus wall count for this player (0 if none). */
-    public int getExtraWalls(Long gameId, Long userId) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        Map<Long, Integer> bonuses = extraWalls.get(gameId);
+        if (bonuses == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Not a chaos game");
+        }
+        int current = bonuses.getOrDefault(userId, 0);
+        bonuses.put(userId, current + count);
     }
 
-    // Wall mutation methods (used by fireball, earthquake)
-    public void clearWallsInRegion(Long gameId, int minRow, int minCol, int maxRow, int maxCol) {
-        // fireball
-        throw new UnsupportedOperationException("Not implemented yet");
+    // Returns the bonus wall count for this player (0 if none). 
+    public int getExtraWalls(Long gameId, Long userId) {
+        Map<Long, Integer> bonuses = extraWalls.get(gameId);
+        if (bonuses == null) return 0;
+        return bonuses.getOrDefault(userId, 0);
     }
- 
-    public void updateWalls(Long gameId, List<Wall> updatedWalls) {
-        // earthquake
-        throw new UnsupportedOperationException("Not implemented yet");
+
+    
+    // Private helpers
+
+    private Map<Long, List<AbilityType>> requireInventories(Long gameId) {
+        Map<Long, List<AbilityType>> inventories = playerInventories.get(gameId);
+        if (inventories == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Not a chaos game");
+        }
+        return inventories;
+    }
+
+    private List<PoisonZone> requirePoisonZones(Long gameId) {
+        List<PoisonZone> zones = poisonZones.get(gameId);
+        if (zones == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Not a chaos game");
+        }
+        return zones;
     }
 }

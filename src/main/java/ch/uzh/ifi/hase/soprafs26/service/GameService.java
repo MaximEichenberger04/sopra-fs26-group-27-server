@@ -3,6 +3,7 @@ package ch.uzh.ifi.hase.soprafs26.service;
 import ch.uzh.ifi.hase.soprafs26.constant.GameStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.Game;
 import ch.uzh.ifi.hase.soprafs26.entity.Pawn;
+import ch.uzh.ifi.hase.soprafs26.entity.PoisonZone;
 import ch.uzh.ifi.hase.soprafs26.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
@@ -10,6 +11,7 @@ import ch.uzh.ifi.hase.soprafs26.repository.LobbyRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.PawnGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.PoisonZoneDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.WallGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs26.websocket.GameWebSocketHandler;
@@ -89,11 +91,12 @@ public class GameService {
         game.setGameStatus(GameStatus.RUNNING);
         game.setSizeBoard(9); // standard logical size (9x9 fields for pawn)
         game.setWallsPerPlayer(lobby.getMaxPlayers() == 2 ? 10 : 5); // check if lobby has 2 or 4 players
+        game.setChaosMode("CHAOS".equalsIgnoreCase(lobby.getGameMode()));
 
         game = gameRepository.save(game);
         gameRepository.flush();
 
-        gameStateCache.initGame(game.getId(), game.getPlayerIds());
+        gameStateCache.initGame(game.getId(), game.getPlayerIds(), game.isChaosMode());
         lobby.setGameId(game.getId());
         lobbyRepository.save(lobby);
 
@@ -107,10 +110,10 @@ public class GameService {
     /**
      * Returns a GameGetDTO with embedded pawns and walls from the cache.
      */
-    public GameGetDTO getGameById(Long gameId) {
+    public GameGetDTO getGameById(Long gameId, Long requestingUserId) {
         Game game = gameRepository.findById(gameId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
-        return buildGameGetDTO(game); // call build and return DTO
+        return buildGameGetDTO(game, requestingUserId); // call build and return DTO
     }
 
     /**
@@ -118,6 +121,15 @@ public class GameService {
      * GameStateCache (pawns + walls).
      */
     public GameGetDTO buildGameGetDTO(Game game) {
+        return buildGameGetDTO(game, null);
+    }
+
+    /**
+     * Assembles a GameGetDTO from the Game entity (metadata) and
+     * GameStateCache (pawns + walls). Populates myInventory and canDrawCard
+     * for the requesting player when requestingUserId is provided.
+     */
+    public GameGetDTO buildGameGetDTO(Game game, Long requestingUserId) {
         // convert entity to DTO
         GameGetDTO dto = DTOMapper.INSTANCE.convertEntityToGameGetDTO(game);
 
@@ -143,6 +155,44 @@ public class GameService {
             remainingWalls.put(playerId, game.getWallsPerPlayer() - used);
         }
         dto.setRemainingWalls(remainingWalls);
+
+        // Chaos mode extras
+        if (game.isChaosMode()) {
+            dto.setChaosMode(true);
+            dto.setTurnCounter(gameStateCache.getTurnCounter(game.getId()));
+
+            // Poison zones (all players see these)
+            List<PoisonZoneDTO> zoneDTOs = new ArrayList<>();
+            for (PoisonZone zone : gameStateCache.getPoisonZones(game.getId())) {
+                PoisonZoneDTO zoneDTO = new PoisonZoneDTO();
+                zoneDTO.setId(zone.getId());
+                zoneDTO.setTopLeftRow(zone.getTopLeftRow());
+                zoneDTO.setTopLeftCol(zone.getTopLeftCol());
+                zoneDTO.setRoundsRemaining(zone.getRoundsRemaining());
+                zoneDTOs.add(zoneDTO);
+            }
+            dto.setPoisonZones(zoneDTOs);
+
+            // Extra wall budget per player
+            for (Long playerId : game.getPlayerIds()) {
+                int extra = gameStateCache.getExtraWalls(game.getId(), playerId);
+                if (extra > 0) {
+                    remainingWalls.merge(playerId, extra, Integer::sum);
+                }
+            }
+
+            // Which players are frozen (skip their next turn)
+            List<Long> frozenIds = game.getPlayerIds().stream()
+                .filter(pid -> gameStateCache.isFrozen(game.getId(), pid))
+                .collect(Collectors.toList());
+            dto.setFrozenPlayerIds(frozenIds);
+
+            // Personal fields – only visible to the requesting player
+            if (requestingUserId != null) {
+                dto.setMyInventory(gameStateCache.getInventory(game.getId(), requestingUserId));
+                dto.setCanDrawCard(gameStateCache.hasPendingCardDraw(game.getId(), requestingUserId));
+            }
+        }
 
         return dto;
     }

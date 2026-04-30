@@ -1,13 +1,16 @@
 package ch.uzh.ifi.hase.soprafs26.controller;
-
-import ch.uzh.ifi.hase.soprafs26.websocket.GameWebSocketHandler;
-import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
+ 
+import ch.uzh.ifi.hase.soprafs26.rest.dto.AbilityPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.MovePostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.WallPostDTO;
+import ch.uzh.ifi.hase.soprafs26.service.AbilityService;
 import ch.uzh.ifi.hase.soprafs26.service.GameService;
 import ch.uzh.ifi.hase.soprafs26.service.MoveService;
-import ch.uzh.ifi.hase.soprafs26.entity.Game;
+import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs26.entity.User;
+import ch.uzh.ifi.hase.soprafs26.websocket.GameWebSocketHandler;
+ 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,12 +20,17 @@ public class GameController {
 
     private final GameService gameService;
     private final MoveService moveService;
+    private final AbilityService abilityService;
     private final GameWebSocketHandler webSocketHandler;
+    private final UserRepository userRepository;
 
-    GameController(GameService gameService, MoveService moveService, GameWebSocketHandler webSocketHandler) {
+    GameController(GameService gameService, MoveService moveService, 
+            AbilityService abilityService, UserRepository userRepository, GameWebSocketHandler webSocketHandler) {
         this.gameService = gameService;
         this.moveService = moveService;
+        this.abilityService = abilityService;
         this.webSocketHandler = webSocketHandler;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -35,7 +43,8 @@ public class GameController {
     public GameGetDTO getGame(
             @PathVariable Long gameId,
             @RequestHeader("Authorization") String token) {
-        return gameService.getGameById(gameId); //DTO already assembled in GameService through buildGameGetDTO
+        Long requestingUserId = resolveUserId(token);
+        return gameService.getGameById(gameId, requestingUserId); //DTO already assembled in GameService through buildGameGetDTO
     }
 
     /**
@@ -119,5 +128,11 @@ public class GameController {
         GameGetDTO result = abilityService.drawCard(gameId, token);
         webSocketHandler.broadcastGameEvent("ABILITY_DRAW", gameId);
         return result;
+    }
+
+    // Resolves a token to its userId, returns null if the token is invalid.
+    private Long resolveUserId(String token) {
+        User user = userRepository.findByToken(token);
+        return user != null ? user.getId() : null;
     }
 }
