@@ -191,6 +191,7 @@ public class GameService {
         List<Long> activePlayers = new ArrayList<>(game.getActivePlayerIds());
         activePlayers.remove(userId);
         game.setActivePlayerIds(activePlayers);
+        gameStateCache.removePawn(game.getId(), userId);
     }
 
     public GameGetDTO forfeitDisconnectedPlayer(Long gameId, Long disconnectedUserId) {

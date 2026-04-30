@@ -167,6 +167,15 @@ public class GameStateCache {
         return null; // pawn was not found
     }
 
+    // Removes the pawn of a player that left/forfeited the game.
+    public void removePawn(Long gameId, Long userId) {
+        List<Pawn> pawnList = pawns.get(gameId);
+        if (pawnList == null) {
+            return;
+        }
+        pawnList.removeIf(p -> p.getUserId().equals(userId));
+    }
+
     // Removes all state for a finished game to free memory.
     public void evictGame(Long gameId) {
         wallGrids.remove(gameId);

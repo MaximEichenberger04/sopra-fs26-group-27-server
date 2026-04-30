@@ -1,6 +1,8 @@
 package ch.uzh.ifi.hase.soprafs26.controller;
 
 import ch.uzh.ifi.hase.soprafs26.constant.GameStatus;
+import ch.uzh.ifi.hase.soprafs26.entity.User;
+import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs26.service.GameService;
 import ch.uzh.ifi.hase.soprafs26.service.MoveService;
@@ -41,6 +43,9 @@ class GameControllerTest {
 
     @Mock
     private GameWebSocketHandler webSocketHandler;
+
+    @Mock
+    private UserRepository userRepository;
 
     @InjectMocks
     private GameController gameController;
@@ -199,8 +204,11 @@ class GameControllerTest {
 
 
     @Test
-    void forfeitGame_validRequest_returns200AndBroadcastsFORFEITAndGAME_OVER() throws Exception {
+    void forfeitGame_validRequest_returns200AndBroadcastsPLAYER_FORFEITEDAndGAME_OVER() throws Exception {
+        User user = new User();
+        user.setId(1L);
         when(gameService.forfeitGame(10L, "valid-token")).thenReturn(endedGameDTO);
+        when(userRepository.findByToken("valid-token")).thenReturn(user);
 
         mockMvc.perform(post("/games/10/forfeit")
                         .header("Authorization", "valid-token"))
@@ -208,8 +216,25 @@ class GameControllerTest {
                 .andExpect(jsonPath("$.winnerId").value(2))
                 .andExpect(jsonPath("$.gameStatus").value("ENDED"));
 
-        verify(webSocketHandler).broadcastGameEvent("FORFEIT", 10L);
+        verify(webSocketHandler).broadcastGameEvent("PLAYER_FORFEITED", 10L, 1L, null);
         verify(webSocketHandler).broadcastGameEvent("GAME_OVER", 10L);
+    }
+
+    @Test
+    void forfeitGame_runningGame_returns200AndBroadcastsPlayerForfeitAndGameUpdated() throws Exception {
+        User user = new User();
+        user.setId(1L);
+        when(gameService.forfeitGame(10L, "valid-token")).thenReturn(runningGameDTO);
+        when(userRepository.findByToken("valid-token")).thenReturn(user);
+
+        mockMvc.perform(post("/games/10/forfeit")
+                        .header("Authorization", "valid-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.gameStatus").value("RUNNING"));
+
+        verify(webSocketHandler).broadcastGameEvent("PLAYER_FORFEITED", 10L, 1L, null);
+        verify(webSocketHandler).broadcastGameEvent("GAME_UPDATED", 10L);
+        verify(webSocketHandler, never()).broadcastGameEvent("GAME_OVER", 10L);
     }
 
     @Test
