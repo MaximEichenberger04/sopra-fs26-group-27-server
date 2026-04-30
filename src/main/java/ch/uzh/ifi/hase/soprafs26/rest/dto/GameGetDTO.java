@@ -31,6 +31,14 @@ public class GameGetDTO {
     private List<Long> frozenPlayerIds;
     private boolean canDrawCard;                    // true if this player has a pending draw
     private int turnCounter;                        // current global turn count
+
+    // Chaos mode extras
+    private boolean chaosMode;
+    private List<AbilityType> myInventory;          // only the requesting player's cards
+    private List<PoisonZoneDTO> poisonZones;
+    private List<Long> frozenPlayerIds;
+    private boolean canDrawCard;                    // true if this player has a pending draw
+    private int turnCounter;                        // current global turn count
     private List<Long> activePlayerIds; // need this for automatic disconnect logic
 
     public List<Long> getActivePlayerIds() {
@@ -129,6 +137,26 @@ public class GameGetDTO {
         this.walls = walls;
     }
 
+    public Map<Long, Integer> getRemainingWalls() { return remainingWalls; }
+    public void setRemainingWalls(Map<Long, Integer> remainingWalls) { this.remainingWalls = remainingWalls; }
+
+    public boolean isChaosMode() { return chaosMode; }
+    public void setChaosMode(boolean chaosMode) { this.chaosMode = chaosMode; }
+
+    public List<AbilityType> getMyInventory() { return myInventory; }
+    public void setMyInventory(List<AbilityType> myInventory) { this.myInventory = myInventory; }
+
+    public List<PoisonZoneDTO> getPoisonZones() { return poisonZones; }
+    public void setPoisonZones(List<PoisonZoneDTO> poisonZones) { this.poisonZones = poisonZones; }
+
+    public boolean isCanDrawCard() { return canDrawCard; }
+    public void setCanDrawCard(boolean canDrawCard) { this.canDrawCard = canDrawCard; }
+
+    public int getTurnCounter() { return turnCounter; }
+    public void setTurnCounter(int turnCounter) { this.turnCounter = turnCounter; }
+
+    public List<Long> getFrozenPlayerIds() { return frozenPlayerIds; }
+    public void setFrozenPlayerIds(List<Long> frozenPlayerIds) { this.frozenPlayerIds = frozenPlayerIds; }
     public Map<Long, Integer> getRemainingWalls() { return remainingWalls; }
     public void setRemainingWalls(Map<Long, Integer> remainingWalls) { this.remainingWalls = remainingWalls; }
 

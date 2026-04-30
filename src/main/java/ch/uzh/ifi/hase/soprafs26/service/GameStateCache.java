@@ -318,6 +318,11 @@ public class GameStateCache {
         Map<Long, List<AbilityType>> inventories = playerInventories.get(gameId);
         return inventories != null ? Collections.unmodifiableMap(inventories) : Collections.emptyMap();
     }
+    
+    public Map<Long, List<AbilityType>> getAllInventories(Long gameId) {
+        Map<Long, List<AbilityType>> inventories = playerInventories.get(gameId);
+        return inventories != null ? Collections.unmodifiableMap(inventories) : Collections.emptyMap();
+    }
 
     public void removeCardFromInventory(Long gameId, Long userId, AbilityType type) {
         Map<Long, List<AbilityType>> inventories = playerInventories.get(gameId);
@@ -332,6 +337,7 @@ public class GameStateCache {
     // Freeze Ability methods
     public void freezePlayer(Long gameId, Long userId) {
         frozenPlayers.get(gameId).add(userId);
+        frozenPlayers.get(gameId).add(userId);
     }
  
     public boolean isFrozen(Long gameId, Long userId) {
@@ -339,6 +345,8 @@ public class GameStateCache {
     }
  
     public void clearFreeze(Long gameId, Long userId) {
+        Set<Long> frozen = frozenPlayers.get(gameId);
+        if (frozen != null) frozen.remove(userId);
         Set<Long> frozen = frozenPlayers.get(gameId);
         if (frozen != null) frozen.remove(userId);
     }
