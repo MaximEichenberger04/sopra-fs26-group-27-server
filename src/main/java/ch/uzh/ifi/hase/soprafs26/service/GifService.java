@@ -28,6 +28,7 @@ public class GifService {
     }
 
     public List<GifSearchResultDTO> search(String keyword, int page, int perPage) {
+        if (apiKey == null || apiKey.isBlank()) return Collections.emptyList();
         try {
             String uri = KLIPY_BASE + "/" + apiKey + "/gifs/search"
                     + "?q={keyword}&page={page}&per_page={perPage}";
