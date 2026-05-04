@@ -1,5 +1,7 @@
 package ch.uzh.ifi.hase.soprafs26.controller;
- 
+
+import ch.uzh.ifi.hase.soprafs26.entity.User;
+import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.AbilityPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.MovePostDTO;
@@ -7,7 +9,7 @@ import ch.uzh.ifi.hase.soprafs26.rest.dto.WallPostDTO;
 import ch.uzh.ifi.hase.soprafs26.service.AbilityService;
 import ch.uzh.ifi.hase.soprafs26.service.GameService;
 import ch.uzh.ifi.hase.soprafs26.service.MoveService;
-import ch.uzh.ifi.hase.soprafs26.entity.Game;
+import ch.uzh.ifi.hase.soprafs26.websocket.GameWebSocketHandler;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,7 +23,7 @@ public class GameController {
     private final GameWebSocketHandler webSocketHandler;
     private final UserRepository userRepository;
 
-    GameController(GameService gameService, MoveService moveService, 
+    GameController(GameService gameService, MoveService moveService,
             AbilityService abilityService, UserRepository userRepository, GameWebSocketHandler webSocketHandler) {
         this.gameService = gameService;
         this.moveService = moveService;
@@ -41,7 +43,7 @@ public class GameController {
             @PathVariable Long gameId,
             @RequestHeader("Authorization") String token) {
         Long requestingUserId = resolveUserId(token);
-        return gameService.getGameById(gameId, requestingUserId); //DTO already assembled in GameService through buildGameGetDTO
+        return gameService.getGameById(gameId, requestingUserId);
     }
 
     /**
@@ -98,9 +100,8 @@ public class GameController {
 
     /**
      * POST /games/{gameId}/ability
-     * Use an ability from the calling player's inventory
-    */
-
+     * Use an ability from the calling player's inventory.
+     */
     @PostMapping("/{gameId}/ability")
     @ResponseStatus(HttpStatus.OK)
     public GameGetDTO useAbility(
@@ -114,9 +115,8 @@ public class GameController {
 
     /**
      * POST /games/{gameId}/ability/draw
-     * Draw a card from the deck into the calling player's inventory
-    */
-
+     * Draw a card from the deck into the calling player's inventory.
+     */
     @PostMapping("/{gameId}/ability/draw")
     @ResponseStatus(HttpStatus.OK)
     public GameGetDTO drawAbilityCard(
@@ -127,7 +127,6 @@ public class GameController {
         return result;
     }
 
-    // Resolves a token to its userId, returns null if the token is invalid.
     private Long resolveUserId(String token) {
         User user = userRepository.findByToken(token);
         return user != null ? user.getId() : null;

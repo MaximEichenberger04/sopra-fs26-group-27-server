@@ -24,7 +24,7 @@ public class Game implements Serializable {
     private GameStatus gameStatus;
 
     @Column(nullable = false)
-    private int sizeBoard; // logical size (9 → 17×17 internal grid)
+    private int sizeBoard;
 
     @Column(nullable = false)
     private Long creatorId;
@@ -33,13 +33,10 @@ public class Game implements Serializable {
     private Long currentTurnUserId;
 
     @Column(nullable = false)
-    private int wallsPerPlayer; // 10 for 2-player, 5 for 4-player
+    private int wallsPerPlayer;
 
     @Column(nullable = true)
     private Long winnerId;
-
-    @Column(nullable = false)
-    private boolean chaosMode = false;
 
     @Column(nullable = false)
     private boolean chaosMode = false;
@@ -55,83 +52,41 @@ public class Game implements Serializable {
     private List<Long> activePlayerIds = new ArrayList<>();
 
     @Column(nullable = false)
-    private String mapTheme;
+    private String mapTheme = "mystic-grove";
 
-    public List<Long> getActivePlayerIds() {
-        return activePlayerIds;
-    }
+    public List<Long> getActivePlayerIds() { return activePlayerIds; }
+    public void setActivePlayerIds(List<Long> activePlayerIds) { this.activePlayerIds = activePlayerIds; }
 
-    public void setActivePlayerIds(List<Long> activePlayerIds) {
-        this.activePlayerIds = activePlayerIds;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public Long getId() {
-        return id;
-    }
+    public Long getLobbyId() { return lobbyId; }
+    public void setLobbyId(Long lobbyId) { this.lobbyId = lobbyId; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public GameStatus getGameStatus() { return gameStatus; }
+    public void setGameStatus(GameStatus gameStatus) { this.gameStatus = gameStatus; }
 
-    public Long getLobbyId() {
-        return lobbyId;
-    }
+    public int getSizeBoard() { return sizeBoard; }
+    public void setSizeBoard(int sizeBoard) { this.sizeBoard = sizeBoard; }
 
-    public void setLobbyId(Long lobbyId) {
-        this.lobbyId = lobbyId;
-    }
+    public Long getCreatorId() { return creatorId; }
+    public void setCreatorId(Long creatorId) { this.creatorId = creatorId; }
 
-    public GameStatus getGameStatus() {
-        return gameStatus;
-    }
+    public Long getCurrentTurnUserId() { return currentTurnUserId; }
+    public void setCurrentTurnUserId(Long currentTurnUserId) { this.currentTurnUserId = currentTurnUserId; }
 
-    public void setGameStatus(GameStatus gameStatus) {
-        this.gameStatus = gameStatus;
-    }
+    public int getWallsPerPlayer() { return wallsPerPlayer; }
+    public void setWallsPerPlayer(int wallsPerPlayer) { this.wallsPerPlayer = wallsPerPlayer; }
 
-    public int getSizeBoard() {
-        return sizeBoard;
-    }
-
-    public void setSizeBoard(int sizeBoard) {
-        this.sizeBoard = sizeBoard;
-    }
-
-    public Long getCreatorId() {
-        return creatorId;
-    }
-
-    public void setCreatorId(Long creatorId) {
-        this.creatorId = creatorId;
-    }
-
-    public Long getCurrentTurnUserId() {
-        return currentTurnUserId;
-    }
-
-    public void setCurrentTurnUserId(Long currentTurnUserId) {
-        this.currentTurnUserId = currentTurnUserId;
-    }
-
-    public int getWallsPerPlayer() {
-        return wallsPerPlayer;
-    }
-
-    public void setWallsPerPlayer(int wallsPerPlayer) {
-        this.wallsPerPlayer = wallsPerPlayer;
-    }
-
-    public Long getWinnerId() {
-        return winnerId;
-    }
-
-    public void setWinnerId(Long winnerId) {
-        this.winnerId = winnerId;
-    }
+    public Long getWinnerId() { return winnerId; }
+    public void setWinnerId(Long winnerId) { this.winnerId = winnerId; }
 
     public List<Long> getPlayerIds() { return playerIds; }
     public void setPlayerIds(List<Long> playerIds) { this.playerIds = playerIds; }
-    
+
     public boolean isChaosMode() { return chaosMode; }
     public void setChaosMode(boolean chaosMode) { this.chaosMode = chaosMode; }
+
+    public String getMapTheme() { return mapTheme; }
+    public void setMapTheme(String mapTheme) { this.mapTheme = mapTheme; }
 }
