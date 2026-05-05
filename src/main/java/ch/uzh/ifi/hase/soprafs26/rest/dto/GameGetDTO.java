@@ -31,19 +31,9 @@ public class GameGetDTO {
     private List<Long> frozenPlayerIds;
     private boolean canDrawCard;
     private int turnCounter;
-  
-    private List<Long> activePlayerIds; // need this for automatic disconnect logic
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public List<Long> getActivePlayerIds() {
-        return activePlayerIds;
-    }
-
-    public void setActivePlayerIds(List<Long> activePlayerIds) {
-        this.activePlayerIds = activePlayerIds;
-    }
+    // Need this for automatic disconnect logic
+    private List<Long> activePlayerIds;
 
     public Long getId() {
         return id;
@@ -69,40 +59,14 @@ public class GameGetDTO {
         this.gameStatus = gameStatus;
     }
 
-    public String getMapTheme() { return mapTheme; }
-    public void setMapTheme(String mapTheme) { this.mapTheme = mapTheme; }
-
-    public List<Long> getActivePlayerIds() { return activePlayerIds; }
-    public void setActivePlayerIds(List<Long> activePlayerIds) { this.activePlayerIds = activePlayerIds; }
-
-    public List<PawnGetDTO> getPawns() { return pawns; }
-    public void setPawns(List<PawnGetDTO> pawns) { this.pawns = pawns; }
+    public int getSizeBoard() {
+        return sizeBoard;
+    }
 
     public void setSizeBoard(int sizeBoard) {
         this.sizeBoard = sizeBoard;
     }
 
-    public Map<Long, Integer> getRemainingWalls() { return remainingWalls; }
-    public void setRemainingWalls(Map<Long, Integer> remainingWalls) { this.remainingWalls = remainingWalls; }
-
-    public boolean isChaosMode() { return chaosMode; }
-    public void setChaosMode(boolean chaosMode) { this.chaosMode = chaosMode; }
-
-    public List<AbilityType> getMyInventory() { return myInventory; }
-    public void setMyInventory(List<AbilityType> myInventory) { this.myInventory = myInventory; }
-
-    public List<PoisonZoneDTO> getPoisonZones() { return poisonZones; }
-    public void setPoisonZones(List<PoisonZoneDTO> poisonZones) { this.poisonZones = poisonZones; }
-
-    public List<Long> getFrozenPlayerIds() { return frozenPlayerIds; }
-    public void setFrozenPlayerIds(List<Long> frozenPlayerIds) { this.frozenPlayerIds = frozenPlayerIds; }
-
-    public boolean isCanDrawCard() { return canDrawCard; }
-    public void setCanDrawCard(boolean canDrawCard) { this.canDrawCard = canDrawCard; }
-
-    public int getTurnCounter() { return turnCounter; }
-    public void setTurnCounter(int turnCounter) { this.turnCounter = turnCounter; }
-}
     public Long getCreatorId() {
         return creatorId;
     }
@@ -143,6 +107,14 @@ public class GameGetDTO {
         this.playerIds = playerIds;
     }
 
+    public String getMapTheme() {
+        return mapTheme;
+    }
+
+    public void setMapTheme(String mapTheme) {
+        this.mapTheme = mapTheme;
+    }
+
     public List<PawnGetDTO> getPawns() {
         return pawns;
     }
@@ -167,11 +139,59 @@ public class GameGetDTO {
         this.remainingWalls = remainingWalls;
     }
 
-    public String getMapTheme() {
-        return mapTheme;
+    public boolean isChaosMode() {
+        return chaosMode;
     }
 
-    public void setMapTheme(String mapTheme) {
-        this.mapTheme = mapTheme;
+    public void setChaosMode(boolean chaosMode) {
+        this.chaosMode = chaosMode;
+    }
+
+    public List<AbilityType> getMyInventory() {
+        return myInventory;
+    }
+
+    public void setMyInventory(List<AbilityType> myInventory) {
+        this.myInventory = myInventory;
+    }
+
+    public List<PoisonZoneDTO> getPoisonZones() {
+        return poisonZones;
+    }
+
+    public void setPoisonZones(List<PoisonZoneDTO> poisonZones) {
+        this.poisonZones = poisonZones;
+    }
+
+    public List<Long> getFrozenPlayerIds() {
+        return frozenPlayerIds;
+    }
+
+    public void setFrozenPlayerIds(List<Long> frozenPlayerIds) {
+        this.frozenPlayerIds = frozenPlayerIds;
+    }
+
+    public boolean isCanDrawCard() {
+        return canDrawCard;
+    }
+
+    public void setCanDrawCard(boolean canDrawCard) {
+        this.canDrawCard = canDrawCard;
+    }
+
+    public int getTurnCounter() {
+        return turnCounter;
+    }
+
+    public void setTurnCounter(int turnCounter) {
+        this.turnCounter = turnCounter;
+    }
+
+    public List<Long> getActivePlayerIds() {
+        return activePlayerIds;
+    }
+
+    public void setActivePlayerIds(List<Long> activePlayerIds) {
+        this.activePlayerIds = activePlayerIds;
     }
 }
