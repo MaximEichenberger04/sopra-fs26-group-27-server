@@ -98,46 +98,58 @@ public class AbilityService {
                 requireTargetCoords(dto);
                 applyFireball(gameId, dto.getTargetRow(), dto.getTargetCol());
                 gameStateCache.removeCardFromInventory(gameId, userId, AbilityType.FIREBALL);
-                gameStateCache.clearBonusAction(gameId, userId);
-                gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
-                gameStateCache.tickPoisonZones(gameId);
-                gameService.advanceTurn(game);
+                gameStateCache.consumeBonusAction(gameId, userId);
+                if (gameStateCache.isFrozen(gameId, userId)) gameStateCache.clearFreeze(gameId, userId);
+                if (!gameStateCache.hasBonusAction(gameId, userId)) {
+                    gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
+                    gameStateCache.tickPoisonZones(gameId);
+                    gameService.advanceTurn(game);
+                }
                 break;
 
             case EARTHQUAKE:
                 requireTargetCoords(dto);
                 applyEarthquake(gameId, dto.getTargetRow(), dto.getTargetCol());
                 gameStateCache.removeCardFromInventory(gameId, userId, AbilityType.EARTHQUAKE);
-                gameStateCache.clearBonusAction(gameId, userId);
-                gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
-                gameStateCache.tickPoisonZones(gameId);
-                gameService.advanceTurn(game);
+                gameStateCache.consumeBonusAction(gameId, userId);
+                if (gameStateCache.isFrozen(gameId, userId)) gameStateCache.clearFreeze(gameId, userId);
+                if (!gameStateCache.hasBonusAction(gameId, userId)) {
+                    gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
+                    gameStateCache.tickPoisonZones(gameId);
+                    gameService.advanceTurn(game);
+                }
                 break;
 
             case POISON:
                 requireTargetCoords(dto);
                 applyPoison(gameId, dto.getTargetRow(), dto.getTargetCol());
                 gameStateCache.removeCardFromInventory(gameId, userId, AbilityType.POISON);
-                gameStateCache.clearBonusAction(gameId, userId);
-                gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
-                gameStateCache.tickPoisonZones(gameId);
-                gameService.advanceTurn(game);
+                gameStateCache.consumeBonusAction(gameId, userId);
+                if (gameStateCache.isFrozen(gameId, userId)) gameStateCache.clearFreeze(gameId, userId);
+                if (!gameStateCache.hasBonusAction(gameId, userId)) {
+                    gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
+                    gameStateCache.tickPoisonZones(gameId);
+                    gameService.advanceTurn(game);
+                }
                 break;
 
             case FREEZE:
                 requireTargetUser(dto);
                 applyFreeze(gameId, userId, dto.getTargetUserId());
                 gameStateCache.removeCardFromInventory(gameId, userId, AbilityType.FREEZE);
+                // Caster gets 1 bonus action (set inside applyFreeze) - turn does NOT advance
                 break;
 
             case PLUS_TWO_WALLS:
                 applyPlusTwoWalls(gameId, userId, game.getWallsPerPlayer());
                 gameStateCache.removeCardFromInventory(gameId, userId, AbilityType.PLUS_TWO_WALLS);
+                // Caster gets 1 bonus action (set inside applyPlusTwoWalls) - turn does NOT advance
                 break;
 
             case TWO_MOVES:
                 applyTwoMoves(gameId, userId);
                 gameStateCache.removeCardFromInventory(gameId, userId, AbilityType.TWO_MOVES);
+                // Caster gets 2 bonus actions (set inside applyTwoMoves) - turn does NOT advance
                 break;
 
             default:
@@ -252,7 +264,9 @@ public class AbilityService {
     }
 
     private void applyTwoMoves(Long gameId, Long userId) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        // Grants 2 bonus actions — next 2 move/wall actions won't advance the turn.
+        // MoveService calls consumeBonusAction (not clear) so both are used one at a time.
+        gameStateCache.setBonusAction(gameId, userId, 2);
     }
 
     // ── Guards ────────────────────────────────────────────────────────────────

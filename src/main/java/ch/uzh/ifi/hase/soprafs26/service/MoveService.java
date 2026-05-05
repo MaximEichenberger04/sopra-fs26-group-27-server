@@ -88,10 +88,6 @@ public class MoveService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are frozen and cannot move this turn");
         }
 
-        if (gameStateCache.isFrozen(gameId, userId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are frozen and cannot move this turn");
-        }
-
         int[] targetField = dto.getTargetField();
         if (targetField == null || targetField.length != 2){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid target field");
@@ -120,19 +116,12 @@ public class MoveService {
             return gameService.endGame(game, userId);
         } else {
             if (gameStateCache.hasBonusAction(gameId, userId)) {
-                gameStateCache.clearBonusAction(gameId, userId);
+                gameStateCache.consumeBonusAction(gameId, userId);
                 return gameService.buildGameGetDTO(game, userId);
             }
             gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
             gameStateCache.tickPoisonZones(gameId);
             gameService.advanceTurn(game);
-            // Skip frozen player
-            if (gameStateCache.isFrozen(gameId, game.getCurrentTurnUserId())) {
-                gameStateCache.clearFreeze(gameId, game.getCurrentTurnUserId());
-                gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
-                gameStateCache.tickPoisonZones(gameId);
-                gameService.advanceTurn(game);
-            }
             return gameService.buildGameGetDTO(game);
         }
     }
@@ -197,7 +186,7 @@ public class MoveService {
         gameStateCache.placeWall(gameId, row, col, orientation, userId);
 
         if (gameStateCache.hasBonusAction(gameId, userId)) {
-            gameStateCache.clearBonusAction(gameId, userId);
+            gameStateCache.consumeBonusAction(gameId, userId);
             return gameService.buildGameGetDTO(game, userId);
         }
         gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
@@ -206,13 +195,6 @@ public class MoveService {
 
         if (gameStateCache.isFrozen(gameId, userId)) {
             gameStateCache.clearFreeze(gameId, userId);
-        }
-        // Skip frozen next player
-        if (gameStateCache.isFrozen(gameId, game.getCurrentTurnUserId())) {
-            gameStateCache.clearFreeze(gameId, game.getCurrentTurnUserId());
-            gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
-            gameStateCache.tickPoisonZones(gameId);
-            gameService.advanceTurn(game);
         }
 
         return gameService.buildGameGetDTO(game);
