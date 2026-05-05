@@ -24,7 +24,7 @@ import static org.mockito.Mockito.*;
 
 public class ChatServiceTest {
 
-    private static final String VALID_GIF = "https://media.klipy.com/some.gif";
+    private static final String VALID_GIF = "https://static.klipy.com/some.gif";
     private static final String INVALID_GIF = "https://tenor.com/some.gif";
 
     @Mock

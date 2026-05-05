@@ -1,8 +1,11 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
 import ch.uzh.ifi.hase.soprafs26.constant.GameStatus;
+import ch.uzh.ifi.hase.soprafs26.constant.LobbyStatus;
+import ch.uzh.ifi.hase.soprafs26.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.Game;
 import ch.uzh.ifi.hase.soprafs26.entity.Lobby;
+import ch.uzh.ifi.hase.soprafs26.entity.Pawn;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.LobbyRepository;
@@ -16,14 +19,13 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -44,17 +46,20 @@ class GameServiceIntegrationTest {
     private GameService gameService;
 
     @Autowired
+    private GameStateCache gameStateCache;
+
+    @Qualifier("gameRepository")
+    @Autowired
     private GameRepository gameRepository;
 
+    @Qualifier("lobbyRepository")
     @Autowired
     private LobbyRepository lobbyRepository;
 
+    @Qualifier("userRepository")
     @Autowired
     private UserRepository userRepository;
 
-    private User hostUser;
-    private User guestUser;
-    private Lobby lobby;
     // Named users for the main 2-player tests
     private User hostUser;
     private User guestUser;
@@ -97,8 +102,6 @@ class GameServiceIntegrationTest {
 
         lobby = new Lobby();
         lobby.setName("Test Lobby");
-        lobby.setLobbyStatus(ch.uzh.ifi.hase.soprafs26.constant.LobbyStatus.WAITING);
-        lobby.setHostId(hostUser.getId());
         lobby.setLobbyStatus(LobbyStatus.WAITING);
         lobby.setHostId(hostUser.getId());
         lobby.setMaxPlayers(2);

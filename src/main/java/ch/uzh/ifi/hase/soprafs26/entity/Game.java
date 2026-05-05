@@ -52,41 +52,101 @@ public class Game implements Serializable {
     private List<Long> activePlayerIds = new ArrayList<>();
 
     @Column(nullable = false)
-    private String mapTheme = "mystic-grove";
+    private String mapTheme;
 
-    public List<Long> getActivePlayerIds() { return activePlayerIds; }
-    public void setActivePlayerIds(List<Long> activePlayerIds) { this.activePlayerIds = activePlayerIds; }
+    public List<Long> getActivePlayerIds() {
+        return activePlayerIds;
+    }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public void setActivePlayerIds(List<Long> activePlayerIds) {
+        this.activePlayerIds = activePlayerIds;
+    }
 
-    public Long getLobbyId() { return lobbyId; }
-    public void setLobbyId(Long lobbyId) { this.lobbyId = lobbyId; }
+    public Long getId() {
+        return id;
+    }
 
-    public GameStatus getGameStatus() { return gameStatus; }
-    public void setGameStatus(GameStatus gameStatus) { this.gameStatus = gameStatus; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public int getSizeBoard() { return sizeBoard; }
-    public void setSizeBoard(int sizeBoard) { this.sizeBoard = sizeBoard; }
+    public Long getLobbyId() {
+        return lobbyId;
+    }
 
-    public Long getCreatorId() { return creatorId; }
-    public void setCreatorId(Long creatorId) { this.creatorId = creatorId; }
+    public void setLobbyId(Long lobbyId) {
+        this.lobbyId = lobbyId;
+    }
 
-    public Long getCurrentTurnUserId() { return currentTurnUserId; }
-    public void setCurrentTurnUserId(Long currentTurnUserId) { this.currentTurnUserId = currentTurnUserId; }
+    public GameStatus getGameStatus() {
+        return gameStatus;
+    }
 
-    public int getWallsPerPlayer() { return wallsPerPlayer; }
-    public void setWallsPerPlayer(int wallsPerPlayer) { this.wallsPerPlayer = wallsPerPlayer; }
+    public void setGameStatus(GameStatus gameStatus) {
+        this.gameStatus = gameStatus;
+    }
 
-    public Long getWinnerId() { return winnerId; }
-    public void setWinnerId(Long winnerId) { this.winnerId = winnerId; }
+    public int getSizeBoard() {
+        return sizeBoard;
+    }
 
-    public List<Long> getPlayerIds() { return playerIds; }
-    public void setPlayerIds(List<Long> playerIds) { this.playerIds = playerIds; }
+    public void setSizeBoard(int sizeBoard) {
+        this.sizeBoard = sizeBoard;
+    }
 
-    public boolean isChaosMode() { return chaosMode; }
-    public void setChaosMode(boolean chaosMode) { this.chaosMode = chaosMode; }
+    public Long getCreatorId() {
+        return creatorId;
+    }
 
-    public String getMapTheme() { return mapTheme; }
-    public void setMapTheme(String mapTheme) { this.mapTheme = mapTheme; }
+    public void setCreatorId(Long creatorId) {
+        this.creatorId = creatorId;
+    }
+
+    public Long getCurrentTurnUserId() {
+        return currentTurnUserId;
+    }
+
+    public void setCurrentTurnUserId(Long currentTurnUserId) {
+        this.currentTurnUserId = currentTurnUserId;
+    }
+
+    public int getWallsPerPlayer() {
+        return wallsPerPlayer;
+    }
+
+    public void setWallsPerPlayer(int wallsPerPlayer) {
+        this.wallsPerPlayer = wallsPerPlayer;
+    }
+
+    public Long getWinnerId() {
+        return winnerId;
+    }
+
+    public void setWinnerId(Long winnerId) {
+        this.winnerId = winnerId;
+    }
+
+    public List<Long> getPlayerIds() {
+        return playerIds;
+    }
+
+    public void setPlayerIds(List<Long> playerIds) {
+        this.playerIds = playerIds;
+    }
+
+    public String getMapTheme() {
+        return mapTheme;
+    }
+  
+    public void setMapTheme(String mapTheme) { 
+        this.mapTheme = mapTheme; 
+    }
+
+    public boolean isChaosMode() { 
+        return chaosMode; 
+    }
+  
+    public void setChaosMode(boolean chaosMode) { 
+        this.chaosMode = chaosMode; 
+    }
 }

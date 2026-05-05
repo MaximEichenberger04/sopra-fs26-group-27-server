@@ -94,6 +94,9 @@ public class GameService {
         game.setWallsPerPlayer(lobby.getMaxPlayers() == 2 ? 10 : 5); // check if lobby has 2 or 4 players
         game.setChaosMode("CHAOS".equalsIgnoreCase(lobby.getGameMode()));
 
+        // ---> TRANSFERS MAP THEME FROM LOBBY TO GAME <---
+        game.setMapTheme(lobby.getMapTheme());
+
         game = gameRepository.save(game);
         gameRepository.flush();
 

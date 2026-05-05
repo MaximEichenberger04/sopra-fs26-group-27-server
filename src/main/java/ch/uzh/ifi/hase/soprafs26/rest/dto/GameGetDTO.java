@@ -18,7 +18,6 @@ public class GameGetDTO {
     private Long winnerId;
     private List<Long> playerIds;
     private String mapTheme;
-    private List<Long> activePlayerIds;
 
     // Embedded board state
     private List<PawnGetDTO> pawns;
@@ -32,33 +31,43 @@ public class GameGetDTO {
     private List<Long> frozenPlayerIds;
     private boolean canDrawCard;
     private int turnCounter;
+  
+    private List<Long> activePlayerIds; // need this for automatic disconnect logic
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
-    public Long getLobbyId() { return lobbyId; }
-    public void setLobbyId(Long lobbyId) { this.lobbyId = lobbyId; }
+    public List<Long> getActivePlayerIds() {
+        return activePlayerIds;
+    }
 
-    public GameStatus getGameStatus() { return gameStatus; }
-    public void setGameStatus(GameStatus gameStatus) { this.gameStatus = gameStatus; }
+    public void setActivePlayerIds(List<Long> activePlayerIds) {
+        this.activePlayerIds = activePlayerIds;
+    }
 
-    public int getSizeBoard() { return sizeBoard; }
-    public void setSizeBoard(int sizeBoard) { this.sizeBoard = sizeBoard; }
+    public Long getId() {
+        return id;
+    }
 
-    public Long getCreatorId() { return creatorId; }
-    public void setCreatorId(Long creatorId) { this.creatorId = creatorId; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public Long getCurrentTurnUserId() { return currentTurnUserId; }
-    public void setCurrentTurnUserId(Long currentTurnUserId) { this.currentTurnUserId = currentTurnUserId; }
+    public Long getLobbyId() {
+        return lobbyId;
+    }
 
-    public int getWallsPerPlayer() { return wallsPerPlayer; }
-    public void setWallsPerPlayer(int wallsPerPlayer) { this.wallsPerPlayer = wallsPerPlayer; }
+    public void setLobbyId(Long lobbyId) {
+        this.lobbyId = lobbyId;
+    }
 
-    public Long getWinnerId() { return winnerId; }
-    public void setWinnerId(Long winnerId) { this.winnerId = winnerId; }
+    public GameStatus getGameStatus() {
+        return gameStatus;
+    }
 
-    public List<Long> getPlayerIds() { return playerIds; }
-    public void setPlayerIds(List<Long> playerIds) { this.playerIds = playerIds; }
+    public void setGameStatus(GameStatus gameStatus) {
+        this.gameStatus = gameStatus;
+    }
 
     public String getMapTheme() { return mapTheme; }
     public void setMapTheme(String mapTheme) { this.mapTheme = mapTheme; }
@@ -69,8 +78,9 @@ public class GameGetDTO {
     public List<PawnGetDTO> getPawns() { return pawns; }
     public void setPawns(List<PawnGetDTO> pawns) { this.pawns = pawns; }
 
-    public List<WallGetDTO> getWalls() { return walls; }
-    public void setWalls(List<WallGetDTO> walls) { this.walls = walls; }
+    public void setSizeBoard(int sizeBoard) {
+        this.sizeBoard = sizeBoard;
+    }
 
     public Map<Long, Integer> getRemainingWalls() { return remainingWalls; }
     public void setRemainingWalls(Map<Long, Integer> remainingWalls) { this.remainingWalls = remainingWalls; }
@@ -92,4 +102,76 @@ public class GameGetDTO {
 
     public int getTurnCounter() { return turnCounter; }
     public void setTurnCounter(int turnCounter) { this.turnCounter = turnCounter; }
+}
+    public Long getCreatorId() {
+        return creatorId;
+    }
+
+    public void setCreatorId(Long creatorId) {
+        this.creatorId = creatorId;
+    }
+
+    public Long getCurrentTurnUserId() {
+        return currentTurnUserId;
+    }
+
+    public void setCurrentTurnUserId(Long currentTurnUserId) {
+        this.currentTurnUserId = currentTurnUserId;
+    }
+
+    public int getWallsPerPlayer() {
+        return wallsPerPlayer;
+    }
+
+    public void setWallsPerPlayer(int wallsPerPlayer) {
+        this.wallsPerPlayer = wallsPerPlayer;
+    }
+
+    public Long getWinnerId() {
+        return winnerId;
+    }
+
+    public void setWinnerId(Long winnerId) {
+        this.winnerId = winnerId;
+    }
+
+    public List<Long> getPlayerIds() {
+        return playerIds;
+    }
+
+    public void setPlayerIds(List<Long> playerIds) {
+        this.playerIds = playerIds;
+    }
+
+    public List<PawnGetDTO> getPawns() {
+        return pawns;
+    }
+
+    public void setPawns(List<PawnGetDTO> pawns) {
+        this.pawns = pawns;
+    }
+
+    public List<WallGetDTO> getWalls() {
+        return walls;
+    }
+
+    public void setWalls(List<WallGetDTO> walls) {
+        this.walls = walls;
+    }
+
+    public Map<Long, Integer> getRemainingWalls() {
+        return remainingWalls;
+    }
+
+    public void setRemainingWalls(Map<Long, Integer> remainingWalls) {
+        this.remainingWalls = remainingWalls;
+    }
+
+    public String getMapTheme() {
+        return mapTheme;
+    }
+
+    public void setMapTheme(String mapTheme) {
+        this.mapTheme = mapTheme;
+    }
 }
