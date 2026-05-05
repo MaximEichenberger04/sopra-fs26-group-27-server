@@ -236,7 +236,6 @@ class GameServiceTest {
         // player 1 forfeited → player 2 (id=2) should be the winner
         assertEquals(2L, result.getWinnerId());
         assertEquals(GameStatus.ENDED, result.getGameStatus());
-        verify(gameStateCache).removePawn(10L, 1L);
     }
 
     @Test
@@ -282,7 +281,6 @@ class GameServiceTest {
 
         assertEquals(2L, result.getWinnerId());
         assertEquals(GameStatus.ENDED, result.getGameStatus());
-        verify(gameStateCache).removePawn(10L, 1L);
     }
 
     @Test

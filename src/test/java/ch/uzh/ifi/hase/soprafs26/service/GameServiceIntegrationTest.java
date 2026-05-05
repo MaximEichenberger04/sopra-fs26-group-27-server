@@ -25,14 +25,22 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Full Spring context integration tests for GameService.
+ *
+ * Uses an in-memory H2 database (configured in src/test/resources/application.properties).
+ * Each test runs in its own transaction that is rolled back, except where
+ * @DirtiesContext is needed to reset the cache state.
+ */
 @WebAppConfiguration
 @SpringBootTest
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
-public class GameServiceIntegrationTest {
+class GameServiceIntegrationTest {
 
     @Autowired
     private GameService gameService;
@@ -62,6 +70,26 @@ public class GameServiceIntegrationTest {
     private User user4;
 
     @BeforeEach
+    void setUp() {
+        hostUser = new User();
+        hostUser.setUsername("host");
+        hostUser.setToken("host-token");
+        hostUser.setPassword("hashed-pw");
+        hostUser.setDisplayName("Host Player");
+        hostUser.setStatus(ch.uzh.ifi.hase.soprafs26.constant.UserStatus.ONLINE);
+        hostUser.setCreationDate(java.time.LocalDate.now());
+        hostUser = userRepository.save(hostUser);
+
+        guestUser = new User();
+        guestUser.setUsername("guest");
+        guestUser.setToken("guest-token");
+        guestUser.setPassword("hashed-pw");
+        guestUser.setDisplayName("Guest Player");
+        guestUser.setStatus(ch.uzh.ifi.hase.soprafs26.constant.UserStatus.ONLINE);
+        guestUser.setCreationDate(java.time.LocalDate.now());
+        guestUser = userRepository.save(guestUser);
+
+        lobby = new Lobby();
     public void setup() {
         gameRepository.deleteAll();
         lobbyRepository.deleteAll();
@@ -78,6 +106,24 @@ public class GameServiceIntegrationTest {
         lobby.setHostId(hostUser.getId());
         lobby.setMaxPlayers(2);
         lobby.setCurrentPlayers(2);
+        lobby.setGameMode("STANDARD");
+        lobby.setInviteCode(java.util.UUID.randomUUID().toString());
+        lobby.setMapTheme("medieval");
+        lobby.setPlayerIds(new ArrayList<>(Arrays.asList(hostUser.getId(), guestUser.getId())));
+        lobby = lobbyRepository.save(lobby);
+    }
+
+
+    @Test
+    void createGameFromLobby_persistsGameAndSetsLobbyGameId() {
+        Game game = gameService.createGameFromLobby(lobby.getId(), "host-token");
+
+        assertNotNull(game.getId());
+        assertEquals(GameStatus.RUNNING, game.getGameStatus());
+        assertTrue(gameRepository.findById(game.getId()).isPresent());
+
+        Lobby updatedLobby = lobbyRepository.findById(lobby.getId()).orElseThrow();
+        assertEquals(game.getId(), updatedLobby.getGameId());
         lobby.setGameMode("Classic");
         lobby.setInviteCode(UUID.randomUUID().toString());
         lobby.setMapTheme("medieval");
@@ -162,6 +208,12 @@ public class GameServiceIntegrationTest {
         assertEquals(0,  pawn2.getRow()); assertEquals(8, pawn2.getCol());
         assertEquals(8,  pawn3.getRow()); assertEquals(16, pawn3.getCol());
         assertEquals(8,  pawn4.getRow()); assertEquals(0,  pawn4.getCol());
+    }
+
+    @Test
+    void createGameFromLobby_twoPlayers_setsCorrectWallBudget() {
+        Game game = gameService.createGameFromLobby(lobby.getId(), "host-token");
+        assertEquals(10, game.getWallsPerPlayer());
     }
 
     @Test
