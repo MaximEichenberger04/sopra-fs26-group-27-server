@@ -52,10 +52,6 @@ public class UserService {
 		return this.userRepository.findAll();
 	}
 
-	public List<User> getLeaderboard() {
-		return this.userRepository.findAllByOrderByScoreDesc();
-	}
-
 	public User createUser(User newUser) {
 		newUser.setToken(UUID.randomUUID().toString());
 		newUser.setStatus(UserStatus.ONLINE);
@@ -225,6 +221,56 @@ public class UserService {
 		user.setOwnedCosmetics(owned.isEmpty() ? cosmeticId : owned + "," + cosmeticId);
 		userRepository.save(user);
 		return user;
+	}
+
+	/**
+	 * Awards XP to a user and handles level-ups with coin rewards.
+	 * XP needed per level = level × 130.
+	 * Coins per level-up scale with level tiers.
+	 */
+	public void awardXp(Long userId, int xpAmount) {
+		if (xpAmount <= 0)
+			return;
+
+		User user = getUserById(userId);
+		int currentXp = user.getXp() + xpAmount;
+		int currentLevel = user.getLevel();
+
+		// Process level-ups (may level up multiple times in one award)
+		while (true) {
+			int xpNeeded = (currentLevel + 1) * 130; // XP to reach next level
+			if (currentXp >= xpNeeded) {
+				currentXp -= xpNeeded;
+				currentLevel++;
+				int coinReward = getCoinsForLevel(currentLevel);
+				user.setCoins(user.getCoins() + coinReward);
+			} else {
+				break;
+			}
+		}
+
+		user.setXp(currentXp);
+		user.setLevel(currentLevel);
+		userRepository.save(user);
+	}
+
+	/** Returns coin reward for reaching the given level. */
+	private int getCoinsForLevel(int level) {
+		if (level <= 5)
+			return 100;
+		if (level <= 10)
+			return 150;
+		if (level <= 15)
+			return 200;
+		if (level <= 20)
+			return 300;
+		if (level <= 30)
+			return 450;
+		if (level <= 40)
+			return 650;
+		if (level <= 50)
+			return 900;
+		return 1200;
 	}
 
 	public void logoutUser(String token) {

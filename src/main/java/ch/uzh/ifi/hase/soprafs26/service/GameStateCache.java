@@ -19,56 +19,65 @@ import java.util.concurrent.ConcurrentHashMap;
  * during a game. Cleared when the game ends.
  *
  * Per game, holds:
- *   boolean[17][17] wallGrid, used for wall lookups for BFS and conflict checks
- *   List<Wall>       walls, an ordered list sent to the frontend for rendering
- *   List<Pawn>       pawns, current pawn positions (one per player)
+ * boolean[17][17] wallGrid, used for wall lookups for BFS and conflict checks
+ * List<Wall> walls, an ordered list sent to the frontend for rendering
+ * List<Pawn> pawns, current pawn positions (one per player)
  *
  * Wall rules (center at odd, odd in 17×17 grid):
- *   HORIZONTAL: marks (row, col-1), (row, col), (row, col+1) in grid
- *   VERTICAL:   marks (row-1, col), (row, col), (row+1, col) in grid
+ * HORIZONTAL: marks (row, col-1), (row, col), (row, col+1) in grid
+ * VERTICAL: marks (row-1, col), (row, col), (row+1, col) in grid
  *
  * Starting positions (17×17 internal grid):
- *   Player index 0: row=16, col=8  →  goal row = 0   (starts south, moves north)
- *   Player index 1: row=0,  col=8  →  goal row = 16  (starts north, moves south)
+ * Player index 0: row=16, col=8 → goal row = 0 (starts south, moves north)
+ * Player index 1: row=0, col=8 → goal row = 16 (starts north, moves south)
  *
  * Lifecycle:
- *   initGame, called by GameService.createGameFromLobby
- *   placeWall, called by MoveService.applyWallPlacement
- *   movePawn, called by MoveService.processMove
- *   evictGame, called by GameService.forfeitGame / win handling
+ * initGame, called by GameService.createGameFromLobby
+ * placeWall, called by MoveService.applyWallPlacement
+ * movePawn, called by MoveService.processMove
+ * evictGame, called by GameService.forfeitGame / win handling
  */
 @Component
 public class GameStateCache {
 
     private static final int INTERNAL_SIZE = 17;
     private static final int[][] START_POSITIONS = {
-        {16, 8}, // player 0, starts bottom center, moves north
-        {0, 8},   // player 1, starts top center, moves south
-        {8, 16}, // player 2 starts on the right, moves left
-        {8, 0}  //player 3 starts on left, moves right
+            { 16, 8 }, // player 0, starts bottom center, moves north
+            { 0, 8 }, // player 1, starts top center, moves south
+            { 8, 16 }, // player 2 starts on the right, moves left
+            { 8, 0 } // player 3 starts on left, moves right
     };
 
     private final Map<Long, boolean[][]> wallGrids = new ConcurrentHashMap<>();
-    private final Map<Long, List<Wall>>  walls     = new ConcurrentHashMap<>();
-    private final Map<Long, List<Pawn>>  pawns     = new ConcurrentHashMap<>();
+    private final Map<Long, List<Wall>> walls = new ConcurrentHashMap<>();
+    private final Map<Long, List<Pawn>> pawns = new ConcurrentHashMap<>();
+    private final Map<Long, Map<Long, Integer>> moveCounters = new ConcurrentHashMap<>();
 
     /**
      * Initialises an empty wall grid and places pawns at their
      * starting positions for the given player list.
      */
     public void initGame(Long gameId, List<Long> playerIds) {
-        if (playerIds.size() > START_POSITIONS.length){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
-                "Too many players. Maximum supported is " + START_POSITIONS.length);
+        if (playerIds.size() > START_POSITIONS.length) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Too many players. Maximum supported is " + START_POSITIONS.length);
         }
         wallGrids.put(gameId, new boolean[INTERNAL_SIZE][INTERNAL_SIZE]);
         walls.put(gameId, new ArrayList<>());
 
-        // Creates a pawn for each player, assigns an ID, user, and starting position, and stores all pawns for this game
+        // Init move counters for each player
+        Map<Long, Integer> counters = new ConcurrentHashMap<>();
+        for (Long pid : playerIds) {
+            counters.put(pid, 0);
+        }
+        moveCounters.put(gameId, counters);
+
+        // Creates a pawn for each player, assigns an ID, user, and starting position,
+        // and stores all pawns for this game
         List<Pawn> pawnList = new ArrayList<>();
-        for (int i = 0; i < playerIds.size(); i++){
+        for (int i = 0; i < playerIds.size(); i++) {
             Pawn pawn = new Pawn();
-            pawn.setId((long) (i+1));
+            pawn.setId((long) (i + 1));
             pawn.setUserId(playerIds.get(i));
             pawn.setRow(START_POSITIONS[i][0]);
             pawn.setCol(START_POSITIONS[i][1]);
@@ -77,29 +86,28 @@ public class GameStateCache {
         pawns.put(gameId, pawnList);
     }
 
-
     /**
      * Marks the three cells occupied by the wall in the grid and appends
      * the wall to the render list. Must be called after turn validation.
      */
-    public void placeWall(Long gameId, int row, int col, WallOrientation orientation, Long userId){
+    public void placeWall(Long gameId, int row, int col, WallOrientation orientation, Long userId) {
         boolean[][] grid = wallGrids.get(gameId);
         if (grid == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game state not found for game " + gameId);
         }
-        if (orientation == WallOrientation.HORIZONTAL){
-            grid[row][col -1] = true;
-            grid[row][col   ] = true;
-            grid[row][col +1] = true;
+        if (orientation == WallOrientation.HORIZONTAL) {
+            grid[row][col - 1] = true;
+            grid[row][col] = true;
+            grid[row][col + 1] = true;
         } else { // VERTICAL
             grid[row - 1][col] = true;
-            grid[row    ][col] = true;
-            grid[row + 1][col] = true;   
+            grid[row][col] = true;
+            grid[row + 1][col] = true;
         }
-        
+
         // create a new wall
         Wall wall = new Wall();
-        wall.setId((long)(walls.get(gameId).size() + 1));
+        wall.setId((long) (walls.get(gameId).size() + 1));
         wall.setUserId(userId);
         wall.setRow(row);
         wall.setCol(col);
@@ -115,7 +123,7 @@ public class GameStateCache {
      */
     public void movePawn(Long gameId, Long userId, int row, int col) {
         Pawn pawn = getPawn(gameId, userId);
-        if (pawn == null){
+        if (pawn == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Pawn not found for the user " + userId);
         }
         pawn.setRow(row);
@@ -131,7 +139,7 @@ public class GameStateCache {
         if (grid == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game state not found for the game " + gameId);
         }
-        return grid;  
+        return grid;
     }
 
     // Returns the ordered wall list for frontend rendering.
@@ -139,7 +147,7 @@ public class GameStateCache {
         List<Wall> w = walls.get(gameId);
         // Returns an empty list if no walls exist for this game to avoid null checks
         if (w == null) {
-            return new  ArrayList<>();
+            return new ArrayList<>();
         }
         return w;
     }
@@ -154,13 +162,14 @@ public class GameStateCache {
         return p;
     }
 
-    // Returns the pawn belonging to the given player, or null if not found. 
+    // Returns the pawn belonging to the given player, or null if not found.
     public Pawn getPawn(Long gameId, Long userId) {
         List<Pawn> pawnList = pawns.get(gameId);
-        if (pawnList == null) return null;
+        if (pawnList == null)
+            return null;
 
-        for (Pawn p : pawnList){
-            if (p.getUserId().equals(userId)){
+        for (Pawn p : pawnList) {
+            if (p.getUserId().equals(userId)) {
                 return p;
             }
         }
@@ -181,5 +190,35 @@ public class GameStateCache {
         wallGrids.remove(gameId);
         walls.remove(gameId);
         pawns.remove(gameId);
+        moveCounters.remove(gameId);
+    }
+
+    /** Increments the move counter for a player in a game. */
+    public void incrementMoveCount(Long gameId, Long userId) {
+        Map<Long, Integer> counters = moveCounters.get(gameId);
+        if (counters != null) {
+            counters.merge(userId, 1, Integer::sum);
+        }
+    }
+
+    /** Returns the number of moves a player has made in a game. */
+    public int getMoveCount(Long gameId, Long userId) {
+        Map<Long, Integer> counters = moveCounters.get(gameId);
+        if (counters == null)
+            return 0;
+        return counters.getOrDefault(userId, 0);
+    }
+
+    /** Returns the number of walls a player has placed in a game. */
+    public int getWallCount(Long gameId, Long userId) {
+        List<Wall> wallList = walls.get(gameId);
+        if (wallList == null)
+            return 0;
+        int count = 0;
+        for (Wall w : wallList) {
+            if (w.getUserId().equals(userId))
+                count++;
+        }
+        return count;
     }
 }
