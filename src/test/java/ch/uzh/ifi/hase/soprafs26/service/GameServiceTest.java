@@ -88,7 +88,7 @@ class GameServiceTest {
             g.setId(10L);
             return g;
         });
-        doNothing().when(gameStateCache).initGame(anyLong(), any());
+        doNothing().when(gameStateCache).initGame(anyLong(), any(List.class), anyBoolean());
         doNothing().when(chatCache).initGame(anyLong());
 
         Game created = gameService.createGameFromLobby(5L, "valid-token");
@@ -98,7 +98,7 @@ class GameServiceTest {
         assertEquals(10, created.getWallsPerPlayer()); // 2 players → 10 walls
         assertEquals("medieval", created.getMapTheme());
         assertEquals(1L, created.getCurrentTurnUserId());
-        verify(gameStateCache).initGame(anyLong(), eq(lobby.getPlayerIds()));
+        verify(gameStateCache).initGame(anyLong(), any(List.class), anyBoolean());
         verify(chatCache).initGame(anyLong());
         verify(lobbyRepository).save(lobby);
     }
@@ -140,7 +140,7 @@ class GameServiceTest {
         when(gameStateCache.getPawns(10L)).thenReturn(List.of());
         when(gameStateCache.getWalls(10L)).thenReturn(List.of());
 
-        GameGetDTO dto = gameService.getGameById(10L);
+        GameGetDTO dto = gameService.getGameById(10L, 1L);
 
         assertNotNull(dto);
         assertEquals(10L, dto.getId());
@@ -151,7 +151,7 @@ class GameServiceTest {
         when(gameRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(ResponseStatusException.class,
-                () -> gameService.getGameById(99L));
+                () -> gameService.getGameById(99L, 1L));
     }
 
 

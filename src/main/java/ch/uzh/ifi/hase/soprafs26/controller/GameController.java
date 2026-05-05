@@ -4,8 +4,6 @@ import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.AbilityPostDTO;
 import ch.uzh.ifi.hase.soprafs26.websocket.GameWebSocketHandler;
-import ch.uzh.ifi.hase.soprafs26.entity.User;
-import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.MovePostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.WallPostDTO;

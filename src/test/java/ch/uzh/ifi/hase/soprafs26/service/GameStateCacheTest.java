@@ -24,7 +24,7 @@ public class GameStateCacheTest {
 
     @Test
     public void initGame_twoPlayers_setsStartPositions() {
-        cache.initGame(1L, Arrays.asList(10L, 20L));
+        cache.initGame(1L, Arrays.asList(10L, 20L), false);
 
         List<Pawn> pawns = cache.getPawns(1L);
         assertEquals(2, pawns.size());
@@ -42,7 +42,7 @@ public class GameStateCacheTest {
 
     @Test
     public void initGame_fourPlayers_setsAllStartPositions() {
-        cache.initGame(1L, Arrays.asList(1L, 2L, 3L, 4L));
+        cache.initGame(1L, Arrays.asList(1L, 2L, 3L, 4L), false);
 
         List<Pawn> pawns = cache.getPawns(1L);
         assertEquals(4, pawns.size());
@@ -56,13 +56,13 @@ public class GameStateCacheTest {
     public void initGame_tooManyPlayers_throws400() {
         List<Long> tooMany = Arrays.asList(1L, 2L, 3L, 4L, 5L);
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> cache.initGame(1L, tooMany));
+                () -> cache.initGame(1L, tooMany, false));
         assertEquals(400, ex.getStatusCode().value());
     }
 
     @Test
     public void placeWall_horizontal_marksThreeCellsAndAppendsToList() {
-        cache.initGame(1L, Arrays.asList(10L, 20L));
+        cache.initGame(1L, Arrays.asList(10L, 20L), false);
 
         cache.placeWall(1L, 3, 4, WallOrientation.HORIZONTAL, 10L);
 
@@ -83,7 +83,7 @@ public class GameStateCacheTest {
 
     @Test
     public void placeWall_vertical_marksThreeCellsAndAppendsToList() {
-        cache.initGame(1L, Arrays.asList(10L, 20L));
+        cache.initGame(1L, Arrays.asList(10L, 20L), false);
 
         cache.placeWall(1L, 5, 3, WallOrientation.VERTICAL, 20L);
 
@@ -99,7 +99,7 @@ public class GameStateCacheTest {
 
     @Test
     public void placeWall_multipleWalls_idIncrements() {
-        cache.initGame(1L, Arrays.asList(10L, 20L));
+        cache.initGame(1L, Arrays.asList(10L, 20L), false);
         cache.placeWall(1L, 1, 1, WallOrientation.HORIZONTAL, 10L);
         cache.placeWall(1L, 3, 1, WallOrientation.HORIZONTAL, 20L);
 
@@ -117,7 +117,7 @@ public class GameStateCacheTest {
 
     @Test
     public void movePawn_updatesPosition() {
-        cache.initGame(1L, Arrays.asList(10L, 20L));
+        cache.initGame(1L, Arrays.asList(10L, 20L), false);
 
         cache.movePawn(1L, 10L, 14, 8);
 
@@ -128,7 +128,7 @@ public class GameStateCacheTest {
 
     @Test
     public void movePawn_userWithoutPawn_throws404() {
-        cache.initGame(1L, Arrays.asList(10L, 20L));
+        cache.initGame(1L, Arrays.asList(10L, 20L), false);
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> cache.movePawn(1L, 999L, 0, 0));
         assertEquals(404, ex.getStatusCode().value());
@@ -158,13 +158,13 @@ public class GameStateCacheTest {
 
     @Test
     public void getPawn_unknownUser_returnsNull() {
-        cache.initGame(1L, Collections.singletonList(10L));
+        cache.initGame(1L, Collections.singletonList(10L), false);
         assertNull(cache.getPawn(1L, 999L));
     }
 
     @Test
     public void evictGame_removesAllState() {
-        cache.initGame(1L, Arrays.asList(10L, 20L));
+        cache.initGame(1L, Arrays.asList(10L, 20L), false);
         cache.placeWall(1L, 1, 1, WallOrientation.HORIZONTAL, 10L);
 
         cache.evictGame(1L);
