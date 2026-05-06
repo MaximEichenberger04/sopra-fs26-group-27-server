@@ -85,6 +85,7 @@ public interface DTOMapper {
 	@Mapping(source = "ownedCosmetics", target = "ownedCosmetics")
 	@Mapping(source = "equippedBorder", target = "equippedBorder")
 	@Mapping(source = "equippedPawnSkin", target = "equippedPawnSkin")
+	@Mapping(source = "unlockedAchievements", target = "unlockedAchievements")
 	UserGetDTO convertEntityToUserGetDTO(User user);
 
 	// LOBBY MAPPINGS

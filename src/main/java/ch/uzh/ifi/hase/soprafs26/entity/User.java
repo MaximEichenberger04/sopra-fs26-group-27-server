@@ -69,6 +69,18 @@ public class User implements Serializable {
 	@Column(nullable = true)
 	private String equippedPawnSkin;
 
+	@Column(nullable = true)
+	private int totalGamesPlayed;
+
+	@Column(nullable = true)
+	private int currentWinStreak;
+
+	@Column(nullable = true)
+	private int maxWinStreak;
+
+	@Column(nullable = true, length = 1000)
+	private String unlockedAchievements;
+
 	@Transient
 	private String currentPassword;
 
@@ -212,6 +224,38 @@ public class User implements Serializable {
 
 	public void setToken(String token) {
 		this.token = token;
+	}
+
+	public int getTotalGamesPlayed() {
+		return totalGamesPlayed;
+	}
+
+	public void setTotalGamesPlayed(int totalGamesPlayed) {
+		this.totalGamesPlayed = totalGamesPlayed;
+	}
+
+	public int getCurrentWinStreak() {
+		return currentWinStreak;
+	}
+
+	public void setCurrentWinStreak(int currentWinStreak) {
+		this.currentWinStreak = currentWinStreak;
+	}
+
+	public int getMaxWinStreak() {
+		return maxWinStreak;
+	}
+
+	public void setMaxWinStreak(int maxWinStreak) {
+		this.maxWinStreak = maxWinStreak;
+	}
+
+	public String getUnlockedAchievements() {
+		return unlockedAchievements;
+	}
+
+	public void setUnlockedAchievements(String unlockedAchievements) {
+		this.unlockedAchievements = unlockedAchievements;
 	}
 
 	public String getCurrentPassword() {
