@@ -326,7 +326,7 @@ public class GameService {
      * Calculates and awards XP to all players based on:
      * - Action XP: 2 XP per move, 5 XP per wall placed
      * - Result XP: depends on placement and game mode (2 or 4 player)
-     * Forfeited players (not in activePlayerIds) get 0 XP.
+     * Forfeited players (not in activePlayerIds) get 0 XP but still count the game for stats.
      */
     private void awardGameXp(Game game, Long winnerId) {
         List<Long> allPlayers = game.getPlayerIds();
@@ -335,42 +335,28 @@ public class GameService {
 
         for (Long playerId : allPlayers) {
             boolean forfeited = !activePlayers.contains(playerId);
-
-            // Forfeited players get 0 XP
-            if (forfeited)
-                continue;
-
-            // Action XP: 2 per move + 5 per wall
-            int moves = gameStateCache.getMoveCount(game.getId(), playerId);
-            int wallsPlaced = gameStateCache.getWallCount(game.getId(), playerId);
-            int actionXp = (moves * 2) + (wallsPlaced * 5);
-
-            // Result XP based on placement
-            int resultXp;
-            if (playerId.equals(winnerId)) {
-                resultXp = is4Player ? 150 : 100; // 1st place
-            } else {
-                if (is4Player) {
-                    // Non-winner active players = 2nd place (3rd/4th forfeited and got 0)
-                    resultXp = 80;
-                } else {
-                    // 2-player loser
-                    resultXp = 30;
-                }
-            }
-
-            int totalXp = actionXp + resultXp;
+            boolean won = playerId.equals(winnerId);
 
             try {
-                User user = userRepository.findById(playerId).orElse(null);
-                if (user != null) {
-                    // Increment score (win count)
-                    if (playerId.equals(winnerId)) {
-                        user.setScore(user.getScore() + 1);
-                        userRepository.save(user);
-                    }
-                    userService.awardXp(playerId, totalXp);
+                if (forfeited) {
+                    // Forfeited players still count the game and lose their streak
+                    userService.updateGameStats(playerId, false);
+                    continue;
                 }
+
+                int moves = gameStateCache.getMoveCount(game.getId(), playerId);
+                int wallsPlaced = gameStateCache.getWallCount(game.getId(), playerId);
+                int actionXp = (moves * 2) + (wallsPlaced * 5);
+                int resultXp = won ? (is4Player ? 150 : 100) : (is4Player ? 80 : 30);
+
+                User user = userRepository.findById(playerId).orElse(null);
+                if (user != null && won) {
+                    user.setScore(user.getScore() + 1);
+                    userRepository.save(user);
+                }
+                userService.awardXp(playerId, actionXp + resultXp);
+                userService.updateGameStats(playerId, won);
+                userService.checkAndAwardAchievements(playerId, won, moves, wallsPlaced, is4Player);
             } catch (Exception e) {
                 // Log but don't fail the game end
             }

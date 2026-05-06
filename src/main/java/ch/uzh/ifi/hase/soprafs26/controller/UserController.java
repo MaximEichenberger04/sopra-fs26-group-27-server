@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import ch.uzh.ifi.hase.soprafs26.entity.User;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.AchievementGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPatchDTO;
@@ -120,6 +121,15 @@ public class UserController {
 		userService.validateToken(token);
 		User updatedUser = userService.buyCosmetic(id, token, body.get("cosmeticId"));
 		return DTOMapper.INSTANCE.convertEntityToUserGetDTO(updatedUser);
+	}
+
+	@GetMapping("/users/{id}/achievements")
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	public List<AchievementGetDTO> getUserAchievements(@PathVariable Long id,
+			@RequestHeader(value = "Authorization", required = false) String token) {
+		userService.validateToken(token);
+		return userService.getAchievements(id);
 	}
 
 	@PutMapping("/logout")
