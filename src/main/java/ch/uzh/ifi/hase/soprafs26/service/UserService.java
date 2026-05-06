@@ -52,6 +52,10 @@ public class UserService {
 		return this.userRepository.findAll();
 	}
 
+	public List<User> getLeaderboard() {
+		return this.userRepository.findAllByOrderByScoreDesc();
+	}
+
 	public User createUser(User newUser) {
 		newUser.setToken(UUID.randomUUID().toString());
 		newUser.setStatus(UserStatus.ONLINE);
