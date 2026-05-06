@@ -101,6 +101,7 @@ public class GameService {
         gameRepository.flush();
 
         gameStateCache.initGame(game.getId(), game.getPlayerIds(), game.isChaosMode());
+        chatCache.initGame(game.getId());
         lobby.setGameId(game.getId());
         lobbyRepository.save(lobby);
 

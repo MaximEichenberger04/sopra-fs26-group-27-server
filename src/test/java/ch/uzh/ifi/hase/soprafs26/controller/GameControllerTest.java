@@ -65,9 +65,9 @@ class GameControllerTest {
         User mockUser = new User();
         mockUser.setId(1L);
         mockUser.setToken("valid-token");
-        when(userRepository.findByToken("valid-token")).thenReturn(mockUser);
-        when(userRepository.findByToken("bad-token")).thenReturn(null);
-        when(userRepository.findByToken("guest-token")).thenReturn(null);
+        lenient().when(userRepository.findByToken("valid-token")).thenReturn(mockUser);
+        lenient().when(userRepository.findByToken("bad-token")).thenReturn(null);
+        lenient().when(userRepository.findByToken("guest-token")).thenReturn(null);
 
         runningGameDTO = new GameGetDTO();
         runningGameDTO.setId(10L);
@@ -225,7 +225,7 @@ class GameControllerTest {
                 .andExpect(jsonPath("$.winnerId").value(2))
                 .andExpect(jsonPath("$.gameStatus").value("ENDED"));
 
-        verify(webSocketHandler).broadcastGameEvent("FORFEIT", 10L, 1L, null);
+        verify(webSocketHandler).broadcastGameEvent("PLAYER_FORFEITED", 10L, 1L, null);
         verify(webSocketHandler).broadcastGameEvent("GAME_OVER", 10L);
     }
 
