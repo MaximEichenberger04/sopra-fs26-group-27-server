@@ -72,6 +72,23 @@ public class UserController {
 		return DTOMapper.INSTANCE.convertEntityToUserGetDTO(loggedInUser);
 	}
 
+	@GetMapping("/users/leaderboard")
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	public List<UserGetDTO> getLeaderboard(
+			@RequestHeader(value = "Authorization", required = false) String token) {
+		userService.validateToken(token);
+
+		List<User> users = userService.getLeaderboard();
+		List<UserGetDTO> userGetDTOs = new ArrayList<>();
+
+		for (User user : users) {
+			userGetDTOs.add(DTOMapper.INSTANCE.convertEntityToUserGetDTO(user));
+		}
+
+		return userGetDTOs;
+	}
+
 	@GetMapping("/users/{id}")
 	@ResponseStatus(HttpStatus.OK)
 	@ResponseBody

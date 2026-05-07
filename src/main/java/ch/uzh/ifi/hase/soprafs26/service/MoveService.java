@@ -84,6 +84,14 @@ public class MoveService {
         }
         requireTurn(game, userId);
 
+        if (gameStateCache.isFrozen(gameId, userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are frozen and cannot move this turn");
+        }
+
+        if (gameStateCache.isFrozen(gameId, userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are frozen and cannot move this turn");
+        }
+
         int[] targetField = dto.getTargetField();
         if (targetField == null || targetField.length != 2){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid target field");
@@ -102,15 +110,31 @@ public class MoveService {
         if (!isValidPawnMove(currentPawn, row, col, pawns, grid)){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid pawn move");
         }
+        if (game.isChaosMode() && gameStateCache.isPoisoned(gameId, row, col)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot move into a poison zone");
+        }
 
         gameStateCache.movePawn(gameId, userId, row, col);
+
         if (gameService.checkWinCondition(game, userId)) {
             return gameService.endGame(game, userId);
         } else {
+            if (gameStateCache.hasBonusAction(gameId, userId)) {
+                gameStateCache.clearBonusAction(gameId, userId);
+                return gameService.buildGameGetDTO(game, userId);
+            }
+            gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
+            gameStateCache.tickPoisonZones(gameId);
             gameService.advanceTurn(game);
+            // Skip frozen player
+            if (gameStateCache.isFrozen(gameId, game.getCurrentTurnUserId())) {
+                gameStateCache.clearFreeze(gameId, game.getCurrentTurnUserId());
+                gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
+                gameStateCache.tickPoisonZones(gameId);
+                gameService.advanceTurn(game);
+            }
             return gameService.buildGameGetDTO(game);
         }
-
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -152,9 +176,11 @@ public class MoveService {
         List<Wall> walls = gameStateCache.getWalls(gameId);
         List<Pawn> pawns = gameStateCache.getPawns(gameId);
         boolean[][] grid = gameStateCache.getWallGrid(gameId);
-
+        
         int usedWalls = countWallsUsedByPlayer(walls, userId);
-        if (usedWalls >= game.getWallsPerPlayer()) {
+        int extraWalls = gameStateCache.getExtraWalls(gameId, userId);
+        int totalBudget = game.getWallsPerPlayer() + extraWalls;
+        if (usedWalls >= totalBudget) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No walls remaining");
         }
         if (wallOverlaps(grid, row, col, orientation)){
@@ -169,8 +195,26 @@ public class MoveService {
         }
 
         gameStateCache.placeWall(gameId, row, col, orientation, userId);
+
+        if (gameStateCache.hasBonusAction(gameId, userId)) {
+            gameStateCache.clearBonusAction(gameId, userId);
+            return gameService.buildGameGetDTO(game, userId);
+        }
+        gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
+        gameStateCache.tickPoisonZones(gameId);
         gameService.advanceTurn(game);
-        
+
+        if (gameStateCache.isFrozen(gameId, userId)) {
+            gameStateCache.clearFreeze(gameId, userId);
+        }
+        // Skip frozen next player
+        if (gameStateCache.isFrozen(gameId, game.getCurrentTurnUserId())) {
+            gameStateCache.clearFreeze(gameId, game.getCurrentTurnUserId());
+            gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
+            gameStateCache.tickPoisonZones(gameId);
+            gameService.advanceTurn(game);
+        }
+
         return gameService.buildGameGetDTO(game);
     }
 
@@ -495,7 +539,9 @@ public class MoveService {
         if (game.getGameStatus() != GameStatus.RUNNING) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Game is not running");
         }
-        if (!game.getCurrentTurnUserId().equals(userId)) {
+        boolean isCurrentTurn = game.getCurrentTurnUserId().equals(userId);
+        boolean hasBonusAction = gameStateCache.hasBonusAction(game.getId(), userId);
+        if (!isCurrentTurn && !hasBonusAction) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your turn");
         }
     }

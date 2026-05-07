@@ -24,7 +24,7 @@ public class Game implements Serializable {
     private GameStatus gameStatus;
 
     @Column(nullable = false)
-    private int sizeBoard; // logical size (9 → 17×17 internal grid)
+    private int sizeBoard;
 
     @Column(nullable = false)
     private Long creatorId;
@@ -33,10 +33,13 @@ public class Game implements Serializable {
     private Long currentTurnUserId;
 
     @Column(nullable = false)
-    private int wallsPerPlayer; // 10 for 2-player, 5 for 4-player
+    private int wallsPerPlayer;
 
     @Column(nullable = true)
     private Long winnerId;
+
+    @Column(nullable = false)
+    private boolean chaosMode = false;
 
     @ElementCollection
     @CollectionTable(name = "game_players", joinColumns = @JoinColumn(name = "game_id"))
@@ -134,8 +137,16 @@ public class Game implements Serializable {
     public String getMapTheme() {
         return mapTheme;
     }
+  
+    public void setMapTheme(String mapTheme) { 
+        this.mapTheme = mapTheme; 
+    }
 
-    public void setMapTheme(String mapTheme) {
-        this.mapTheme = mapTheme;
+    public boolean isChaosMode() { 
+        return chaosMode; 
+    }
+  
+    public void setChaosMode(boolean chaosMode) { 
+        this.chaosMode = chaosMode; 
     }
 }

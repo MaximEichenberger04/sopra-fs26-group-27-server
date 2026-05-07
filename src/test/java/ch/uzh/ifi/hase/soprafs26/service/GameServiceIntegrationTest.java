@@ -25,14 +25,22 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Full Spring context integration tests for GameService.
+ *
+ * Uses an in-memory H2 database (configured in src/test/resources/application.properties).
+ * Each test runs in its own transaction that is rolled back, except where
+ * @DirtiesContext is needed to reset the cache state.
+ */
 @WebAppConfiguration
 @SpringBootTest
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
-public class GameServiceIntegrationTest {
+class GameServiceIntegrationTest {
 
     @Autowired
     private GameService gameService;
@@ -78,6 +86,24 @@ public class GameServiceIntegrationTest {
         lobby.setHostId(hostUser.getId());
         lobby.setMaxPlayers(2);
         lobby.setCurrentPlayers(2);
+        lobby.setGameMode("STANDARD");
+        lobby.setInviteCode(java.util.UUID.randomUUID().toString());
+        lobby.setMapTheme("medieval");
+        lobby.setPlayerIds(new ArrayList<>(Arrays.asList(hostUser.getId(), guestUser.getId())));
+        lobby = lobbyRepository.save(lobby);
+    }
+
+
+    @Test
+    void createGameFromLobby_persistsGameAndSetsLobbyGameId() {
+        Game game = gameService.createGameFromLobby(lobby.getId(), "host-token");
+
+        assertNotNull(game.getId());
+        assertEquals(GameStatus.RUNNING, game.getGameStatus());
+        assertTrue(gameRepository.findById(game.getId()).isPresent());
+
+        Lobby updatedLobby = lobbyRepository.findById(lobby.getId()).orElseThrow();
+        assertEquals(game.getId(), updatedLobby.getGameId());
         lobby.setGameMode("Classic");
         lobby.setInviteCode(UUID.randomUUID().toString());
         lobby.setMapTheme("medieval");
@@ -165,6 +191,12 @@ public class GameServiceIntegrationTest {
     }
 
     @Test
+    void createGameFromLobby_twoPlayers_setsCorrectWallBudget() {
+        Game game = gameService.createGameFromLobby(lobby.getId(), "host-token");
+        assertEquals(10, game.getWallsPerPlayer());
+    }
+
+    @Test
     void createGameFromLobby_mapsThemeFromLobbyToGame() {
         Game game = gameService.createGameFromLobby(lobby.getId(), "host-token");
         assertEquals("medieval", game.getMapTheme());
@@ -198,7 +230,7 @@ public class GameServiceIntegrationTest {
     void getGameById_returnsCorrectDTO() {
         Game game = gameService.createGameFromLobby(lobby.getId(), "host-token");
 
-        GameGetDTO dto = gameService.getGameById(game.getId());
+        GameGetDTO dto = gameService.getGameById(game.getId(), hostUser.getId());
 
         assertNotNull(dto);
         assertEquals(game.getId(), dto.getId());
@@ -211,14 +243,14 @@ public class GameServiceIntegrationTest {
     @Test
     void getGameById_nonExistentId_throwsNotFound() {
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> gameService.getGameById(999L));
+                () -> gameService.getGameById(999L, 1L));
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
     }
 
     @Test
     void buildGameGetDTO_freshGame_allPlayersHaveFullWallBudget() {
         Game game = gameService.createGameFromLobby(lobby.getId(), "host-token");
-        GameGetDTO dto = gameService.getGameById(game.getId());
+        GameGetDTO dto = gameService.getGameById(game.getId(), hostUser.getId());
         assertEquals(10, dto.getRemainingWalls().get(hostUser.getId()));
         assertEquals(10, dto.getRemainingWalls().get(guestUser.getId()));
     }

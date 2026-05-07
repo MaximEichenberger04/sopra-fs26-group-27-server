@@ -79,7 +79,9 @@ public class LobbyService {
     }
 
     public List<Lobby> getLobbies() {
-        return this.lobbyRepository.findAll();
+        return this.lobbyRepository.findAll().stream()
+                .filter(lobby -> lobby.getLobbyStatus() != LobbyStatus.FINISHED)
+                .toList();
     }
 
     public Lobby getLobbyById(Long lobbyId) {

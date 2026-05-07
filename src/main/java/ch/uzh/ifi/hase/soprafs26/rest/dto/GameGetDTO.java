@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs26.rest.dto;
 
+import ch.uzh.ifi.hase.soprafs26.constant.AbilityType;
 import ch.uzh.ifi.hase.soprafs26.constant.GameStatus;
 
 import java.util.List;
@@ -18,20 +19,21 @@ public class GameGetDTO {
     private List<Long> playerIds;
     private String mapTheme;
 
-    // Embedded board state, populated manually in GameService, not by MapStruct
+    // Embedded board state
     private List<PawnGetDTO> pawns;
     private List<WallGetDTO> walls;
     private Map<Long, Integer> remainingWalls;
 
-    private List<Long> activePlayerIds; // need this for automatic disconnect logic
+    // Chaos mode
+    private boolean chaosMode;
+    private List<AbilityType> myInventory;
+    private List<PoisonZoneDTO> poisonZones;
+    private List<Long> frozenPlayerIds;
+    private boolean canDrawCard;
+    private int turnCounter;
 
-    public List<Long> getActivePlayerIds() {
-        return activePlayerIds;
-    }
-
-    public void setActivePlayerIds(List<Long> activePlayerIds) {
-        this.activePlayerIds = activePlayerIds;
-    }
+    // Need this for automatic disconnect logic
+    private List<Long> activePlayerIds;
 
     public Long getId() {
         return id;
@@ -105,6 +107,14 @@ public class GameGetDTO {
         this.playerIds = playerIds;
     }
 
+    public String getMapTheme() {
+        return mapTheme;
+    }
+
+    public void setMapTheme(String mapTheme) {
+        this.mapTheme = mapTheme;
+    }
+
     public List<PawnGetDTO> getPawns() {
         return pawns;
     }
@@ -129,11 +139,59 @@ public class GameGetDTO {
         this.remainingWalls = remainingWalls;
     }
 
-    public String getMapTheme() {
-        return mapTheme;
+    public boolean isChaosMode() {
+        return chaosMode;
     }
 
-    public void setMapTheme(String mapTheme) {
-        this.mapTheme = mapTheme;
+    public void setChaosMode(boolean chaosMode) {
+        this.chaosMode = chaosMode;
+    }
+
+    public List<AbilityType> getMyInventory() {
+        return myInventory;
+    }
+
+    public void setMyInventory(List<AbilityType> myInventory) {
+        this.myInventory = myInventory;
+    }
+
+    public List<PoisonZoneDTO> getPoisonZones() {
+        return poisonZones;
+    }
+
+    public void setPoisonZones(List<PoisonZoneDTO> poisonZones) {
+        this.poisonZones = poisonZones;
+    }
+
+    public List<Long> getFrozenPlayerIds() {
+        return frozenPlayerIds;
+    }
+
+    public void setFrozenPlayerIds(List<Long> frozenPlayerIds) {
+        this.frozenPlayerIds = frozenPlayerIds;
+    }
+
+    public boolean isCanDrawCard() {
+        return canDrawCard;
+    }
+
+    public void setCanDrawCard(boolean canDrawCard) {
+        this.canDrawCard = canDrawCard;
+    }
+
+    public int getTurnCounter() {
+        return turnCounter;
+    }
+
+    public void setTurnCounter(int turnCounter) {
+        this.turnCounter = turnCounter;
+    }
+
+    public List<Long> getActivePlayerIds() {
+        return activePlayerIds;
+    }
+
+    public void setActivePlayerIds(List<Long> activePlayerIds) {
+        this.activePlayerIds = activePlayerIds;
     }
 }

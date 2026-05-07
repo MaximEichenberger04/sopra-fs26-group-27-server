@@ -1,7 +1,10 @@
 package ch.uzh.ifi.hase.soprafs26.controller;
 
 import ch.uzh.ifi.hase.soprafs26.constant.GameStatus;
+import ch.uzh.ifi.hase.soprafs26.entity.User;
+import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.GameGetDTO;
+import ch.uzh.ifi.hase.soprafs26.service.AbilityService;
 import ch.uzh.ifi.hase.soprafs26.service.GameService;
 import ch.uzh.ifi.hase.soprafs26.service.MoveService;
 import ch.uzh.ifi.hase.soprafs26.websocket.GameWebSocketHandler;
@@ -40,6 +43,12 @@ class GameControllerTest {
     private MoveService moveService;
 
     @Mock
+    private AbilityService abilityService;
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
     private GameWebSocketHandler webSocketHandler;
 
     @InjectMocks
@@ -51,6 +60,14 @@ class GameControllerTest {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(gameController).build();
+
+        // Mock user for token resolution
+        User mockUser = new User();
+        mockUser.setId(1L);
+        mockUser.setToken("valid-token");
+        lenient().when(userRepository.findByToken("valid-token")).thenReturn(mockUser);
+        lenient().when(userRepository.findByToken("bad-token")).thenReturn(null);
+        lenient().when(userRepository.findByToken("guest-token")).thenReturn(null);
 
         runningGameDTO = new GameGetDTO();
         runningGameDTO.setId(10L);
@@ -77,7 +94,7 @@ class GameControllerTest {
 
     @Test
     void getGame_validId_returns200WithDTO() throws Exception {
-        when(gameService.getGameById(10L)).thenReturn(runningGameDTO);
+        when(gameService.getGameById(10L, 1L)).thenReturn(runningGameDTO);
 
         mockMvc.perform(get("/games/10")
                         .header("Authorization", "valid-token"))
@@ -89,7 +106,7 @@ class GameControllerTest {
 
     @Test
     void getGame_nonExistentId_returns404() throws Exception {
-        when(gameService.getGameById(999L))
+        when(gameService.getGameById(999L, 1L))
                 .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
 
         mockMvc.perform(get("/games/999")
@@ -208,7 +225,7 @@ class GameControllerTest {
                 .andExpect(jsonPath("$.winnerId").value(2))
                 .andExpect(jsonPath("$.gameStatus").value("ENDED"));
 
-        verify(webSocketHandler).broadcastGameEvent("FORFEIT", 10L);
+        verify(webSocketHandler).broadcastGameEvent("PLAYER_FORFEITED", 10L, 1L, null);
         verify(webSocketHandler).broadcastGameEvent("GAME_OVER", 10L);
     }
 
