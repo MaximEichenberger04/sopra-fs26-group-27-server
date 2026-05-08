@@ -8,6 +8,7 @@ import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.entity.Wall;
 import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.LobbyRepository;
+import ch.uzh.ifi.hase.soprafs26.repository.MatchHistoryRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.GameGetDTO;
 
@@ -47,6 +48,9 @@ class GameServiceTest {
 
     @Mock
     private ChatCache chatCache;
+
+    @Mock
+    private MatchHistoryRepository matchHistoryRepository;
 
     @InjectMocks
     private GameService gameService;
@@ -89,7 +93,11 @@ class GameServiceTest {
             g.setId(10L);
             return g;
         });
+<<<<<<< abilities
         doNothing().when(gameStateCache).initGame(anyLong(), any(), anyBoolean());
+=======
+        doNothing().when(gameStateCache).initGame(anyLong(), any(List.class), anyBoolean());
+>>>>>>> main2
         doNothing().when(chatCache).initGame(anyLong());
 
         Game created = gameService.createGameFromLobby(5L, "valid-token");
@@ -99,7 +107,11 @@ class GameServiceTest {
         assertEquals(10, created.getWallsPerPlayer()); // 2 players → 10 walls
         assertEquals("medieval", created.getMapTheme());
         assertEquals(1L, created.getCurrentTurnUserId());
+<<<<<<< abilities
         verify(gameStateCache).initGame(anyLong(), eq(lobby.getPlayerIds()), anyBoolean());
+=======
+        verify(gameStateCache).initGame(anyLong(), any(List.class), anyBoolean());
+>>>>>>> main2
         verify(chatCache).initGame(anyLong());
         verify(lobbyRepository).save(lobby);
     }

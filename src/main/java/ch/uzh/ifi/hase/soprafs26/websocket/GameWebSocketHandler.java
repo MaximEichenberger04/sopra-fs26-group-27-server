@@ -13,8 +13,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import java.util.concurrent.CopyOnWriteArrayList;
-
 /**
  * Handles the /game-refresh-websocket endpoint.
  *

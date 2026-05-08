@@ -1,14 +1,18 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
 import ch.uzh.ifi.hase.soprafs26.constant.GameStatus;
+import ch.uzh.ifi.hase.soprafs26.constant.LobbyStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.Game;
 import ch.uzh.ifi.hase.soprafs26.entity.Pawn;
+import ch.uzh.ifi.hase.soprafs26.entity.Wall;
 import ch.uzh.ifi.hase.soprafs26.entity.PoisonZone;
 import ch.uzh.ifi.hase.soprafs26.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
+import ch.uzh.ifi.hase.soprafs26.entity.MatchHistory;
 import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.LobbyRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs26.repository.MatchHistoryRepository;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.PawnGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.PoisonZoneDTO;
@@ -26,7 +30,7 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.stream.Collectors;
-import ch.uzh.ifi.hase.soprafs26.entity.Wall;
+import java.time.LocalDateTime;
 
 /**
  * Handles game lifecycle: creation, retrieval, forfeit, win-condition, and turn
@@ -51,18 +55,24 @@ public class GameService {
     private final UserRepository userRepository;
     private final GameStateCache gameStateCache;
     private final ChatCache chatCache;
+    private final MatchHistoryRepository matchHistoryRepository;
+    private final UserService userService;
 
     public GameService(
             @Qualifier("gameRepository") GameRepository gameRepository,
             @Qualifier("lobbyRepository") LobbyRepository lobbyRepository,
             @Qualifier("userRepository") UserRepository userRepository,
             GameStateCache gameStateCache,
-            ChatCache chatCache) {
+            ChatCache chatCache,
+            MatchHistoryRepository matchHistoryRepository,
+            UserService userService) {
         this.gameRepository = gameRepository;
         this.lobbyRepository = lobbyRepository;
         this.userRepository = userRepository;
         this.gameStateCache = gameStateCache;
         this.chatCache = chatCache;
+        this.matchHistoryRepository = matchHistoryRepository;
+        this.userService = userService;
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -375,9 +385,81 @@ public class GameService {
         game.setWinnerId(winnerId);
         game.setGameStatus(GameStatus.ENDED);
         gameRepository.saveAndFlush(game);
+
+        Lobby lobby = lobbyRepository.findById(game.getLobbyId()).orElse(null);
+        if (lobby != null) {
+            lobby.setLobbyStatus(LobbyStatus.FINISHED);
+            lobbyRepository.saveAndFlush(lobby);
+        }
+
+        // Persist match history and update player statistics
+        recordMatchResults(game, winnerId, lobby);
+
         GameGetDTO dto = buildGameGetDTO(game);
         gameStateCache.evictGame(game.getId());
         chatCache.evictGame(game.getId());
         return dto;
+    }
+
+    /**
+     * Creates one MatchHistory row per player and updates the winner's score/xp/level.
+     * Wins award 100 score + 50 xp; losses award 10 xp (so everyone progresses).
+     * Level = xp / 100 (simple formula, easy to change later).
+     */
+    private void recordMatchResults(Game game, Long winnerId, Lobby lobby) {
+        String gameMode = (lobby != null) ? lobby.getGameMode() : "Classic";
+        LocalDateTime now = LocalDateTime.now();
+ 
+        List<Long> playerIds = game.getPlayerIds();
+ 
+        for (Long playerId : playerIds) {
+            boolean won = playerId.equals(winnerId);
+ 
+            // Collect opponent usernames (everyone except this player)
+            String opponentUsernames = playerIds.stream()
+                .filter(pid -> !pid.equals(playerId))
+                .map(pid -> {
+                    User u = userRepository.findById(pid).orElse(null);
+                    return u != null ? u.getUsername() : "Unknown";
+                })
+                .collect(Collectors.joining(", "));
+ 
+            // Persist match history row
+            MatchHistory record = new MatchHistory();
+            record.setUserId(playerId);
+            record.setGameId(game.getId());
+            record.setOpponentUsernames(opponentUsernames);
+            record.setGameMode(gameMode);
+            record.setWon(won);
+            record.setPlayedAt(now);
+            matchHistoryRepository.save(record);
+ 
+            // Update player score / xp / level
+            User player = userRepository.findById(playerId).orElse(null);
+            if (player != null) {
+                if (won) {
+                    player.setScore(player.getScore() + 100);
+                    player.setXp(player.getXp() + 250);
+                } else {
+                    player.setScore(player.getScore() - 100);
+                    if (player.getScore() < 0) {player.setScore(0);};
+                    player.setXp(player.getXp() + 150);
+                }
+                player.setLevel(player.getXp() / 250);
+                userRepository.save(player);
+
+                // Update stats and check achievements. Wall count is exact; move count is
+                // approximated as total game turns / player count (no per-player counter in cache).
+                int wallsPlaced = (int) gameStateCache.getWalls(game.getId()).stream()
+                        .filter(w -> playerId.equals(w.getUserId())).count();
+                int moves = gameStateCache.getTurnCounter(game.getId()) / playerIds.size();
+                boolean isFourPlayer = playerIds.size() == 4;
+                userService.updateGameStats(playerId, won);
+                userService.checkAndAwardAchievements(playerId, won, moves, wallsPlaced, isFourPlayer);
+            }
+        }
+ 
+        matchHistoryRepository.flush();
+        userRepository.flush();
     }
 }

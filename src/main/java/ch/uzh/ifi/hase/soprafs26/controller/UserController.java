@@ -4,10 +4,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import ch.uzh.ifi.hase.soprafs26.entity.User;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.AchievementGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPatchDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.mapper.DTOMapper;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.MatchHistoryGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.UserStatisticsGetDTO;
+import ch.uzh.ifi.hase.soprafs26.service.StatisticsService;
 import ch.uzh.ifi.hase.soprafs26.service.UserService;
 
 import java.util.ArrayList;
@@ -25,9 +29,11 @@ import java.util.Map;
 public class UserController {
 
 	private final UserService userService;
+	private final StatisticsService statisticsService;
 
-	UserController(UserService userService) {
+	UserController(UserService userService, StatisticsService statisticsService) {
 		this.userService = userService;
+		this.statisticsService = statisticsService;
 	}
 
 	@GetMapping("/users")
@@ -120,6 +126,31 @@ public class UserController {
 		userService.validateToken(token);
 		User updatedUser = userService.buyCosmetic(id, token, body.get("cosmeticId"));
 		return DTOMapper.INSTANCE.convertEntityToUserGetDTO(updatedUser);
+	}
+
+	@GetMapping("/users/{id}/statistics")
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	public UserStatisticsGetDTO getUserStatistics(@PathVariable Long id,
+			@RequestHeader(value = "Authorization", required = false) String token) {
+		return statisticsService.getStatistics(id, token);
+	}
+ 
+	@GetMapping("/users/{id}/match-history")
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	public List<MatchHistoryGetDTO> getUserMatchHistory(@PathVariable Long id,
+			@RequestHeader(value = "Authorization", required = false) String token) {
+		return statisticsService.getMatchHistory(id, token);
+	}
+
+	@GetMapping("/users/{id}/achievements")
+	@ResponseStatus(HttpStatus.OK)
+	@ResponseBody
+	public List<AchievementGetDTO> getUserAchievements(@PathVariable Long id,
+			@RequestHeader(value = "Authorization", required = false) String token) {
+		userService.validateToken(token);
+		return userService.getAchievements(id);
 	}
 
 	@PutMapping("/logout")
