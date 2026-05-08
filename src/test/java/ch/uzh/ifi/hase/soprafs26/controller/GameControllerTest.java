@@ -4,11 +4,7 @@ import ch.uzh.ifi.hase.soprafs26.constant.GameStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.GameGetDTO;
-<<<<<<< abilities
-import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
-=======
 import ch.uzh.ifi.hase.soprafs26.service.AbilityService;
->>>>>>> main2
 import ch.uzh.ifi.hase.soprafs26.service.GameService;
 import ch.uzh.ifi.hase.soprafs26.service.MoveService;
 import ch.uzh.ifi.hase.soprafs26.websocket.GameWebSocketHandler;
@@ -55,9 +51,6 @@ class GameControllerTest {
     @Mock
     private GameWebSocketHandler webSocketHandler;
 
-    @Mock
-    private UserRepository userRepository;
-
     @InjectMocks
     private GameController gameController;
 
@@ -101,11 +94,7 @@ class GameControllerTest {
 
     @Test
     void getGame_validId_returns200WithDTO() throws Exception {
-<<<<<<< abilities
         when(gameService.getGameById(eq(10L), any())).thenReturn(runningGameDTO);
-=======
-        when(gameService.getGameById(10L, 1L)).thenReturn(runningGameDTO);
->>>>>>> main2
 
         mockMvc.perform(get("/games/10")
                         .header("Authorization", "valid-token"))
@@ -117,11 +106,7 @@ class GameControllerTest {
 
     @Test
     void getGame_nonExistentId_returns404() throws Exception {
-<<<<<<< abilities
         when(gameService.getGameById(eq(999L), any()))
-=======
-        when(gameService.getGameById(999L, 1L))
->>>>>>> main2
                 .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
 
         mockMvc.perform(get("/games/999")

@@ -93,11 +93,7 @@ class GameServiceTest {
             g.setId(10L);
             return g;
         });
-<<<<<<< abilities
         doNothing().when(gameStateCache).initGame(anyLong(), any(), anyBoolean());
-=======
-        doNothing().when(gameStateCache).initGame(anyLong(), any(List.class), anyBoolean());
->>>>>>> main2
         doNothing().when(chatCache).initGame(anyLong());
 
         Game created = gameService.createGameFromLobby(5L, "valid-token");
@@ -107,11 +103,7 @@ class GameServiceTest {
         assertEquals(10, created.getWallsPerPlayer()); // 2 players → 10 walls
         assertEquals("medieval", created.getMapTheme());
         assertEquals(1L, created.getCurrentTurnUserId());
-<<<<<<< abilities
         verify(gameStateCache).initGame(anyLong(), eq(lobby.getPlayerIds()), anyBoolean());
-=======
-        verify(gameStateCache).initGame(anyLong(), any(List.class), anyBoolean());
->>>>>>> main2
         verify(chatCache).initGame(anyLong());
         verify(lobbyRepository).save(lobby);
     }
