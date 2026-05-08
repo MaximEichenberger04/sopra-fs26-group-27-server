@@ -98,58 +98,54 @@ public class AbilityService {
                 requireTargetCoords(dto);
                 applyFireball(gameId, dto.getTargetRow(), dto.getTargetCol());
                 gameStateCache.removeCardFromInventory(gameId, userId, AbilityType.FIREBALL);
-                gameStateCache.consumeBonusAction(gameId, userId);
-                if (gameStateCache.isFrozen(gameId, userId)) gameStateCache.clearFreeze(gameId, userId);
-                if (!gameStateCache.hasBonusAction(gameId, userId)) {
-                    gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
-                    gameStateCache.tickPoisonZones(gameId);
-                    gameService.advanceTurn(game);
-                }
+                gameStateCache.clearBonusAction(gameId, userId);
+                gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
+                gameStateCache.tickPoisonZones(gameId);
+                gameService.advanceTurn(game);
                 break;
 
             case EARTHQUAKE:
                 requireTargetCoords(dto);
                 applyEarthquake(gameId, dto.getTargetRow(), dto.getTargetCol());
                 gameStateCache.removeCardFromInventory(gameId, userId, AbilityType.EARTHQUAKE);
-                gameStateCache.consumeBonusAction(gameId, userId);
-                if (gameStateCache.isFrozen(gameId, userId)) gameStateCache.clearFreeze(gameId, userId);
-                if (!gameStateCache.hasBonusAction(gameId, userId)) {
-                    gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
-                    gameStateCache.tickPoisonZones(gameId);
-                    gameService.advanceTurn(game);
-                }
+                gameStateCache.clearBonusAction(gameId, userId);
+                gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
+                gameStateCache.tickPoisonZones(gameId);
+                gameService.advanceTurn(game);
                 break;
 
             case POISON:
                 requireTargetCoords(dto);
                 applyPoison(gameId, dto.getTargetRow(), dto.getTargetCol());
                 gameStateCache.removeCardFromInventory(gameId, userId, AbilityType.POISON);
-                gameStateCache.consumeBonusAction(gameId, userId);
-                if (gameStateCache.isFrozen(gameId, userId)) gameStateCache.clearFreeze(gameId, userId);
-                if (!gameStateCache.hasBonusAction(gameId, userId)) {
-                    gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
-                    gameStateCache.tickPoisonZones(gameId);
-                    gameService.advanceTurn(game);
-                }
+                gameStateCache.clearBonusAction(gameId, userId);
+                gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
+                gameStateCache.tickPoisonZones(gameId);
+                gameService.advanceTurn(game);
                 break;
 
             case FREEZE:
                 requireTargetUser(dto);
                 applyFreeze(gameId, userId, dto.getTargetUserId());
                 gameStateCache.removeCardFromInventory(gameId, userId, AbilityType.FREEZE);
-                // Caster gets 1 bonus action (set inside applyFreeze) - turn does NOT advance
+                gameStateCache.clearBonusAction(gameId, userId);
+                gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
+                gameStateCache.tickPoisonZones(gameId);
+                gameService.advanceTurn(game);
                 break;
 
             case PLUS_TWO_WALLS:
                 applyPlusTwoWalls(gameId, userId, game.getWallsPerPlayer());
                 gameStateCache.removeCardFromInventory(gameId, userId, AbilityType.PLUS_TWO_WALLS);
-                // Caster gets 1 bonus action (set inside applyPlusTwoWalls) - turn does NOT advance
+                gameStateCache.clearBonusAction(gameId, userId);
+                gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
+                gameStateCache.tickPoisonZones(gameId);
+                gameService.advanceTurn(game);
                 break;
 
             case TWO_MOVES:
                 applyTwoMoves(gameId, userId);
                 gameStateCache.removeCardFromInventory(gameId, userId, AbilityType.TWO_MOVES);
-                // Caster gets 2 bonus actions (set inside applyTwoMoves) - turn does NOT advance
                 break;
 
             default:
@@ -229,16 +225,16 @@ public class AbilityService {
 
     private void applyFreeze(Long gameId, Long casterUserId, Long targetUserId) {
         if (casterUserId.equals(targetUserId)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot freeze yourself");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot freeze yourself. Choose an opponent to freeze.");
         }
         if (!gameStateCache.getPlayers(gameId).contains(targetUserId)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Target user is not in the game");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Target player is not in this game.");
         }
         if (gameStateCache.isFrozen(gameId, targetUserId)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Target user is already frozen");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "That player is already frozen — you cannot freeze them again.");
         }
         gameStateCache.freezePlayer(gameId, targetUserId);
-        gameStateCache.setBonusAction(gameId, casterUserId, 1);
+        // Playing FREEZE ends your turn — no bonus action granted
     }
 
     private void applyPoison(Long gameId, int targetRow, int targetCol) {
@@ -250,23 +246,19 @@ public class AbilityService {
 
     private void applyPlusTwoWalls(Long gameId, Long userId, int wallsPerPlayer) {
         int currentExtra = gameStateCache.getExtraWalls(gameId, userId);
-        int newExtra     = currentExtra + 2;
-
-        if (wallsPerPlayer + newExtra > WALL_CAP) {
-            newExtra = WALL_CAP - wallsPerPlayer;
+        int currentTotal = wallsPerPlayer + currentExtra;
+        if (currentTotal >= WALL_CAP) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "Cannot use +2 Walls: you are already at the maximum wall limit of " + WALL_CAP + ".");
         }
-
-        int gain = newExtra - currentExtra;
-        if (gain > 0) {
-            gameStateCache.addExtraWalls(gameId, userId, gain);
-        }
-        gameStateCache.setBonusAction(gameId, userId, 1);
+        int gain = Math.min(2, WALL_CAP - currentTotal);
+        gameStateCache.addExtraWalls(gameId, userId, gain);
+        // Playing this card ends your turn — no bonus action
     }
 
     private void applyTwoMoves(Long gameId, Long userId) {
-        // Grants 2 bonus actions — next 2 move/wall actions won't advance the turn.
-        // MoveService calls consumeBonusAction (not clear) so both are used one at a time.
-        gameStateCache.setBonusAction(gameId, userId, 2);
+        // Grants 1 bonus action. Card play = 1 action, bonus = 1 more, total = 2 actions.
+        gameStateCache.setBonusAction(gameId, userId, 1);
     }
 
     // ── Guards ────────────────────────────────────────────────────────────────
@@ -292,25 +284,25 @@ public class AbilityService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can not use abilities in non-chaos mode");
         }
         if (!game.getCurrentTurnUserId().equals(userId) && !gameStateCache.hasBonusAction(game.getId(), userId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your turn");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "It is not your turn. Wait for your turn to use ability cards.");
         }
     }
 
     private void requireCardInInventory(Long gameId, Long userId, AbilityType type) {
         if (!gameStateCache.getInventory(gameId, userId).contains(type)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Card not in inventory");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have that ability card in your inventory.");
         }
     }
 
     private void requireTargetCoords(AbilityPostDTO dto) {
         if (dto.getTargetRow() == null || dto.getTargetCol() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Target coordinates required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This ability requires a target location on the board.");
         }
     }
 
     private void requireTargetUser(AbilityPostDTO dto) {
         if (dto.getTargetUserId() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Target user required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "FREEZE requires a target player. Click on an opponent's pawn.");
         }
     }
 
@@ -318,17 +310,17 @@ public class AbilityService {
         switch (ability) {
             case "FIREBALL":
                 if (row < 0 || col < 0 || row + 2 >= INTERNAL_SIZE || col + 2 >= INTERNAL_SIZE) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Fireball area of effect out of bounds");
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Fireball target is too close to the board edge — the 2×2 area must fit within the board.");
                 }
                 break;
             case "POISON":
                 if (row < 0 || col < 0 || row + 2 >= INTERNAL_SIZE || col + 2 >= INTERNAL_SIZE) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Poison area of effect out of bounds");
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Poison target is too close to the board edge — the 2×2 area must fit within the board.");
                 }
                 break;
             case "EARTHQUAKE":
                 if (row - 2 < 0 || col - 2 < 0 || row + 2 >= INTERNAL_SIZE || col + 2 >= INTERNAL_SIZE) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Earthquake area of effect out of bounds");
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Earthquake target is too close to the board edge — the 3×3 area must fit within the board.");
                 }
                 break;
             default:
