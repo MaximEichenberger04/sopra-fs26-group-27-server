@@ -37,6 +37,7 @@ public class UserService {
 
 	private static final Map<String, Integer> COSMETIC_PRICES = Map.ofEntries(
 			// Avatar Borders
+			Map.entry("border-crimson", 300),
 			Map.entry("border-wood", 300),
 			Map.entry("border-builder", 300),
 			Map.entry("border-slime", 300),

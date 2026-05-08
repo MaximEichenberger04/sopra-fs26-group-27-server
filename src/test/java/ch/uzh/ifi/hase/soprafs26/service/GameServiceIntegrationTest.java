@@ -70,7 +70,7 @@ class GameServiceIntegrationTest {
     private User user4;
 
     @BeforeEach
-    public void setup() {
+    void setUp() {
         gameRepository.deleteAll();
         lobbyRepository.deleteAll();
         userRepository.deleteAll();
@@ -243,7 +243,7 @@ class GameServiceIntegrationTest {
     @Test
     void getGameById_nonExistentId_throwsNotFound() {
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> gameService.getGameById(999L, 1L));
+                () -> gameService.getGameById(999L, hostUser.getId()));
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
     }
 

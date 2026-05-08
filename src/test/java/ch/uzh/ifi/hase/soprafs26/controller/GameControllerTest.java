@@ -94,7 +94,7 @@ class GameControllerTest {
 
     @Test
     void getGame_validId_returns200WithDTO() throws Exception {
-        when(gameService.getGameById(10L, 1L)).thenReturn(runningGameDTO);
+        when(gameService.getGameById(eq(10L), any())).thenReturn(runningGameDTO);
 
         mockMvc.perform(get("/games/10")
                         .header("Authorization", "valid-token"))
@@ -106,7 +106,7 @@ class GameControllerTest {
 
     @Test
     void getGame_nonExistentId_returns404() throws Exception {
-        when(gameService.getGameById(999L, 1L))
+        when(gameService.getGameById(eq(999L), any()))
                 .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
 
         mockMvc.perform(get("/games/999")
