@@ -56,6 +56,7 @@ public class GameService {
     private final GameStateCache gameStateCache;
     private final ChatCache chatCache;
     private final MatchHistoryRepository matchHistoryRepository;
+    private final UserService userService;
 
     public GameService(
             @Qualifier("gameRepository") GameRepository gameRepository,
@@ -63,13 +64,15 @@ public class GameService {
             @Qualifier("userRepository") UserRepository userRepository,
             GameStateCache gameStateCache,
             ChatCache chatCache,
-            MatchHistoryRepository matchHistoryRepository) {
+            MatchHistoryRepository matchHistoryRepository,
+            UserService userService) {
         this.gameRepository = gameRepository;
         this.lobbyRepository = lobbyRepository;
         this.userRepository = userRepository;
         this.gameStateCache = gameStateCache;
         this.chatCache = chatCache;
         this.matchHistoryRepository = matchHistoryRepository;
+        this.userService = userService;
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -427,6 +430,15 @@ public class GameService {
                 }
                 player.setLevel(player.getXp() / 250);
                 userRepository.save(player);
+
+                // Update stats and check achievements. Wall count is exact; move count is
+                // approximated as total game turns / player count (no per-player counter in cache).
+                int wallsPlaced = (int) gameStateCache.getWalls(game.getId()).stream()
+                        .filter(w -> playerId.equals(w.getUserId())).count();
+                int moves = gameStateCache.getTurnCounter(game.getId()) / playerIds.size();
+                boolean isFourPlayer = playerIds.size() == 4;
+                userService.updateGameStats(playerId, won);
+                userService.checkAndAwardAchievements(playerId, won, moves, wallsPlaced, isFourPlayer);
             }
         }
  
