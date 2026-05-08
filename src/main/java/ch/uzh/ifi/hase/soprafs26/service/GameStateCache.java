@@ -47,6 +47,8 @@ public class GameStateCache {
     private final Map<Long, Map<Long, Integer>>           bonusActions      = new ConcurrentHashMap<>();
     private final Map<Long, List<PoisonZone>>             poisonZones       = new ConcurrentHashMap<>();
     private final Map<Long, Map<Long, Integer>>           extraWalls        = new ConcurrentHashMap<>();
+    // Tracks walls permanently consumed from a player's budget (even if wall was later destroyed)
+    private final Map<Long, Map<Long, Integer>>           permanentlyConsumedWalls = new ConcurrentHashMap<>();
 
     public void initGame(Long gameId, List<Long> playerIds, boolean isChaosMode) {
         if (playerIds.size() > START_POSITIONS.length) {
@@ -357,6 +359,18 @@ public class GameStateCache {
         Map<Long, Integer> bonuses = extraWalls.get(gameId);
         if (bonuses == null) return 0;
         return bonuses.getOrDefault(userId, 0);
+    }
+
+    public void incrementPermanentlyConsumedWalls(Long gameId, Long userId) {
+        permanentlyConsumedWalls
+            .computeIfAbsent(gameId, k -> new ConcurrentHashMap<>())
+            .merge(userId, 1, Integer::sum);
+    }
+
+    public int getPermanentlyConsumedWalls(Long gameId, Long userId) {
+        Map<Long, Integer> map = permanentlyConsumedWalls.get(gameId);
+        if (map == null) return 0;
+        return map.getOrDefault(userId, 0);
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────

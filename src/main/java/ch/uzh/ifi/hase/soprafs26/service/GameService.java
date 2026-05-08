@@ -338,8 +338,25 @@ public class GameService {
 
         if (index != -1) {
             int next = (index + 1) % activePlayers.size();
-            game.setCurrentTurnUserId(activePlayers.get(next));
+            Long nextPlayer = activePlayers.get(next);
+            game.setCurrentTurnUserId(nextPlayer);
             gameRepository.saveAndFlush(game);
+
+            // Auto-skip frozen player if they have no walls and no ability cards
+            if (game.isChaosMode() && gameStateCache.isFrozen(game.getId(), nextPlayer)) {
+                int walls = gameStateCache.getExtraWalls(game.getId(), nextPlayer);
+                // Count base walls remaining (stored in remainingWalls map via MoveService)
+                // We check if they have any ability cards — if not and no walls, skip
+                boolean hasAbilities = !gameStateCache.getInventory(game.getId(), nextPlayer).isEmpty();
+                boolean hasWalls = walls > 0;
+                if (!hasAbilities && !hasWalls) {
+                    // Clear freeze and skip their turn
+                    gameStateCache.clearFreeze(game.getId(), nextPlayer);
+                    int nextNext = (next + 1) % activePlayers.size();
+                    game.setCurrentTurnUserId(activePlayers.get(nextNext));
+                    gameRepository.saveAndFlush(game);
+                }
+            }
             return;
         }
 

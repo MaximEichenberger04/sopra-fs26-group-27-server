@@ -283,6 +283,8 @@ public class MoveServiceTest {
                 pawn(2L, 0, 8)
         ));
         when(gameStateCache.getWallGrid(10L)).thenReturn(new boolean[17][17]);
+        when(gameStateCache.getPermanentlyConsumedWalls(10L, 1L)).thenReturn(10);
+        when(gameStateCache.getExtraWalls(10L, 1L)).thenReturn(0);
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,

@@ -85,16 +85,16 @@ public class MoveService {
         requireTurn(game, userId);
 
         if (gameStateCache.isFrozen(gameId, userId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are frozen and cannot move this turn");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are frozen this turn — you can still place walls or use ability cards, but cannot move your pawn.");
         }
 
         if (gameStateCache.isFrozen(gameId, userId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are frozen and cannot move this turn");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are frozen this turn — you can still place walls or use ability cards, but cannot move your pawn.");
         }
 
         int[] targetField = dto.getTargetField();
         if (targetField == null || targetField.length != 2){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid target field");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid target position: coordinates are out of bounds.");
         }
 
         int row = targetField[0];
@@ -108,10 +108,10 @@ public class MoveService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Pawn for current user not found");
         }
         if (!isValidPawnMove(currentPawn, row, col, pawns, grid)){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid pawn move");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid move: you can only move to adjacent cells or jump over pawns. Poisoned cells cannot be entered.");
         }
         if (game.isChaosMode() && gameStateCache.isPoisoned(gameId, row, col)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot move into a poison zone");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot move there: that cell is poisoned and impassable.");
         }
 
         gameStateCache.movePawn(gameId, userId, row, col);
@@ -161,40 +161,44 @@ public class MoveService {
 
         int[] targetField = dto.getTargetField();
         if (targetField == null || targetField.length != 2) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid target field");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid target position: coordinates are out of bounds.");
         }
         int row = targetField[0];
         int col = targetField[1];
         WallOrientation orientation = dto.getOrientation();
         if (orientation == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Wall orientation is required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Wall orientation (HORIZONTAL or VERTICAL) is required.");
         }
         if (!isValidWallCenter(row, col)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid wall position");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid wall position: walls must be placed on wall slots, not on cells.");
         }
 
         List<Wall> walls = gameStateCache.getWalls(gameId);
         List<Pawn> pawns = gameStateCache.getPawns(gameId);
         boolean[][] grid = gameStateCache.getWallGrid(gameId);
         
-        int usedWalls = countWallsUsedByPlayer(walls, userId);
+        int permanentlyConsumed = gameStateCache.getPermanentlyConsumedWalls(gameId, userId);
         int extraWalls = gameStateCache.getExtraWalls(gameId, userId);
         int totalBudget = game.getWallsPerPlayer() + extraWalls;
-        if (usedWalls >= totalBudget) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No walls remaining");
+        int remainingWalls = totalBudget - permanentlyConsumed;
+        if (remainingWalls <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "You have no walls remaining. All " + totalBudget + " of your walls have been placed.");
         }
         if (wallOverlaps(grid, row, col, orientation)){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Wall overlaps existing wall");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                "Invalid wall placement: this position overlaps an existing wall.");
         }
 
         boolean[][] gridCopy =  copyWallGrid(grid); // create a copy of grid to test a new wall placement
         simulateWallPlacement(gridCopy, row, col, orientation); 
 
         if (!allPlayersHavePathToGoal(game, gridCopy, pawns)){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Wall placement blocks all paths to goal");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid wall placement: this wall would completely block a player from reaching their goal.");
         }
 
         gameStateCache.placeWall(gameId, row, col, orientation, userId);
+        gameStateCache.incrementPermanentlyConsumedWalls(gameId, userId);
 
         if (gameStateCache.hasBonusAction(gameId, userId)) {
             gameStateCache.clearBonusAction(gameId, userId);

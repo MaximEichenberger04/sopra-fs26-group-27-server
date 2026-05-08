@@ -27,6 +27,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
@@ -92,7 +93,7 @@ class GameServiceTest {
             g.setId(10L);
             return g;
         });
-        doNothing().when(gameStateCache).initGame(anyLong(), any(List.class), anyBoolean());
+        doNothing().when(gameStateCache).initGame(anyLong(), any(), anyBoolean());
         doNothing().when(chatCache).initGame(anyLong());
 
         Game created = gameService.createGameFromLobby(5L, "valid-token");
@@ -102,7 +103,7 @@ class GameServiceTest {
         assertEquals(10, created.getWallsPerPlayer()); // 2 players → 10 walls
         assertEquals("medieval", created.getMapTheme());
         assertEquals(1L, created.getCurrentTurnUserId());
-        verify(gameStateCache).initGame(anyLong(), any(List.class), anyBoolean());
+        verify(gameStateCache).initGame(anyLong(), eq(lobby.getPlayerIds()), anyBoolean());
         verify(chatCache).initGame(anyLong());
         verify(lobbyRepository).save(lobby);
     }
