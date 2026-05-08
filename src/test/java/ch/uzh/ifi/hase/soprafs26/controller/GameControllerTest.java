@@ -2,6 +2,7 @@ package ch.uzh.ifi.hase.soprafs26.controller;
 
 import ch.uzh.ifi.hase.soprafs26.constant.GameStatus;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.GameGetDTO;
+import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.service.GameService;
 import ch.uzh.ifi.hase.soprafs26.service.MoveService;
 import ch.uzh.ifi.hase.soprafs26.websocket.GameWebSocketHandler;
@@ -42,6 +43,9 @@ class GameControllerTest {
     @Mock
     private GameWebSocketHandler webSocketHandler;
 
+    @Mock
+    private UserRepository userRepository;
+
     @InjectMocks
     private GameController gameController;
 
@@ -77,7 +81,7 @@ class GameControllerTest {
 
     @Test
     void getGame_validId_returns200WithDTO() throws Exception {
-        when(gameService.getGameById(10L)).thenReturn(runningGameDTO);
+        when(gameService.getGameById(eq(10L), any())).thenReturn(runningGameDTO);
 
         mockMvc.perform(get("/games/10")
                         .header("Authorization", "valid-token"))
@@ -89,7 +93,7 @@ class GameControllerTest {
 
     @Test
     void getGame_nonExistentId_returns404() throws Exception {
-        when(gameService.getGameById(999L))
+        when(gameService.getGameById(eq(999L), any()))
                 .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
 
         mockMvc.perform(get("/games/999")

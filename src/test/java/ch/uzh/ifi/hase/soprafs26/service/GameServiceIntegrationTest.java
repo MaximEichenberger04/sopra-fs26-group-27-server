@@ -71,26 +71,6 @@ class GameServiceIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        hostUser = new User();
-        hostUser.setUsername("host");
-        hostUser.setToken("host-token");
-        hostUser.setPassword("hashed-pw");
-        hostUser.setDisplayName("Host Player");
-        hostUser.setStatus(ch.uzh.ifi.hase.soprafs26.constant.UserStatus.ONLINE);
-        hostUser.setCreationDate(java.time.LocalDate.now());
-        hostUser = userRepository.save(hostUser);
-
-        guestUser = new User();
-        guestUser.setUsername("guest");
-        guestUser.setToken("guest-token");
-        guestUser.setPassword("hashed-pw");
-        guestUser.setDisplayName("Guest Player");
-        guestUser.setStatus(ch.uzh.ifi.hase.soprafs26.constant.UserStatus.ONLINE);
-        guestUser.setCreationDate(java.time.LocalDate.now());
-        guestUser = userRepository.save(guestUser);
-
-        lobby = new Lobby();
-    public void setup() {
         gameRepository.deleteAll();
         lobbyRepository.deleteAll();
         userRepository.deleteAll();
@@ -250,7 +230,7 @@ class GameServiceIntegrationTest {
     void getGameById_returnsCorrectDTO() {
         Game game = gameService.createGameFromLobby(lobby.getId(), "host-token");
 
-        GameGetDTO dto = gameService.getGameById(game.getId());
+        GameGetDTO dto = gameService.getGameById(game.getId(), hostUser.getId());
 
         assertNotNull(dto);
         assertEquals(game.getId(), dto.getId());
@@ -263,14 +243,14 @@ class GameServiceIntegrationTest {
     @Test
     void getGameById_nonExistentId_throwsNotFound() {
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> gameService.getGameById(999L));
+                () -> gameService.getGameById(999L, hostUser.getId()));
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
     }
 
     @Test
     void buildGameGetDTO_freshGame_allPlayersHaveFullWallBudget() {
         Game game = gameService.createGameFromLobby(lobby.getId(), "host-token");
-        GameGetDTO dto = gameService.getGameById(game.getId());
+        GameGetDTO dto = gameService.getGameById(game.getId(), hostUser.getId());
         assertEquals(10, dto.getRemainingWalls().get(hostUser.getId()));
         assertEquals(10, dto.getRemainingWalls().get(guestUser.getId()));
     }
