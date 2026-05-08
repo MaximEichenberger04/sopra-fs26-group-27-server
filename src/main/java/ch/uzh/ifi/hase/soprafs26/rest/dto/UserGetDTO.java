@@ -19,6 +19,7 @@ public class UserGetDTO {
 	private String ownedCosmetics;
 	private String equippedBorder;
 	private String equippedPawnSkin;
+	private String unlockedAchievements;
 	private LocalDate creationDate;
 	private String token;
 	private UserStatus status;
@@ -125,6 +126,14 @@ public class UserGetDTO {
 
 	public void setEquippedPawnSkin(String equippedPawnSkin) {
 		this.equippedPawnSkin = equippedPawnSkin;
+	}
+
+	public String getUnlockedAchievements() {
+		return unlockedAchievements;
+	}
+
+	public void setUnlockedAchievements(String unlockedAchievements) {
+		this.unlockedAchievements = unlockedAchievements;
 	}
 
 	public String getCreationDate() {

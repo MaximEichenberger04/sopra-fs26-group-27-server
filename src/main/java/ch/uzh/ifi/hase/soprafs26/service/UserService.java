@@ -9,9 +9,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import ch.uzh.ifi.hase.soprafs26.constant.UserStatus;
+import ch.uzh.ifi.hase.soprafs26.entity.AchievementDefinition;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.AchievementGetDTO;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -223,6 +226,101 @@ public class UserService {
 		user.setOwnedCosmetics(owned.isEmpty() ? cosmeticId : owned + "," + cosmeticId);
 		userRepository.save(user);
 		return user;
+	}
+
+	// Updates games played, total wins, and win streak after every game. Called by GameService.recordMatchResults.
+	public void updateGameStats(Long userId, boolean won) {
+		User user = getUserById(userId);
+		user.setTotalGamesPlayed(user.getTotalGamesPlayed() + 1);
+		if (won) {
+			user.setTotalWins(user.getTotalWins() + 1);
+			int newStreak = user.getCurrentWinStreak() + 1;
+			user.setCurrentWinStreak(newStreak);
+			if (newStreak > user.getMaxWinStreak()) {
+				user.setMaxWinStreak(newStreak);
+			}
+		} else {
+			user.setCurrentWinStreak(0);
+		}
+		userRepository.save(user);
+	}
+
+	// Checks all achievements and awards coins for any newly met conditions. Called by GameService.recordMatchResults after updateGameStats.
+	public void checkAndAwardAchievements(Long userId, boolean won, int moveCount, int wallsPlaced,
+			boolean isFourPlayer) {
+		User user = getUserById(userId);
+		boolean changed = false;
+
+		for (AchievementDefinition achievement : AchievementDefinition.values()) {
+			if (isAchievementUnlocked(user.getUnlockedAchievements(), achievement.getId())) {
+				continue;
+			}
+			if (isConditionMet(achievement, user, won, moveCount, wallsPlaced, isFourPlayer)) {
+				String current = user.getUnlockedAchievements();
+				user.setUnlockedAchievements(current == null || current.isBlank()
+						? achievement.getId()
+						: current + "," + achievement.getId());
+				user.setCoins(user.getCoins() + achievement.getCoinReward());
+				changed = true;
+			}
+		}
+
+		if (changed) {
+			userRepository.save(user);
+		}
+	}
+
+	// Returns full achievement objects for all achievements unlocked by the user. Called by UserController GET /users/{id}/achievements.
+	public List<AchievementGetDTO> getAchievements(Long userId) {
+		User user = getUserById(userId);
+		String unlocked = user.getUnlockedAchievements();
+		List<AchievementGetDTO> result = new ArrayList<>();
+		if (unlocked == null || unlocked.isBlank()) return result;
+		for (String id : unlocked.split(",")) {
+			AchievementDefinition def = AchievementDefinition.fromId(id.trim());
+			if (def != null) {
+				AchievementGetDTO dto = new AchievementGetDTO();
+				dto.setId(def.getId());
+				dto.setName(def.getName());
+				dto.setDescription(def.getDescription());
+				dto.setCoinReward(def.getCoinReward());
+				result.add(dto);
+			}
+		}
+		return result;
+	}
+
+	// Returns true if the given achievement ID is already in the comma-separated unlocked string.
+	private boolean isAchievementUnlocked(String unlockedAchievements, String achievementId) {
+		if (unlockedAchievements == null || unlockedAchievements.isBlank()) return false;
+		for (String id : unlockedAchievements.split(",")) {
+			if (id.trim().equals(achievementId)) return true;
+		}
+		return false;
+	}
+
+	// Maps each AchievementDefinition to its unlock condition using current user stats and per-game context.
+	private boolean isConditionMet(AchievementDefinition achievement, User user, boolean won,
+			int moveCount, int wallsPlaced, boolean isFourPlayer) {
+		switch (achievement) {
+			case FIRST_WIN:     return won && user.getTotalWins() >= 1;
+			case WIN_5:         return won && user.getTotalWins() >= 5;
+			case WIN_15:        return won && user.getTotalWins() >= 15;
+			case WIN_30:        return won && user.getTotalWins() >= 30;
+			case STREAK_3:      return won && user.getCurrentWinStreak() >= 3;
+			case STREAK_5:      return won && user.getCurrentWinStreak() >= 5;
+			case STREAK_10:     return won && user.getCurrentWinStreak() >= 10;
+			case PLAYED_5:      return user.getTotalGamesPlayed() >= 5;
+			case PLAYED_15:     return user.getTotalGamesPlayed() >= 15;
+			case PLAYED_30:     return user.getTotalGamesPlayed() >= 30;
+			case LEVEL_10:      return user.getLevel() >= 10;
+			case LEVEL_25:      return user.getLevel() >= 25;
+			case WIN_NO_WALLS:  return won && wallsPlaced == 0;
+			case WIN_QUICK:     return won && moveCount <= 15;
+			case WIN_MAX_WALLS: return won && wallsPlaced >= 8;
+			case WIN_4PLAYER:   return won && isFourPlayer;
+			default:            return false;
+		}
 	}
 
 	public void logoutUser(String token) {
