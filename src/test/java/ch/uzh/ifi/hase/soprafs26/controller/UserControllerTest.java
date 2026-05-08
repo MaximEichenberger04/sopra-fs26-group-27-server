@@ -7,6 +7,7 @@ import ch.uzh.ifi.hase.soprafs26.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPatchDTO;
+import ch.uzh.ifi.hase.soprafs26.service.StatisticsService;
 import ch.uzh.ifi.hase.soprafs26.service.UserService;
 
 import org.junit.jupiter.api.Test;
@@ -45,6 +46,9 @@ public class UserControllerTest {
 
 	@MockitoBean
 	private UserService userService;
+
+	@MockitoBean
+	private StatisticsService statisticsService;
 
 	private User createMockUser() {
 		User user = new User();

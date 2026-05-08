@@ -8,6 +8,7 @@ import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.entity.Wall;
 import ch.uzh.ifi.hase.soprafs26.repository.GameRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.LobbyRepository;
+import ch.uzh.ifi.hase.soprafs26.repository.MatchHistoryRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.GameGetDTO;
 
@@ -46,6 +47,9 @@ class GameServiceTest {
 
     @Mock
     private ChatCache chatCache;
+
+    @Mock
+    private MatchHistoryRepository matchHistoryRepository;
 
     @InjectMocks
     private GameService gameService;
