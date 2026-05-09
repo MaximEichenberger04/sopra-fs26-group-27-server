@@ -41,26 +41,73 @@ public class MatchHistory implements Serializable {
     @Column(nullable = false)
     private LocalDateTime playedAt;
 
+    /** Total XP earned from this game (action XP + result XP). */
+    @Column(nullable = false)
+    private int xpEarned;
+
     // ── getters / setters ──────────────────────────────────────────────────────
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public Long getUserId() { return userId; }
-    public void setUserId(Long userId) { this.userId = userId; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public Long getGameId() { return gameId; }
-    public void setGameId(Long gameId) { this.gameId = gameId; }
+    public Long getUserId() {
+        return userId;
+    }
 
-    public String getOpponentUsernames() { return opponentUsernames; }
-    public void setOpponentUsernames(String opponentUsernames) { this.opponentUsernames = opponentUsernames; }
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
 
-    public String getGameMode() { return gameMode; }
-    public void setGameMode(String gameMode) { this.gameMode = gameMode; }
+    public Long getGameId() {
+        return gameId;
+    }
 
-    public boolean isWon() { return won; }
-    public void setWon(boolean won) { this.won = won; }
+    public void setGameId(Long gameId) {
+        this.gameId = gameId;
+    }
 
-    public LocalDateTime getPlayedAt() { return playedAt; }
-    public void setPlayedAt(LocalDateTime playedAt) { this.playedAt = playedAt; }
+    public String getOpponentUsernames() {
+        return opponentUsernames;
+    }
+
+    public void setOpponentUsernames(String opponentUsernames) {
+        this.opponentUsernames = opponentUsernames;
+    }
+
+    public String getGameMode() {
+        return gameMode;
+    }
+
+    public void setGameMode(String gameMode) {
+        this.gameMode = gameMode;
+    }
+
+    public boolean isWon() {
+        return won;
+    }
+
+    public void setWon(boolean won) {
+        this.won = won;
+    }
+
+    public LocalDateTime getPlayedAt() {
+        return playedAt;
+    }
+
+    public void setPlayedAt(LocalDateTime playedAt) {
+        this.playedAt = playedAt;
+    }
+
+    public int getXpEarned() {
+        return xpEarned;
+    }
+
+    public void setXpEarned(int xpEarned) {
+        this.xpEarned = xpEarned;
+    }
 }

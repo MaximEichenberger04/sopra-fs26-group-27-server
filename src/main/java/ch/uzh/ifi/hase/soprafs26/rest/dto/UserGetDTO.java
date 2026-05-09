@@ -16,6 +16,8 @@ public class UserGetDTO {
 	private int xp;
 	private int level;
 	private int coins;
+	private int xpCurrentLevelProgress;
+	private int xpRequiredForNextLevel;
 	private String ownedCosmetics;
 	private String equippedBorder;
 	private String equippedPawnSkin;
@@ -102,6 +104,22 @@ public class UserGetDTO {
 
 	public void setCoins(int coins) {
 		this.coins = coins;
+	}
+
+	public int getXpCurrentLevelProgress() {
+		return xpCurrentLevelProgress;
+	}
+
+	public void setXpCurrentLevelProgress(int xpCurrentLevelProgress) {
+		this.xpCurrentLevelProgress = xpCurrentLevelProgress;
+	}
+
+	public int getXpRequiredForNextLevel() {
+		return xpRequiredForNextLevel;
+	}
+
+	public void setXpRequiredForNextLevel(int xpRequiredForNextLevel) {
+		this.xpRequiredForNextLevel = xpRequiredForNextLevel;
 	}
 
 	public String getOwnedCosmetics() {
