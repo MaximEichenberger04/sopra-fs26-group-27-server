@@ -1,15 +1,15 @@
 package ch.uzh.ifi.hase.soprafs26.service;
- 
+
 import ch.uzh.ifi.hase.soprafs26.constant.AbilityType;
 import ch.uzh.ifi.hase.soprafs26.constant.WallOrientation;
 import ch.uzh.ifi.hase.soprafs26.entity.Pawn;
 import ch.uzh.ifi.hase.soprafs26.entity.PoisonZone;
 import ch.uzh.ifi.hase.soprafs26.entity.Wall;
- 
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
- 
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,32 +28,40 @@ public class GameStateCache {
     private static final int POISON_INITIAL_ROUNDS = 4;
 
     private static final int[][] START_POSITIONS = {
-        {16, 8},
-        {0,  8},
-        {8, 16},
-        {8,  0}
+            { 16, 8 },
+            { 0, 8 },
+            { 8, 16 },
+            { 8, 0 }
     };
 
     // Classic Gamemode
-    private final Map<Long, boolean[][]>         wallGrids = new ConcurrentHashMap<>();
-    private final Map<Long, List<Wall>>           walls     = new ConcurrentHashMap<>();
-    private final Map<Long, List<Pawn>>           pawns     = new ConcurrentHashMap<>();
+    private final Map<Long, boolean[][]> wallGrids = new ConcurrentHashMap<>();
+    private final Map<Long, List<Wall>> walls = new ConcurrentHashMap<>();
+    private final Map<Long, List<Pawn>> pawns = new ConcurrentHashMap<>();
 
     // Chaos Gamemode
     private final Map<Long, Map<Long, List<AbilityType>>> playerInventories = new ConcurrentHashMap<>();
-    private final Map<Long, Set<Long>>                    pendingCardDraw   = new ConcurrentHashMap<>();
-    private final Map<Long, Integer>                      turnCounter       = new ConcurrentHashMap<>();
-    private final Map<Long, Set<Long>>                    frozenPlayers     = new ConcurrentHashMap<>();
-    private final Map<Long, Map<Long, Integer>>           bonusActions      = new ConcurrentHashMap<>();
-    private final Map<Long, List<PoisonZone>>             poisonZones       = new ConcurrentHashMap<>();
-    private final Map<Long, Map<Long, Integer>>           extraWalls        = new ConcurrentHashMap<>();
-    // Tracks walls permanently consumed from a player's budget (even if wall was later destroyed)
-    private final Map<Long, Map<Long, Integer>>           permanentlyConsumedWalls = new ConcurrentHashMap<>();
+    private final Map<Long, Set<Long>> pendingCardDraw = new ConcurrentHashMap<>();
+    private final Map<Long, Integer> turnCounter = new ConcurrentHashMap<>();
+    private final Map<Long, Set<Long>> frozenPlayers = new ConcurrentHashMap<>();
+    private final Map<Long, Map<Long, Integer>> bonusActions = new ConcurrentHashMap<>();
+    private final Map<Long, List<PoisonZone>> poisonZones = new ConcurrentHashMap<>();
+    private final Map<Long, Map<Long, Integer>> extraWalls = new ConcurrentHashMap<>();
+    // Tracks walls permanently consumed from a player's budget (even if wall was
+    // later destroyed)
+    private final Map<Long, Map<Long, Integer>> permanentlyConsumedWalls = new ConcurrentHashMap<>();
+
+    // XP system: per-player action counters
+    private final Map<Long, Map<Long, Integer>> playerMoveCount = new ConcurrentHashMap<>();
+    private final Map<Long, Map<Long, Integer>> playerWallCount = new ConcurrentHashMap<>();
+    // Tracks elimination order for 4-player placement (first eliminated = last
+    // place)
+    private final Map<Long, List<Long>> eliminationOrder = new ConcurrentHashMap<>();
 
     public void initGame(Long gameId, List<Long> playerIds, boolean isChaosMode) {
         if (playerIds.size() > START_POSITIONS.length) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                "Too many players. Maximum supported is " + START_POSITIONS.length);
+                    "Too many players. Maximum supported is " + START_POSITIONS.length);
         }
         wallGrids.put(gameId, new boolean[INTERNAL_SIZE][INTERNAL_SIZE]);
         walls.put(gameId, new ArrayList<>());
@@ -69,10 +77,22 @@ public class GameStateCache {
         }
         pawns.put(gameId, pawnList);
 
-        if (!isChaosMode) return;
+        // XP system: init per-player action counters for all game modes
+        Map<Long, Integer> moveCounts = new HashMap<>();
+        Map<Long, Integer> wallCounts = new HashMap<>();
+        for (Long playerId : playerIds) {
+            moveCounts.put(playerId, 0);
+            wallCounts.put(playerId, 0);
+        }
+        playerMoveCount.put(gameId, moveCounts);
+        playerWallCount.put(gameId, wallCounts);
+        eliminationOrder.put(gameId, new ArrayList<>());
+
+        if (!isChaosMode)
+            return;
 
         Map<Long, List<AbilityType>> inventories = new HashMap<>();
-        Map<Long, Integer>           wallBonuses = new HashMap<>();
+        Map<Long, Integer> wallBonuses = new HashMap<>();
         for (Long playerId : playerIds) {
             inventories.put(playerId, new ArrayList<>());
             wallBonuses.put(playerId, 0);
@@ -92,11 +112,11 @@ public class GameStateCache {
         }
         if (orientation == WallOrientation.HORIZONTAL) {
             grid[row][col - 1] = true;
-            grid[row][col]     = true;
+            grid[row][col] = true;
             grid[row][col + 1] = true;
         } else {
             grid[row - 1][col] = true;
-            grid[row][col]     = true;
+            grid[row][col] = true;
             grid[row + 1][col] = true;
         }
 
@@ -116,11 +136,11 @@ public class GameStateCache {
         }
         if (orientation == WallOrientation.HORIZONTAL) {
             grid[row][col - 1] = false;
-            grid[row][col]     = false;
+            grid[row][col] = false;
             grid[row][col + 1] = false;
         } else {
             grid[row - 1][col] = false;
-            grid[row][col]     = false;
+            grid[row][col] = false;
             grid[row + 1][col] = false;
         }
         List<Wall> wallList = walls.get(gameId);
@@ -156,18 +176,22 @@ public class GameStateCache {
 
     public Pawn getPawn(Long gameId, Long userId) {
         List<Pawn> pawnList = pawns.get(gameId);
-        if (pawnList == null) return null;
+        if (pawnList == null)
+            return null;
         for (Pawn p : pawnList) {
-            if (p.getUserId().equals(userId)) return p;
+            if (p.getUserId().equals(userId))
+                return p;
         }
         return null;
     }
 
     public List<Long> getPlayers(Long gameId) {
         List<Pawn> pawnList = pawns.get(gameId);
-        if (pawnList == null) return Collections.emptyList();
+        if (pawnList == null)
+            return Collections.emptyList();
         List<Long> playerIds = new ArrayList<>();
-        for (Pawn p : pawnList) playerIds.add(p.getUserId());
+        for (Pawn p : pawnList)
+            playerIds.add(p.getUserId());
         return Collections.unmodifiableList(playerIds);
     }
 
@@ -182,13 +206,17 @@ public class GameStateCache {
         bonusActions.remove(gameId);
         poisonZones.remove(gameId);
         extraWalls.remove(gameId);
+        playerMoveCount.remove(gameId);
+        playerWallCount.remove(gameId);
+        eliminationOrder.remove(gameId);
     }
 
     // ── Turn counter & card draw ──────────────────────────────────────────────
 
     public void incrementTurnCounter(Long gameId, List<Long> playerIds) {
         Integer current = turnCounter.get(gameId);
-        if (current == null) return;
+        if (current == null)
+            return;
 
         int next = current + 1;
         turnCounter.put(gameId, next);
@@ -198,8 +226,8 @@ public class GameStateCache {
             Map<Long, List<AbilityType>> inventories = playerInventories.get(gameId);
             for (Long playerId : playerIds) {
                 List<AbilityType> hand = inventories != null
-                    ? inventories.getOrDefault(playerId, Collections.emptyList())
-                    : Collections.emptyList();
+                        ? inventories.getOrDefault(playerId, Collections.emptyList())
+                        : Collections.emptyList();
                 if (hand.size() < MAX_CARDS_HELD) {
                     pending.add(playerId);
                 }
@@ -225,16 +253,18 @@ public class GameStateCache {
 
         if (hand.size() >= MAX_CARDS_HELD) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                "Inventory is full (" + MAX_CARDS_HELD + " cards max)");
+                    "Inventory is full (" + MAX_CARDS_HELD + " cards max)");
         }
         hand.add(card);
         Set<Long> pending = pendingCardDraw.get(gameId);
-        if (pending != null) pending.remove(userId);
+        if (pending != null)
+            pending.remove(userId);
     }
 
     public List<AbilityType> getInventory(Long gameId, Long userId) {
         Map<Long, List<AbilityType>> inventories = playerInventories.get(gameId);
-        if (inventories == null) return Collections.emptyList();
+        if (inventories == null)
+            return Collections.emptyList();
         List<AbilityType> hand = inventories.get(userId);
         return hand != null ? Collections.unmodifiableList(hand) : Collections.emptyList();
     }
@@ -249,7 +279,7 @@ public class GameStateCache {
         List<AbilityType> hand = inventories.getOrDefault(userId, Collections.emptyList());
         if (!hand.remove(type)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                "Card " + type + " not found in your inventory");
+                    "Card " + type + " not found in your inventory");
         }
     }
 
@@ -265,33 +295,37 @@ public class GameStateCache {
 
     public void clearFreeze(Long gameId, Long userId) {
         Set<Long> frozen = frozenPlayers.get(gameId);
-        if (frozen != null) frozen.remove(userId);
+        if (frozen != null)
+            frozen.remove(userId);
     }
 
     // ── Bonus actions ─────────────────────────────────────────────────────────
 
     public void setBonusAction(Long gameId, Long userId, int count) {
         bonusActions
-            .computeIfAbsent(gameId, k -> new ConcurrentHashMap<>())
-            .merge(userId, count, Integer::sum);
+                .computeIfAbsent(gameId, k -> new ConcurrentHashMap<>())
+                .merge(userId, count, Integer::sum);
     }
 
     public boolean hasBonusAction(Long gameId, Long userId) {
         Map<Long, Integer> gameMap = bonusActions.get(gameId);
-        if (gameMap == null) return false;
+        if (gameMap == null)
+            return false;
         Integer remaining = gameMap.get(userId);
         return remaining != null && remaining > 0;
     }
 
     public void consumeBonusAction(Long gameId, Long userId) {
         Map<Long, Integer> gameMap = bonusActions.get(gameId);
-        if (gameMap == null) return;
+        if (gameMap == null)
+            return;
         gameMap.computeIfPresent(userId, (k, v) -> v <= 1 ? null : v - 1);
     }
 
     public void clearBonusAction(Long gameId, Long userId) {
         Map<Long, Integer> gameMap = bonusActions.get(gameId);
-        if (gameMap != null) gameMap.remove(userId);
+        if (gameMap != null)
+            gameMap.remove(userId);
     }
 
     // ── Poison zones ──────────────────────────────────────────────────────────
@@ -307,7 +341,7 @@ public class GameStateCache {
                 for (Pawn p : pawnList) {
                     if (p.getRow() == r && p.getCol() == c) {
                         throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                            "Cannot place poison zone on a cell occupied by a pawn");
+                                "Cannot place poison zone on a cell occupied by a pawn");
                     }
                 }
             }
@@ -328,18 +362,21 @@ public class GameStateCache {
 
     public void tickPoisonZones(Long gameId) {
         List<PoisonZone> zones = poisonZones.get(gameId);
-        if (zones == null) return;
+        if (zones == null)
+            return;
         zones.forEach(z -> z.setRoundsRemaining(z.getRoundsRemaining() - 1));
         zones.removeIf(z -> z.getRoundsRemaining() <= 0);
     }
 
     public boolean isPoisoned(Long gameId, int row, int col) {
         List<PoisonZone> zones = poisonZones.get(gameId);
-        if (zones == null) return false;
+        if (zones == null)
+            return false;
         for (PoisonZone z : zones) {
             boolean rowInZone = (row == z.getTopLeftRow() || row == z.getTopLeftRow() + 2);
             boolean colInZone = (col == z.getTopLeftCol() || col == z.getTopLeftCol() + 2);
-            if (rowInZone && colInZone) return true;
+            if (rowInZone && colInZone)
+                return true;
         }
         return false;
     }
@@ -357,19 +394,21 @@ public class GameStateCache {
 
     public int getExtraWalls(Long gameId, Long userId) {
         Map<Long, Integer> bonuses = extraWalls.get(gameId);
-        if (bonuses == null) return 0;
+        if (bonuses == null)
+            return 0;
         return bonuses.getOrDefault(userId, 0);
     }
 
     public void incrementPermanentlyConsumedWalls(Long gameId, Long userId) {
         permanentlyConsumedWalls
-            .computeIfAbsent(gameId, k -> new ConcurrentHashMap<>())
-            .merge(userId, 1, Integer::sum);
+                .computeIfAbsent(gameId, k -> new ConcurrentHashMap<>())
+                .merge(userId, 1, Integer::sum);
     }
 
     public int getPermanentlyConsumedWalls(Long gameId, Long userId) {
         Map<Long, Integer> map = permanentlyConsumedWalls.get(gameId);
-        if (map == null) return 0;
+        if (map == null)
+            return 0;
         return map.getOrDefault(userId, 0);
     }
 
@@ -389,5 +428,48 @@ public class GameStateCache {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Not a chaos game");
         }
         return zones;
+    }
+
+    // ── XP system: per-player action tracking ─────────────────────────────────
+
+    public void incrementPlayerMoveCount(Long gameId, Long userId) {
+        Map<Long, Integer> counts = playerMoveCount.get(gameId);
+        if (counts != null) {
+            counts.merge(userId, 1, Integer::sum);
+        }
+    }
+
+    public void incrementPlayerWallCount(Long gameId, Long userId) {
+        Map<Long, Integer> counts = playerWallCount.get(gameId);
+        if (counts != null) {
+            counts.merge(userId, 1, Integer::sum);
+        }
+    }
+
+    public int getPlayerMoveCount(Long gameId, Long userId) {
+        Map<Long, Integer> counts = playerMoveCount.get(gameId);
+        return counts != null ? counts.getOrDefault(userId, 0) : 0;
+    }
+
+    public int getPlayerWallCount(Long gameId, Long userId) {
+        Map<Long, Integer> counts = playerWallCount.get(gameId);
+        return counts != null ? counts.getOrDefault(userId, 0) : 0;
+    }
+
+    /** Records a player as eliminated (for 4-player placement ordering). */
+    public void recordElimination(Long gameId, Long userId) {
+        List<Long> order = eliminationOrder.get(gameId);
+        if (order != null && !order.contains(userId)) {
+            order.add(userId);
+        }
+    }
+
+    /**
+     * Returns the elimination order (first entry = first eliminated = worst
+     * placement).
+     */
+    public List<Long> getEliminationOrder(Long gameId) {
+        List<Long> order = eliminationOrder.get(gameId);
+        return order != null ? Collections.unmodifiableList(order) : Collections.emptyList();
     }
 }

@@ -30,15 +30,16 @@ import java.util.stream.Collectors;
  * in-memory GameStateCache, no DB is used.
  *
  * Coordinate system, 17×17 internal grid (for a standard 9×9 board):
- *   Pawn cells:          even row, even col
- *   Wall intersections:  odd  row, odd  col  (center of wall)
- *   H-wall occupies:     (row, col-1), (row, col), (row, col+1)
- *   V-wall occupies:     (row-1, col), (row, col), (row+1, col)
+ * Pawn cells: even row, even col
+ * Wall intersections: odd row, odd col (center of wall)
+ * H-wall occupies: (row, col-1), (row, col), (row, col+1)
+ * V-wall occupies: (row-1, col), (row, col), (row+1, col)
  *
  * Move rules:
- *   SIMPLE   – step one pawn cell in a cardinal direction: row=±2 or col=±2
- *   JUMP     – leap over an adjacent opponent: row=±4 or col=±4 (no wall between)
- *   DIAGONAL – straight jump blocked (wall or edge) → move diagonally: row=±2, col=±2
+ * SIMPLE – step one pawn cell in a cardinal direction: row=±2 or col=±2
+ * JUMP – leap over an adjacent opponent: row=±4 or col=±4 (no wall between)
+ * DIAGONAL – straight jump blocked (wall or edge) → move diagonally: row=±2,
+ * col=±2
  */
 @Service
 @Transactional
@@ -56,23 +57,27 @@ public class MoveService {
             @Qualifier("userRepository") UserRepository userRepository,
             GameService gameService,
             GameStateCache gameStateCache) {
-        this.gameRepository       = gameRepository;
-        this.userRepository       = userRepository;
-        this.gameService          = gameService;
-        this.gameStateCache       = gameStateCache;
+        this.gameRepository = gameRepository;
+        this.userRepository = userRepository;
+        this.gameService = gameService;
+        this.gameStateCache = gameStateCache;
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  Pawn move
+    // Pawn move
     // ─────────────────────────────────────────────────────────────
 
     /**
      * Validates and applies a pawn move.
      * Reads pawn position and wall grid from GameStateCache.
-     * Updates the cache, checks win, advances turn, broadcasts refresh (through webseocket).
+     * Updates the cache, checks win, advances turn, broadcasts refresh (through
+     * webseocket).
      *
-     * @throws org.springframework.web.server.ResponseStatusException 403 if not the caller's turn
-     * @throws org.springframework.web.server.ResponseStatusException 400 if the move is invalid
+     * @throws org.springframework.web.server.ResponseStatusException 403 if not the
+     *                                                                caller's turn
+     * @throws org.springframework.web.server.ResponseStatusException 400 if the
+     *                                                                move is
+     *                                                                invalid
      */
     public GameGetDTO processMove(Long gameId, MovePostDTO dto, String token) {
         User authenticatedUser = requireUser(token);
@@ -85,16 +90,19 @@ public class MoveService {
         requireTurn(game, userId);
 
         if (gameStateCache.isFrozen(gameId, userId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are frozen this turn — you can still place walls or use ability cards, but cannot move your pawn.");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You are frozen this turn — you can still place walls or use ability cards, but cannot move your pawn.");
         }
 
         if (gameStateCache.isFrozen(gameId, userId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are frozen this turn — you can still place walls or use ability cards, but cannot move your pawn.");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You are frozen this turn — you can still place walls or use ability cards, but cannot move your pawn.");
         }
 
         int[] targetField = dto.getTargetField();
-        if (targetField == null || targetField.length != 2){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid target position: coordinates are out of bounds.");
+        if (targetField == null || targetField.length != 2) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Invalid target position: coordinates are out of bounds.");
         }
 
         int row = targetField[0];
@@ -107,14 +115,17 @@ public class MoveService {
         if (currentPawn == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Pawn for current user not found");
         }
-        if (!isValidPawnMove(currentPawn, row, col, pawns, grid)){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid move: you can only move to adjacent cells or jump over pawns. Poisoned cells cannot be entered.");
+        if (!isValidPawnMove(currentPawn, row, col, pawns, grid)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Invalid move: you can only move to adjacent cells or jump over pawns. Poisoned cells cannot be entered.");
         }
         if (game.isChaosMode() && gameStateCache.isPoisoned(gameId, row, col)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot move there: that cell is poisoned and impassable.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Cannot move there: that cell is poisoned and impassable.");
         }
 
         gameStateCache.movePawn(gameId, userId, row, col);
+        gameStateCache.incrementPlayerMoveCount(gameId, userId);
 
         if (gameService.checkWinCondition(game, userId)) {
             return gameService.endGame(game, userId);
@@ -138,16 +149,20 @@ public class MoveService {
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  Wall placement
+    // Wall placement
     // ─────────────────────────────────────────────────────────────
 
     /**
      * Validates and applies a wall placement.
-     * Checks budget, bounds, overlap, and path-blocking (BFS), all against the cache grid.
+     * Checks budget, bounds, overlap, and path-blocking (BFS), all against the
+     * cache grid.
      * Updates the cache, advances turn, broadcasts refresh (through webseocket).
      *
-     * @throws org.springframework.web.server.ResponseStatusException 403 if not the caller's turn
-     * @throws org.springframework.web.server.ResponseStatusException 400 on any invalid placement
+     * @throws org.springframework.web.server.ResponseStatusException 403 if not the
+     *                                                                caller's turn
+     * @throws org.springframework.web.server.ResponseStatusException 400 on any
+     *                                                                invalid
+     *                                                                placement
      */
     public GameGetDTO applyWallPlacement(Long gameId, WallPostDTO dto, String token) {
 
@@ -161,44 +176,49 @@ public class MoveService {
 
         int[] targetField = dto.getTargetField();
         if (targetField == null || targetField.length != 2) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid target position: coordinates are out of bounds.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Invalid target position: coordinates are out of bounds.");
         }
         int row = targetField[0];
         int col = targetField[1];
         WallOrientation orientation = dto.getOrientation();
         if (orientation == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Wall orientation (HORIZONTAL or VERTICAL) is required.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Wall orientation (HORIZONTAL or VERTICAL) is required.");
         }
         if (!isValidWallCenter(row, col)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid wall position: walls must be placed on wall slots, not on cells.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Invalid wall position: walls must be placed on wall slots, not on cells.");
         }
 
         List<Wall> walls = gameStateCache.getWalls(gameId);
         List<Pawn> pawns = gameStateCache.getPawns(gameId);
         boolean[][] grid = gameStateCache.getWallGrid(gameId);
-        
+
         int permanentlyConsumed = gameStateCache.getPermanentlyConsumedWalls(gameId, userId);
         int extraWalls = gameStateCache.getExtraWalls(gameId, userId);
         int totalBudget = game.getWallsPerPlayer() + extraWalls;
         int remainingWalls = totalBudget - permanentlyConsumed;
         if (remainingWalls <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                "You have no walls remaining. All " + totalBudget + " of your walls have been placed.");
+                    "You have no walls remaining. All " + totalBudget + " of your walls have been placed.");
         }
-        if (wallOverlaps(grid, row, col, orientation)){
+        if (wallOverlaps(grid, row, col, orientation)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                "Invalid wall placement: this position overlaps an existing wall.");
+                    "Invalid wall placement: this position overlaps an existing wall.");
         }
 
-        boolean[][] gridCopy =  copyWallGrid(grid); // create a copy of grid to test a new wall placement
-        simulateWallPlacement(gridCopy, row, col, orientation); 
+        boolean[][] gridCopy = copyWallGrid(grid); // create a copy of grid to test a new wall placement
+        simulateWallPlacement(gridCopy, row, col, orientation);
 
-        if (!allPlayersHavePathToGoal(game, gridCopy, pawns)){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid wall placement: this wall would completely block a player from reaching their goal.");
+        if (!allPlayersHavePathToGoal(game, gridCopy, pawns)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Invalid wall placement: this wall would completely block a player from reaching their goal.");
         }
 
         gameStateCache.placeWall(gameId, row, col, orientation, userId);
         gameStateCache.incrementPermanentlyConsumedWalls(gameId, userId);
+        gameStateCache.incrementPlayerWallCount(gameId, userId);
 
         if (gameStateCache.hasBonusAction(gameId, userId)) {
             gameStateCache.clearBonusAction(gameId, userId);
@@ -229,30 +249,29 @@ public class MoveService {
                 && col % 2 == 1;
     }
 
-    private boolean[][] copyWallGrid(boolean[][] originalGrid){
+    private boolean[][] copyWallGrid(boolean[][] originalGrid) {
         boolean[][] copy = new boolean[INTERNAL_SIZE][INTERNAL_SIZE];
-        for (int i = 0; i < INTERNAL_SIZE; i++){
+        for (int i = 0; i < INTERNAL_SIZE; i++) {
             System.arraycopy(originalGrid[i], 0, copy[i], 0, INTERNAL_SIZE);
         }
         return copy;
     }
 
-    private void simulateWallPlacement(boolean[][] grid, int row, int col, WallOrientation orientation){
-        if (orientation == WallOrientation.HORIZONTAL){
+    private void simulateWallPlacement(boolean[][] grid, int row, int col, WallOrientation orientation) {
+        if (orientation == WallOrientation.HORIZONTAL) {
             grid[row][col] = true;
-            grid[row][col -1] = true;
-            grid[row][col + 1]= true;
-        }
-        else{
+            grid[row][col - 1] = true;
+            grid[row][col + 1] = true;
+        } else {
             grid[row][col] = true;
             grid[row - 1][col] = true;
             grid[row + 1][col] = true;
         }
     }
 
-    private boolean allPlayersHavePathToGoal(Game game, boolean[][] gridCopy, List<Pawn> pawns){
+    private boolean allPlayersHavePathToGoal(Game game, boolean[][] gridCopy, List<Pawn> pawns) {
         Map<Long, Pawn> pawnByUserId = pawns.stream()
-        .collect(Collectors.toMap(Pawn::getUserId, p -> p));
+                .collect(Collectors.toMap(Pawn::getUserId, p -> p));
 
         for (Long activeUserId : game.getActivePlayerIds()) {
             int originalIndex = game.getPlayerIds().indexOf(activeUserId);
@@ -266,17 +285,15 @@ public class MoveService {
             }
 
             boolean hasPath;
-            if (originalIndex == 0){
+            if (originalIndex == 0) {
                 hasPath = hasPathToGoalRow(gridCopy, pawn.getRow(), pawn.getCol(), 0);
-            }
-            else if (originalIndex == 1) {
+            } else if (originalIndex == 1) {
                 hasPath = hasPathToGoalRow(gridCopy, pawn.getRow(), pawn.getCol(), INTERNAL_SIZE - 1);
             } else if (originalIndex == 2) {
                 hasPath = hasPathToGoalCol(gridCopy, pawn.getRow(), pawn.getCol(), 0);
             } else if (originalIndex == 3) {
                 hasPath = hasPathToGoalCol(gridCopy, pawn.getRow(), pawn.getCol(), INTERNAL_SIZE - 1);
-            }
-            else{
+            } else {
                 return false;
             }
 
@@ -288,23 +305,22 @@ public class MoveService {
         return true;
     }
 
-
-
     // ─────────────────────────────────────────────────────────────
-    //  Move validation
+    // Move validation
     // ─────────────────────────────────────────────────────────────
 
     /**
-     * Returns true if moving {@code pawn} to (targetRow, targetCol) is a legal Quoridor move.
+     * Returns true if moving {@code pawn} to (targetRow, targetCol) is a legal
+     * Quoridor move.
      * Checks SIMPLE, JUMP, and DIAGONAL cases using the O(1) grid.
      */
     private boolean isValidPawnMove(Pawn pawn, int targetRow, int targetCol,
-                                    List<Pawn> allPawns, boolean[][] grid) {
+            List<Pawn> allPawns, boolean[][] grid) {
         if (!isValidPawnCell(targetRow, targetCol)) {
             return false;
         }
 
-        if (isPawnAt(allPawns, pawn, targetRow, targetCol)){
+        if (isPawnAt(allPawns, pawn, targetRow, targetCol)) {
             return false;
         }
         int pawnRow = pawn.getRow();
@@ -331,7 +347,7 @@ public class MoveService {
         }
 
         if (Math.abs(dr) == 4 && dc == 0) {
-            int midRow = (pawnRow + targetRow) /2; // where pawn jumps over
+            int midRow = (pawnRow + targetRow) / 2; // where pawn jumps over
             int midMidRow = (pawnRow + midRow) / 2; // first wall check
             int beyondMidRow = (midRow + targetRow) / 2; // second wall check
             return isPawnAt(allPawns, pawn, midRow, pawnCol) && !isWallAt(grid, midMidRow, pawnCol)
@@ -339,14 +355,14 @@ public class MoveService {
         }
 
         if (Math.abs(dc) == 4 && dr == 0) {
-            int midCol = (pawnCol + targetCol) /2; // where pawn jumps over
+            int midCol = (pawnCol + targetCol) / 2; // where pawn jumps over
             int midMidCol = (pawnCol + midCol) / 2; // first wall check
             int beyondMidCol = (midCol + targetCol) / 2; // second wall check
 
             return isPawnAt(allPawns, pawn, pawnRow, midCol) && !isWallAt(grid, pawnRow, midMidCol)
                     && !isWallAt(grid, pawnRow, beyondMidCol);
         }
-        
+
         return false;
     }
 
@@ -355,14 +371,15 @@ public class MoveService {
      * but an opponent is adjacent in one of the two cardinal components.
      */
     private boolean isDiagonalValid(Pawn pawn, int dr, int dc,
-                                    List<Pawn> allPawns, boolean[][] grid) {
+            List<Pawn> allPawns, boolean[][] grid) {
 
         int pawnRow = pawn.getRow();
         int pawnCol = pawn.getCol();
         int verticalPawnRow = pawnRow + dr;
         int verticalPawnCol = pawnCol;
 
-        if (isValidPawnCell(verticalPawnRow, verticalPawnCol) && isPawnAt(allPawns, pawn, verticalPawnRow, verticalPawnCol)){
+        if (isValidPawnCell(verticalPawnRow, verticalPawnCol)
+                && isPawnAt(allPawns, pawn, verticalPawnRow, verticalPawnCol)) {
             int wallBetweenRow = (pawnRow + verticalPawnRow) / 2;
             int wallBehindPawnRow = verticalPawnRow + dr / 2;
             int wallSideCol = pawnCol + dc / 2;
@@ -381,7 +398,8 @@ public class MoveService {
         int horizontalPawnRow = pawnRow;
         int horizontalPawnCol = pawnCol + dc;
 
-        if (isValidPawnCell(horizontalPawnRow, horizontalPawnCol) && isPawnAt(allPawns, pawn, horizontalPawnRow, horizontalPawnCol)){
+        if (isValidPawnCell(horizontalPawnRow, horizontalPawnCol)
+                && isPawnAt(allPawns, pawn, horizontalPawnRow, horizontalPawnCol)) {
             int wallBetweenCol = (pawnCol + horizontalPawnCol) / 2;
             int wallBehindPawnCol = horizontalPawnCol + dc / 2;
             int wallSideRow = pawnRow + dr / 2;
@@ -400,7 +418,7 @@ public class MoveService {
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  Wall helpers  (all O(1) via the boolean[][] grid)
+    // Wall helpers (all O(1) via the boolean[][] grid)
     // ─────────────────────────────────────────────────────────────
 
     // Returns true if grid[r][c] is occupied by any wall segment.
@@ -435,18 +453,20 @@ public class MoveService {
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  BFS path finding  
+    // BFS path finding
     // ─────────────────────────────────────────────────────────────
 
     /**
-     * Returns true if there is a path from (startRow, startCol) to targetRow (any column).
+     * Returns true if there is a path from (startRow, startCol) to targetRow (any
+     * column).
      * Movement restricted to pawn cells (even, even), step size 2.
      */
     public boolean hasPathToGoalRow(boolean[][] grid, int startRow, int startCol, int targetRow) {
         return bfs(grid, startRow, startCol, targetRow, -1);
     }
 
-    // Returns true if there is a path from (startRow, startCol) to targetCol (any row).
+    // Returns true if there is a path from (startRow, startCol) to targetCol (any
+    // row).
     public boolean hasPathToGoalCol(boolean[][] grid, int startRow, int startCol, int targetCol) {
         return bfs(grid, startRow, startCol, -1, targetCol);
     }
@@ -460,14 +480,14 @@ public class MoveService {
     private boolean bfs(boolean[][] grid, int startRow, int startCol, int targetRow, int targetCol) {
         boolean[][] visited = new boolean[INTERNAL_SIZE][INTERNAL_SIZE];
         Queue<int[]> queue = new LinkedList<>();
-        queue.add(new int[]{startRow, startCol});
+        queue.add(new int[] { startRow, startCol });
         visited[startRow][startCol] = true;
 
         int dir[][] = {
-        {-2, 0},    // up
-        {2, 0},     // down
-        {0, -2},    // left
-        {0, 2}      // right
+                { -2, 0 }, // up
+                { 2, 0 }, // down
+                { 0, -2 }, // left
+                { 0, 2 } // right
         };
         while (!queue.isEmpty()) {
             int current[] = queue.poll();
@@ -475,40 +495,46 @@ public class MoveService {
             int col = current[1];
 
             if (targetRow != -1 && row == targetRow) {
-            return true;
+                return true;
             }
             if (targetCol != -1 && col == targetCol) {
                 return true;
             }
 
-            for (int d[] : dir){
+            for (int d[] : dir) {
                 int newRow = row + d[0];
                 int newCol = col + d[1];
 
-                if (!isValidPawnCell(newRow, newCol)){continue;}
-                if (visited[newRow][newCol]) {continue;}
+                if (!isValidPawnCell(newRow, newCol)) {
+                    continue;
+                }
+                if (visited[newRow][newCol]) {
+                    continue;
+                }
 
                 int midRow = (row + newRow) / 2;
                 int midCol = (col + newCol) / 2;
-                if (isWallAt(grid, midRow, midCol)) {continue;}
+                if (isWallAt(grid, midRow, midCol)) {
+                    continue;
+                }
 
                 visited[newRow][newCol] = true;
-                queue.add(new int[]{newRow, newCol});
+                queue.add(new int[] { newRow, newCol });
             }
         }
         return false;
     }
 
-    private boolean isValidPawnCell(int row, int col){
+    private boolean isValidPawnCell(int row, int col) {
         return row >= 0 && row < INTERNAL_SIZE && col >= 0 && col < INTERNAL_SIZE
                 && row % 2 == 0 && col % 2 == 0;
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  Pawn presence helper
+    // Pawn presence helper
     // ─────────────────────────────────────────────────────────────
 
-    // Returns true if any pawn other than {@code exclude} is at (r, c). 
+    // Returns true if any pawn other than {@code exclude} is at (r, c).
     private boolean isPawnAt(List<Pawn> allPawns, Pawn exclude, int r, int c) {
         for (Pawn p : allPawns) {
             if (p != exclude && p.getRow() == r && p.getCol() == c) {
@@ -519,10 +545,10 @@ public class MoveService {
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  Shared guards (for processMove, applyWallPlacement)
+    // Shared guards (for processMove, applyWallPlacement)
     // ─────────────────────────────────────────────────────────────
 
-    //  look up user by token, throw 401 if not found    
+    // look up user by token, throw 401 if not found
     private User requireUser(String token) {
         User user = userRepository.findByToken(token);
         if (user == null) {
@@ -537,8 +563,7 @@ public class MoveService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
     }
 
-  
-    // Throws 400 if the game is not RUNNING, 403 if it is not this user's turn. 
+    // Throws 400 if the game is not RUNNING, 403 if it is not this user's turn.
     private void requireTurn(Game game, Long userId) {
         if (game.getGameStatus() != GameStatus.RUNNING) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Game is not running");

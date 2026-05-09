@@ -3,6 +3,7 @@ package ch.uzh.ifi.hase.soprafs26.controller;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.AbilityPostDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.MatchHistoryGetDTO;
 import ch.uzh.ifi.hase.soprafs26.websocket.GameWebSocketHandler;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.GameGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.MovePostDTO;
@@ -10,8 +11,11 @@ import ch.uzh.ifi.hase.soprafs26.rest.dto.WallPostDTO;
 import ch.uzh.ifi.hase.soprafs26.service.AbilityService;
 import ch.uzh.ifi.hase.soprafs26.service.GameService;
 import ch.uzh.ifi.hase.soprafs26.service.MoveService;
+import ch.uzh.ifi.hase.soprafs26.service.StatisticsService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/games")
@@ -22,14 +26,17 @@ public class GameController {
     private final AbilityService abilityService;
     private final GameWebSocketHandler webSocketHandler;
     private final UserRepository userRepository;
+    private final StatisticsService statisticsService;
 
     GameController(GameService gameService, MoveService moveService,
-            AbilityService abilityService, UserRepository userRepository, GameWebSocketHandler webSocketHandler) {
+            AbilityService abilityService, UserRepository userRepository,
+            GameWebSocketHandler webSocketHandler, StatisticsService statisticsService) {
         this.gameService = gameService;
         this.moveService = moveService;
         this.abilityService = abilityService;
         this.webSocketHandler = webSocketHandler;
         this.userRepository = userRepository;
+        this.statisticsService = statisticsService;
     }
 
     /**
@@ -139,5 +146,19 @@ public class GameController {
     private Long resolveUserId(String token) {
         User user = userRepository.findByToken(token);
         return user != null ? user.getId() : null;
+    }
+
+    /**
+     * GET /games/{gameId}/results
+     * Returns match results (including XP earned) for all players in a finished
+     * game.
+     */
+    @GetMapping("/{gameId}/results")
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public List<MatchHistoryGetDTO> getGameResults(
+            @PathVariable Long gameId,
+            @RequestHeader("Authorization") String token) {
+        return statisticsService.getGameResults(gameId, token);
     }
 }
