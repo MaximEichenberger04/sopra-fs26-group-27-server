@@ -13,6 +13,8 @@ public class Game implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    private static final int DEFAULT_TURN_TIME_LIMIT_SECONDS = 60;
+
     @Id
     @GeneratedValue
     private Long id;
@@ -53,6 +55,36 @@ public class Game implements Serializable {
 
     @Column(nullable = false)
     private String mapTheme;
+
+    @Column(nullable = false)
+    private int turnTimeLimitSeconds = DEFAULT_TURN_TIME_LIMIT_SECONDS;
+
+    @Column(nullable = false)
+    private Long turnDeadlineMillis;
+
+    public int getTurnTimeLimitSeconds() {
+        return turnTimeLimitSeconds;
+    }
+
+    public void setTurnTimeLimitSeconds(int turnTimeLimitSeconds) {
+        this.turnTimeLimitSeconds = turnTimeLimitSeconds;
+    }
+
+    public Long getTurnDeadlineMillis() {
+        return turnDeadlineMillis;
+    }
+
+    public void setTurnDeadlineMillis(Long turnDeadlineMillis) {
+        this.turnDeadlineMillis = turnDeadlineMillis;
+    }
+
+    public Long getServerTimeMillis() {
+        return serverTimeMillis;
+    }
+
+    public void setServerTimeMillis(Long serverTimeMillis) {
+        this.serverTimeMillis = serverTimeMillis;
+    }
 
     public List<Long> getActivePlayerIds() {
         return activePlayerIds;

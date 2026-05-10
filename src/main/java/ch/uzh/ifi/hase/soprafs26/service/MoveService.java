@@ -84,6 +84,11 @@ public class MoveService {
         Long userId = authenticatedUser.getId();
         Game game = requireGame(gameId);
 
+        GameGetDTO timeoutResult = gameService.enforceTimeoutIfExpired(game);
+        if (timeoutResult != null) {
+            return timeoutResult;
+        }
+
         if (!game.getActivePlayerIds().contains(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are no longer active in this game");
         }
@@ -169,6 +174,11 @@ public class MoveService {
         User authenticatedUser = requireUser(token);
         Long userId = authenticatedUser.getId();
         Game game = requireGame(gameId);
+
+        GameGetDTO timeoutResult = gameService.enforceTimeoutIfExpired(game);
+        if (timeoutResult != null) {
+            return timeoutResult;
+        }
         if (!game.getActivePlayerIds().contains(userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are no longer active in this game");
         }

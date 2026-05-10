@@ -58,6 +58,7 @@ public class GameService {
     private final MatchHistoryRepository matchHistoryRepository;
     private final UserService userService;
     private final LevelingService levelingService;
+    private static final int DEFAULT_TURN_TIME_LIMIT_SECONDS = 60;
 
     public GameService(
             @Qualifier("gameRepository") GameRepository gameRepository,
@@ -103,6 +104,8 @@ public class GameService {
         game.setActivePlayerIds(new ArrayList<>(lobby.getPlayerIds())); // automatic disconnect logic
         game.setCurrentTurnUserId(lobby.getPlayerIds().get(0));
         game.setGameStatus(GameStatus.RUNNING);
+        game.setTurnTimeLimitSeconds(DEFAULT_TURN_TIME_LIMIT_SECONDS);
+        resetTurnTimer(game);
         game.setSizeBoard(9); // standard logical size (9x9 fields for pawn)
         game.setWallsPerPlayer(lobby.getMaxPlayers() == 2 ? 10 : 5); // check if lobby has 2 or 4 players
         game.setChaosMode("CHAOS".equalsIgnoreCase(lobby.getGameMode()));
@@ -131,6 +134,12 @@ public class GameService {
     public GameGetDTO getGameById(Long gameId, Long requestingUserId) {
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+
+         GameGetDTO timeoutResult = enforceTimeoutIfExpired(game);
+        if (timeoutResult != null) {
+            return timeoutResult;
+        }
+
         return buildGameGetDTO(game, requestingUserId); // call build and return DTO
     }
 
@@ -211,7 +220,7 @@ public class GameService {
                 dto.setCanDrawCard(gameStateCache.hasPendingCardDraw(game.getId(), requestingUserId));
             }
         }
-
+        dto.setServerTimeMillis(System.currentTimeMillis());
         return dto;
     }
 
@@ -345,6 +354,7 @@ public class GameService {
             int next = (index + 1) % activePlayers.size();
             Long nextPlayer = activePlayers.get(next);
             game.setCurrentTurnUserId(nextPlayer);
+            resetTurnTimer(game);
             gameRepository.saveAndFlush(game);
 
             // Auto-skip frozen player if they have no walls and no ability cards
@@ -359,6 +369,7 @@ public class GameService {
                     gameStateCache.clearFreeze(game.getId(), nextPlayer);
                     int nextNext = (next + 1) % activePlayers.size();
                     game.setCurrentTurnUserId(activePlayers.get(nextNext));
+                    resetTurnTimer(game);
                     gameRepository.saveAndFlush(game);
                 }
             }
@@ -376,6 +387,7 @@ public class GameService {
                 Long candidate = originalOrder.get((removedIndex + step) % originalOrder.size());
                 if (activePlayers.contains(candidate)) {
                     game.setCurrentTurnUserId(candidate);
+                    resetTurnTimer(game);
                     gameRepository.saveAndFlush(game);
                     return;
                 }
@@ -539,5 +551,45 @@ public class GameService {
 
         matchHistoryRepository.flush();
         userRepository.flush();
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Timer
+    // ─────────────────────────────────────────────────────────────
+    public void resetTurnTimer(Game game) {
+        long now = System.currentTimeMillis();
+
+        if (game.getTurnTimeLimitSeconds() <= 0) {
+            game.setTurnTimeLimitSeconds(DEFAULT_TURN_TIME_LIMIT_SECONDS);
+        }
+
+        game.setTurnDeadlineMillis(now + game.getTurnTimeLimitSeconds() * 1000L);
+    }
+
+    public boolean isTurnExpired(Game game) {
+        if (game.getGameStatus() != GameStatus.RUNNING) {
+            return false;
+        }
+
+        Long deadline = game.getTurnDeadlineMillis();
+        return deadline != null && System.currentTimeMillis() >= deadline;
+    }
+
+    public GameGetDTO skipTurnByTimeout(Game game) {
+        if (game.getGameStatus() == GameStatus.ENDED) {
+            return buildGameGetDTO(game);
+        }
+
+        advanceTurn(game);
+
+        return buildGameGetDTO(game);
+    }
+
+    public GameGetDTO enforceTimeoutIfExpired(Game game) {
+        if (isTurnExpired(game)) {
+            return skipTurnByTimeout(game);
+        }
+
+        return null;    
     }
 }
