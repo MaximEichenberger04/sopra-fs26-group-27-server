@@ -91,6 +91,10 @@ public class AbilityService {
         Game game = requireGame(gameId);
         requireTurnOrBonusAction(game, userId);
         requireCardInInventory(gameId, userId, dto.getAbilityType());
+        // If in bonus mode, consume one bonus action before resolving the card
+        if (gameStateCache.hasBonusAction(gameId, userId)) {
+            gameStateCache.consumeBonusAction(gameId, userId);
+        }
 
         switch (dto.getAbilityType()) {
 
@@ -128,19 +132,13 @@ public class AbilityService {
                 requireTargetUser(dto);
                 applyFreeze(gameId, userId, dto.getTargetUserId());
                 gameStateCache.removeCardFromInventory(gameId, userId, AbilityType.FREEZE);
-                gameStateCache.clearBonusAction(gameId, userId);
-                gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
-                gameStateCache.tickPoisonZones(gameId);
-                gameService.advanceTurn(game);
+                gameStateCache.setBonusAction(gameId, userId, 1);  // 1 bonus: can do 1 more action
                 break;
 
             case PLUS_TWO_WALLS:
                 applyPlusTwoWalls(gameId, userId, game.getWallsPerPlayer());
                 gameStateCache.removeCardFromInventory(gameId, userId, AbilityType.PLUS_TWO_WALLS);
-                gameStateCache.clearBonusAction(gameId, userId);
-                gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
-                gameStateCache.tickPoisonZones(gameId);
-                gameService.advanceTurn(game);
+                gameStateCache.setBonusAction(gameId, userId, 1);  // 1 bonus: can do 1 more action
                 break;
 
             case TWO_MOVES:
@@ -245,20 +243,20 @@ public class AbilityService {
     }
 
     private void applyPlusTwoWalls(Long gameId, Long userId, int wallsPerPlayer) {
+        // Maximum extra walls = 2 (so total = wallsPerPlayer + 2)
         int currentExtra = gameStateCache.getExtraWalls(gameId, userId);
-        int currentTotal = wallsPerPlayer + currentExtra;
-        if (currentTotal >= WALL_CAP) {
+        if (currentExtra >= 2) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                "Cannot use +2 Walls: you are already at the maximum wall limit of " + WALL_CAP + ".");
+                "Cannot use +2 Walls: you have already reached the maximum of " + (wallsPerPlayer + 2) + " total walls.");
         }
-        int gain = Math.min(2, WALL_CAP - currentTotal);
+        int gain = 2 - currentExtra;  // always gives exactly what's needed to reach +2
         gameStateCache.addExtraWalls(gameId, userId, gain);
-        // Playing this card ends your turn — no bonus action
     }
 
+
     private void applyTwoMoves(Long gameId, Long userId) {
-        // Grants 1 bonus action. Card play = 1 action, bonus = 1 more, total = 2 actions.
-        gameStateCache.setBonusAction(gameId, userId, 1);
+        // Grants 2 bonus actions (card play is free, then 2 more actions = 2 moves total)
+        gameStateCache.setBonusAction(gameId, userId, 2);
     }
 
     // ── Guards ────────────────────────────────────────────────────────────────

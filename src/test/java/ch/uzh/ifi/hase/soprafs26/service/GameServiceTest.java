@@ -162,10 +162,10 @@ class GameServiceTest {
 
     @Test
     void buildGameGetDTO_correctRemainingWalls() {
-        Wall wall = new Wall();
-        wall.setUserId(1L);
         when(gameStateCache.getPawns(10L)).thenReturn(List.of());
-        when(gameStateCache.getWalls(10L)).thenReturn(List.of(wall)); // player 1 used 1 wall
+        when(gameStateCache.getWalls(10L)).thenReturn(List.of());
+        when(gameStateCache.getPermanentlyConsumedWalls(10L, 1L)).thenReturn(1); // player 1 used 1 wall
+        when(gameStateCache.getPermanentlyConsumedWalls(10L, 2L)).thenReturn(0);
 
         GameGetDTO dto = gameService.buildGameGetDTO(game);
 
