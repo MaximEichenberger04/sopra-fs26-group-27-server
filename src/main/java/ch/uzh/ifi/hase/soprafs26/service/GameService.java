@@ -160,14 +160,12 @@ public class GameService {
                 .collect(Collectors.toList());
         dto.setWalls(wallDTOs);
 
-        // compute remaining wall budget per player
-        Map<Long, Long> usedWalls = gameStateCache.getWalls(game.getId()).stream()
-                .collect(Collectors.groupingBy(Wall::getUserId, Collectors.counting()));
-
+        // compute remaining wall budget per player using permanently consumed walls
+        // (destroyed walls by Fireball/Earthquake still count against budget)
         Map<Long, Integer> remainingWalls = new HashMap<>();
         for (Long playerId : game.getPlayerIds()) {
-            int used = usedWalls.getOrDefault(playerId, 0L).intValue();
-            remainingWalls.put(playerId, game.getWallsPerPlayer() - used);
+            int consumed = gameStateCache.getPermanentlyConsumedWalls(game.getId(), playerId);
+            remainingWalls.put(playerId, game.getWallsPerPlayer() - consumed);
         }
         dto.setRemainingWalls(remainingWalls);
 
@@ -342,13 +340,13 @@ public class GameService {
             game.setCurrentTurnUserId(nextPlayer);
             gameRepository.saveAndFlush(game);
 
-            // Auto-skip frozen player if they have no walls and no ability cards
+            // Auto-skip frozen player if they have no remaining walls and no ability cards
             if (game.isChaosMode() && gameStateCache.isFrozen(game.getId(), nextPlayer)) {
-                int walls = gameStateCache.getExtraWalls(game.getId(), nextPlayer);
-                // Count base walls remaining (stored in remainingWalls map via MoveService)
-                // We check if they have any ability cards — if not and no walls, skip
+                int consumed = gameStateCache.getPermanentlyConsumedWalls(game.getId(), nextPlayer);
+                int extra = gameStateCache.getExtraWalls(game.getId(), nextPlayer);
+                int remaining = game.getWallsPerPlayer() + extra - consumed;
                 boolean hasAbilities = !gameStateCache.getInventory(game.getId(), nextPlayer).isEmpty();
-                boolean hasWalls = walls > 0;
+                boolean hasWalls = remaining > 0;
                 if (!hasAbilities && !hasWalls) {
                     // Clear freeze and skip their turn
                     gameStateCache.clearFreeze(game.getId(), nextPlayer);

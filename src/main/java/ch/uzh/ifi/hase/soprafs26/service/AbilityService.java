@@ -243,13 +243,15 @@ public class AbilityService {
     }
 
     private void applyPlusTwoWalls(Long gameId, Long userId, int wallsPerPlayer) {
-        // Maximum extra walls = 2 (so total = wallsPerPlayer + 2)
-        int currentExtra = gameStateCache.getExtraWalls(gameId, userId);
-        if (currentExtra >= 2) {
+        int consumed = gameStateCache.getPermanentlyConsumedWalls(gameId, userId);
+        int extra = gameStateCache.getExtraWalls(gameId, userId);
+        int remaining = wallsPerPlayer + extra - consumed;
+        int maxRemaining = wallsPerPlayer + 2;
+        if (remaining >= maxRemaining) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                "Cannot use +2 Walls: you have already reached the maximum of " + (wallsPerPlayer + 2) + " total walls.");
+                "Cannot use +2 Walls: you already have the maximum of " + maxRemaining + " walls remaining.");
         }
-        int gain = 2 - currentExtra;  // always gives exactly what's needed to reach +2
+        int gain = Math.min(2, maxRemaining - remaining);
         gameStateCache.addExtraWalls(gameId, userId, gain);
     }
 
