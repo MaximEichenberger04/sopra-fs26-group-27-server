@@ -103,6 +103,7 @@ public class AbilityService {
                 applyFireball(gameId, dto.getTargetRow(), dto.getTargetCol());
                 gameStateCache.removeCardFromInventory(gameId, userId, AbilityType.FIREBALL);
                 gameStateCache.clearBonusAction(gameId, userId);
+                gameStateCache.clearFreeze(gameId, userId);
                 gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
                 gameStateCache.tickPoisonZones(gameId);
                 gameService.advanceTurn(game);
@@ -113,6 +114,7 @@ public class AbilityService {
                 applyEarthquake(gameId, dto.getTargetRow(), dto.getTargetCol());
                 gameStateCache.removeCardFromInventory(gameId, userId, AbilityType.EARTHQUAKE);
                 gameStateCache.clearBonusAction(gameId, userId);
+                gameStateCache.clearFreeze(gameId, userId);
                 gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
                 gameStateCache.tickPoisonZones(gameId);
                 gameService.advanceTurn(game);
@@ -123,6 +125,7 @@ public class AbilityService {
                 applyPoison(gameId, dto.getTargetRow(), dto.getTargetCol());
                 gameStateCache.removeCardFromInventory(gameId, userId, AbilityType.POISON);
                 gameStateCache.clearBonusAction(gameId, userId);
+                gameStateCache.clearFreeze(gameId, userId);
                 gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
                 gameStateCache.tickPoisonZones(gameId);
                 gameService.advanceTurn(game);
