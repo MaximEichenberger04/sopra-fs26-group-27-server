@@ -52,18 +52,11 @@ class GameServiceTest {
     @Mock
     private MatchHistoryRepository matchHistoryRepository;
 
-    @Mock
-    private UserService userService;
-
-    @Mock
-    private LevelingService levelingService;
-
     @InjectMocks
     private GameService gameService;
 
     private Game game;
     private User user;
-    private User user2;
     private Lobby lobby;
 
     @BeforeEach
@@ -71,14 +64,6 @@ class GameServiceTest {
         user = new User();
         user.setId(1L);
         user.setToken("valid-token");
-        user.setUsername("player1");
-        user.setScore(0);
-
-        user2 = new User();
-        user2.setId(2L);
-        user2.setToken("token-2");
-        user2.setUsername("player2");
-        user2.setScore(0);
 
         lobby = new Lobby();
         lobby.setHostId(1L);
@@ -98,36 +83,6 @@ class GameServiceTest {
         game.setMapTheme("medieval");
     }
 
-    // ── helpers for endGame / forfeit tests ──
-
-    /**
-     * Stubs everything that recordMatchResults touches so endGame doesn't NPE.
-     */
-    private void stubEndGameDependencies() {
-        // lobbyRepository for setting FINISHED status
-        Lobby endLobby = new Lobby();
-        endLobby.setGameMode("Classic");
-        when(lobbyRepository.findById(game.getLobbyId())).thenReturn(Optional.of(endLobby));
-
-        // user lookups inside recordMatchResults
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(userRepository.findById(2L)).thenReturn(Optional.of(user2));
-
-        // gameStateCache calls inside recordMatchResults
-        when(gameStateCache.getEliminationOrder(game.getId())).thenReturn(List.of());
-        when(gameStateCache.getPlayerMoveCount(anyLong(), anyLong())).thenReturn(0);
-        when(gameStateCache.getPlayerWallCount(anyLong(), anyLong())).thenReturn(0);
-        when(gameStateCache.getWalls(game.getId())).thenReturn(List.of());
-        when(gameStateCache.getTurnCounter(game.getId())).thenReturn(0);
-
-        // levelingService XP calculations
-        when(levelingService.calculateActionXp(anyInt(), anyInt(), anyBoolean())).thenReturn(0);
-        when(levelingService.calculateResultXp2Player(anyBoolean(), anyBoolean())).thenReturn(0);
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // createGameFromLobby
-    // ─────────────────────────────────────────────────────────────
 
     @Test
     void createGameFromLobby_validInput_createsGame() {
@@ -145,7 +100,7 @@ class GameServiceTest {
 
         assertNotNull(created);
         assertEquals(GameStatus.RUNNING, created.getGameStatus());
-        assertEquals(10, created.getWallsPerPlayer());
+        assertEquals(10, created.getWallsPerPlayer()); // 2 players → 10 walls
         assertEquals("medieval", created.getMapTheme());
         assertEquals(1L, created.getCurrentTurnUserId());
         verify(gameStateCache).initGame(anyLong(), eq(lobby.getPlayerIds()), anyBoolean());
@@ -183,9 +138,6 @@ class GameServiceTest {
         assertEquals(5, created.getWallsPerPlayer());
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // getGameById
-    // ─────────────────────────────────────────────────────────────
 
     @Test
     void getGameById_existingGame_returnsDTO() {
@@ -207,21 +159,18 @@ class GameServiceTest {
                 () -> gameService.getGameById(99L, 1L));
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // buildGameGetDTO
-    // ─────────────────────────────────────────────────────────────
 
     @Test
     void buildGameGetDTO_correctRemainingWalls() {
-        Wall wall = new Wall();
-        wall.setUserId(1L);
         when(gameStateCache.getPawns(10L)).thenReturn(List.of());
-        when(gameStateCache.getWalls(10L)).thenReturn(List.of(wall));
+        when(gameStateCache.getWalls(10L)).thenReturn(List.of());
+        when(gameStateCache.getPermanentlyConsumedWalls(10L, 1L)).thenReturn(1); // player 1 used 1 wall
+        when(gameStateCache.getPermanentlyConsumedWalls(10L, 2L)).thenReturn(0);
 
         GameGetDTO dto = gameService.buildGameGetDTO(game);
 
-        assertEquals(9, dto.getRemainingWalls().get(1L));
-        assertEquals(10, dto.getRemainingWalls().get(2L));
+        assertEquals(9, dto.getRemainingWalls().get(1L)); // 10 - 1 = 9
+        assertEquals(10, dto.getRemainingWalls().get(2L)); // 10 - 0 = 10
     }
 
     @Test
@@ -235,9 +184,6 @@ class GameServiceTest {
         assertEquals(10, dto.getRemainingWalls().get(2L));
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // checkWinCondition
-    // ─────────────────────────────────────────────────────────────
 
     @Test
     void checkWinCondition_playerZeroAtGoalRow_returnsTrue() {
@@ -246,7 +192,7 @@ class GameServiceTest {
         pawn.setCol(8);
         when(gameStateCache.getPawn(10L, 1L)).thenReturn(pawn);
 
-        assertTrue(gameService.checkWinCondition(game, 1L));
+        assertTrue(gameService.checkWinCondition(game, 1L)); // index 0 → goal row 0
     }
 
     @Test
@@ -266,7 +212,7 @@ class GameServiceTest {
         pawn.setCol(8);
         when(gameStateCache.getPawn(10L, 2L)).thenReturn(pawn);
 
-        assertTrue(gameService.checkWinCondition(game, 2L));
+        assertTrue(gameService.checkWinCondition(game, 2L)); // index 1 → goal row 16
     }
 
     @Test
@@ -281,9 +227,6 @@ class GameServiceTest {
         assertFalse(gameService.checkWinCondition(game, 1L));
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // forfeitGame
-    // ─────────────────────────────────────────────────────────────
 
     @Test
     void forfeitGame_validRequest_endsGame() {
@@ -291,11 +234,11 @@ class GameServiceTest {
         when(userRepository.findByToken("valid-token")).thenReturn(user);
         when(gameStateCache.getPawns(10L)).thenReturn(List.of());
         when(gameStateCache.getWalls(10L)).thenReturn(List.of());
-        stubEndGameDependencies();
 
         GameGetDTO result = gameService.forfeitGame(10L, "valid-token");
 
         assertNotNull(result);
+        // player 1 forfeited → player 2 (id=2) should be the winner
         assertEquals(2L, result.getWinnerId());
         assertEquals(GameStatus.ENDED, result.getGameStatus());
     }
@@ -332,16 +275,12 @@ class GameServiceTest {
                 () -> gameService.forfeitGame(99L, "valid-token"));
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // forfeitDisconnectedPlayer
-    // ─────────────────────────────────────────────────────────────
 
     @Test
     void forfeitDisconnectedPlayer_disconnectedPlayerIsRemoved_otherPlayerWins() {
         when(gameRepository.findById(10L)).thenReturn(Optional.of(game));
         when(gameStateCache.getPawns(10L)).thenReturn(List.of());
         when(gameStateCache.getWalls(10L)).thenReturn(List.of());
-        stubEndGameDependencies();
 
         GameGetDTO result = gameService.forfeitDisconnectedPlayer(10L, 1L);
 
@@ -365,19 +304,16 @@ class GameServiceTest {
 
     @Test
     void forfeitDisconnectedPlayer_playerNotActive_returnsCurrentState() {
-        game.setActivePlayerIds(new ArrayList<>(List.of(2L)));
+        game.setActivePlayerIds(new ArrayList<>(List.of(2L))); // player 1 already gone
         when(gameRepository.findById(10L)).thenReturn(Optional.of(game));
         when(gameStateCache.getPawns(10L)).thenReturn(List.of());
         when(gameStateCache.getWalls(10L)).thenReturn(List.of());
 
         GameGetDTO result = gameService.forfeitDisconnectedPlayer(10L, 1L);
 
-        assertNull(result.getWinnerId());
+        assertNull(result.getWinnerId()); // no change triggered
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // advanceTurn
-    // ─────────────────────────────────────────────────────────────
 
     @Test
     void advanceTurn_normalRoundRobin_advancesToNextPlayer() {
@@ -406,15 +342,11 @@ class GameServiceTest {
                 () -> gameService.advanceTurn(game));
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // endGame
-    // ─────────────────────────────────────────────────────────────
 
     @Test
     void endGame_setsWinnerAndStatusEnded() {
         when(gameStateCache.getPawns(10L)).thenReturn(List.of());
         when(gameStateCache.getWalls(10L)).thenReturn(List.of());
-        stubEndGameDependencies();
 
         GameGetDTO result = gameService.endGame(game, 2L);
 
@@ -428,7 +360,6 @@ class GameServiceTest {
     void endGame_evictsCacheForBothGameStateAndChat() {
         when(gameStateCache.getPawns(10L)).thenReturn(List.of());
         when(gameStateCache.getWalls(10L)).thenReturn(List.of());
-        stubEndGameDependencies();
 
         gameService.endGame(game, 1L);
 

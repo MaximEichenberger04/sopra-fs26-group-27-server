@@ -131,19 +131,20 @@ public class MoveService {
             return gameService.endGame(game, userId);
         } else {
             if (gameStateCache.hasBonusAction(gameId, userId)) {
-                gameStateCache.clearBonusAction(gameId, userId);
-                return gameService.buildGameGetDTO(game, userId);
+                gameStateCache.consumeBonusAction(gameId, userId);
+                if (gameStateCache.hasBonusAction(gameId, userId)) {
+                    // More bonus moves remain (e.g. TWO_MOVES still has 1 left)
+                    return gameService.buildGameGetDTO(game, userId);
+                }
+                // Last bonus consumed — advance turn now
+                gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
+                gameStateCache.tickPoisonZones(gameId);
+                gameService.advanceTurn(game);
+                return gameService.buildGameGetDTO(game);
             }
             gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
             gameStateCache.tickPoisonZones(gameId);
             gameService.advanceTurn(game);
-            // Skip frozen player
-            if (gameStateCache.isFrozen(gameId, game.getCurrentTurnUserId())) {
-                gameStateCache.clearFreeze(gameId, game.getCurrentTurnUserId());
-                gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
-                gameStateCache.tickPoisonZones(gameId);
-                gameService.advanceTurn(game);
-            }
             return gameService.buildGameGetDTO(game);
         }
     }
@@ -221,8 +222,19 @@ public class MoveService {
         gameStateCache.incrementPlayerWallCount(gameId, userId);
 
         if (gameStateCache.hasBonusAction(gameId, userId)) {
-            gameStateCache.clearBonusAction(gameId, userId);
-            return gameService.buildGameGetDTO(game, userId);
+            gameStateCache.consumeBonusAction(gameId, userId);
+            if (gameStateCache.hasBonusAction(gameId, userId)) {
+                // More bonus actions remain
+                return gameService.buildGameGetDTO(game, userId);
+            }
+            // Last bonus consumed — advance turn now
+            gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
+            gameStateCache.tickPoisonZones(gameId);
+            gameService.advanceTurn(game);
+            if (gameStateCache.isFrozen(gameId, userId)) {
+                gameStateCache.clearFreeze(gameId, userId);
+            }
+            return gameService.buildGameGetDTO(game);
         }
         gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
         gameStateCache.tickPoisonZones(gameId);
@@ -230,13 +242,6 @@ public class MoveService {
 
         if (gameStateCache.isFrozen(gameId, userId)) {
             gameStateCache.clearFreeze(gameId, userId);
-        }
-        // Skip frozen next player
-        if (gameStateCache.isFrozen(gameId, game.getCurrentTurnUserId())) {
-            gameStateCache.clearFreeze(gameId, game.getCurrentTurnUserId());
-            gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
-            gameStateCache.tickPoisonZones(gameId);
-            gameService.advanceTurn(game);
         }
 
         return gameService.buildGameGetDTO(game);

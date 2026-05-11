@@ -303,8 +303,8 @@ public class GameStateCache {
 
     public void setBonusAction(Long gameId, Long userId, int count) {
         bonusActions
-                .computeIfAbsent(gameId, k -> new ConcurrentHashMap<>())
-                .merge(userId, count, Integer::sum);
+            .computeIfAbsent(gameId, k -> new ConcurrentHashMap<>())
+            .put(userId, count);  // SET, not add — always replaces existing count
     }
 
     public boolean hasBonusAction(Long gameId, Long userId) {
