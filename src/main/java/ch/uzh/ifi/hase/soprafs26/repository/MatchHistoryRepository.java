@@ -11,4 +11,7 @@ public interface MatchHistoryRepository extends JpaRepository<MatchHistory, Long
 
     /** All match records for a specific user, newest first. */
     List<MatchHistory> findByUserIdOrderByPlayedAtDesc(Long userId);
+
+    /** All match records for a specific game. */
+    List<MatchHistory> findByGameId(Long gameId);
 }

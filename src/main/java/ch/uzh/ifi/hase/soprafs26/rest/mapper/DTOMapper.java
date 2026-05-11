@@ -86,6 +86,8 @@ public interface DTOMapper {
 	@Mapping(source = "equippedBorder", target = "equippedBorder")
 	@Mapping(source = "equippedPawnSkin", target = "equippedPawnSkin")
 	@Mapping(source = "unlockedAchievements", target = "unlockedAchievements")
+	@Mapping(source = "xpCurrentLevelProgress", target = "xpCurrentLevelProgress")
+	@Mapping(source = "xpRequiredForNextLevel", target = "xpRequiredForNextLevel")
 	UserGetDTO convertEntityToUserGetDTO(User user);
 
 	// LOBBY MAPPINGS

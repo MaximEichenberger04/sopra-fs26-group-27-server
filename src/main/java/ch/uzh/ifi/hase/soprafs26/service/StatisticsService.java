@@ -96,16 +96,30 @@ public class StatisticsService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Returns match results for all players in a specific game.
+     * Used by the game end screen to show XP earned per player.
+     */
+    public List<MatchHistoryGetDTO> getGameResults(Long gameId, String token) {
+        assertAuthenticated(token);
+        return matchHistoryRepository.findByGameId(gameId)
+                .stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
     // ── Mapper ──────────────────────────────────────────────────────────────────
 
     private MatchHistoryGetDTO toDTO(MatchHistory m) {
         MatchHistoryGetDTO dto = new MatchHistoryGetDTO();
         dto.setId(m.getId());
+        dto.setUserId(m.getUserId());
         dto.setGameId(m.getGameId());
         dto.setOpponentUsernames(m.getOpponentUsernames());
         dto.setGameMode(m.getGameMode());
         dto.setWon(m.isWon());
         dto.setPlayedAt(m.getPlayedAt());
+        dto.setXpEarned(m.getXpEarned());
         return dto;
     }
 }

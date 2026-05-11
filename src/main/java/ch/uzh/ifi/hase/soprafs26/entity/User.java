@@ -90,6 +90,27 @@ public class User implements Serializable {
 	@Column(nullable = false)
 	private LocalDate creationDate;
 
+	/**
+	 * XP progress within current level (computed, not persisted).
+	 * Used by the client to show progress bar.
+	 */
+	@Transient
+	public int getXpCurrentLevelProgress() {
+		int currentLevel = Math.max(1, this.level);
+		// Total XP needed to reach current level: 130 * L * (L-1) / 2
+		int xpForCurrentLevel = 130 * currentLevel * (currentLevel - 1) / 2;
+		return this.xp - xpForCurrentLevel;
+	}
+
+	/**
+	 * XP required to advance from current level to next level (computed).
+	 * Formula: currentLevel * 130
+	 */
+	@Transient
+	public int getXpRequiredForNextLevel() {
+		return Math.max(1, this.level) * 130;
+	}
+
 	@Column(nullable = false, unique = true)
 	private String token;
 
@@ -229,20 +250,45 @@ public class User implements Serializable {
 		this.token = token;
 	}
 
-	public int getTotalGamesPlayed() { return totalGamesPlayed; }
-	public void setTotalGamesPlayed(int totalGamesPlayed) { this.totalGamesPlayed = totalGamesPlayed; }
+	public int getTotalGamesPlayed() {
+		return totalGamesPlayed;
+	}
 
-	public int getTotalWins() { return totalWins; }
-	public void setTotalWins(int totalWins) { this.totalWins = totalWins; }
+	public void setTotalGamesPlayed(int totalGamesPlayed) {
+		this.totalGamesPlayed = totalGamesPlayed;
+	}
 
-	public int getCurrentWinStreak() { return currentWinStreak; }
-	public void setCurrentWinStreak(int currentWinStreak) { this.currentWinStreak = currentWinStreak; }
+	public int getTotalWins() {
+		return totalWins;
+	}
 
-	public int getMaxWinStreak() { return maxWinStreak; }
-	public void setMaxWinStreak(int maxWinStreak) { this.maxWinStreak = maxWinStreak; }
+	public void setTotalWins(int totalWins) {
+		this.totalWins = totalWins;
+	}
 
-	public String getUnlockedAchievements() { return unlockedAchievements; }
-	public void setUnlockedAchievements(String unlockedAchievements) { this.unlockedAchievements = unlockedAchievements; }
+	public int getCurrentWinStreak() {
+		return currentWinStreak;
+	}
+
+	public void setCurrentWinStreak(int currentWinStreak) {
+		this.currentWinStreak = currentWinStreak;
+	}
+
+	public int getMaxWinStreak() {
+		return maxWinStreak;
+	}
+
+	public void setMaxWinStreak(int maxWinStreak) {
+		this.maxWinStreak = maxWinStreak;
+	}
+
+	public String getUnlockedAchievements() {
+		return unlockedAchievements;
+	}
+
+	public void setUnlockedAchievements(String unlockedAchievements) {
+		this.unlockedAchievements = unlockedAchievements;
+	}
 
 	public String getCurrentPassword() {
 		return currentPassword;
