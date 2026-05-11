@@ -211,6 +211,35 @@ public class GameService {
     }
 
     // ─────────────────────────────────────────────────────────────
+    // Skip turn
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Passes the player's turn without acting.
+     * Clears any freeze and bonus actions, then advances to the next player.
+     */
+    public GameGetDTO skipTurn(Long gameId, String token) {
+        Game game = gameRepository.findById(gameId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+        User user = userRepository.findByToken(token);
+        if (user == null)
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
+        if (game.getGameStatus() != GameStatus.RUNNING)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Game is not running");
+
+        Long userId = user.getId();
+        if (!game.getCurrentTurnUserId().equals(userId) && !gameStateCache.hasBonusAction(gameId, userId))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your turn");
+
+        gameStateCache.clearBonusAction(gameId, userId);
+        gameStateCache.clearFreeze(gameId, userId);
+        gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
+        gameStateCache.tickPoisonZones(gameId);
+        advanceTurn(game);
+        return buildGameGetDTO(game);
+    }
+
+    // ─────────────────────────────────────────────────────────────
     // Forfeit
     // ─────────────────────────────────────────────────────────────
 

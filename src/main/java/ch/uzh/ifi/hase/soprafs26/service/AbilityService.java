@@ -310,24 +310,9 @@ public class AbilityService {
     }
 
     private void validateBoardCoord(int row, int col, String ability) {
-        switch (ability) {
-            case "FIREBALL":
-                if (row < 0 || col < 0 || row + 2 >= INTERNAL_SIZE || col + 2 >= INTERNAL_SIZE) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Fireball target is too close to the board edge — the 2×2 area must fit within the board.");
-                }
-                break;
-            case "POISON":
-                if (row < 0 || col < 0 || row + 2 >= INTERNAL_SIZE || col + 2 >= INTERNAL_SIZE) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Poison target is too close to the board edge — the 2×2 area must fit within the board.");
-                }
-                break;
-            case "EARTHQUAKE":
-                if (row - 2 < 0 || col - 2 < 0 || row + 2 >= INTERNAL_SIZE || col + 2 >= INTERNAL_SIZE) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Earthquake target is too close to the board edge — the 3×3 area must fit within the board.");
-                }
-                break;
-            default:
-                break;
+        if (row < 0 || row >= INTERNAL_SIZE || col < 0 || col >= INTERNAL_SIZE) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                ability + " target is outside the board.");
         }
     }
 
