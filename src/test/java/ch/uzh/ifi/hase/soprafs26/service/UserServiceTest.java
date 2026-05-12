@@ -400,16 +400,16 @@ public class UserServiceTest {
 		when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
 
 		User input = new User();
-		input.setEquippedBorder("border-crimson");
+		input.setEquippedBorder("border-wood");
 
 		User updated = userService.updateUser(1L, "test-token", input);
 
-		assertEquals("border-crimson", updated.getEquippedBorder());
+		assertEquals("border-wood", updated.getEquippedBorder());
 	}
 
 	@Test
 	public void updateUser_unequipBorder_setsNull() {
-		testUser.setEquippedBorder("border-crimson");
+		testUser.setEquippedBorder("border-wood");
 		when(userRepository.findByToken("test-token")).thenReturn(testUser);
 		when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
 
@@ -427,16 +427,16 @@ public class UserServiceTest {
 		when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
 
 		User input = new User();
-		input.setEquippedPawnSkin("pawn-galaxy");
+		input.setEquippedPawnSkin("pawn-knight");
 
 		User updated = userService.updateUser(1L, "test-token", input);
 
-		assertEquals("pawn-galaxy", updated.getEquippedPawnSkin());
+		assertEquals("pawn-knight", updated.getEquippedPawnSkin());
 	}
 
 	@Test
 	public void updateUser_unequipPawnSkin_setsNull() {
-		testUser.setEquippedPawnSkin("pawn-galaxy");
+		testUser.setEquippedPawnSkin("pawn-knight");
 		when(userRepository.findByToken("test-token")).thenReturn(testUser);
 		when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
 
@@ -451,37 +451,37 @@ public class UserServiceTest {
 	// buyCosmetic
 	@Test
 	public void buyCosmetic_validPurchase_success() {
-		testUser.setCoins(1000);
+		testUser.setCoins(2000);
 		testUser.setOwnedCosmetics("");
 		when(userRepository.findByToken("test-token")).thenReturn(testUser);
 
-		User result = userService.buyCosmetic(1L, "test-token", "border-crimson");
+		User result = userService.buyCosmetic(1L, "test-token", "border-wood");
 
-		assertEquals(700, result.getCoins());
-		assertTrue(result.getOwnedCosmetics().contains("border-crimson"));
+		assertEquals(200, result.getCoins());
+		assertTrue(result.getOwnedCosmetics().contains("border-wood"));
 	}
 
 	@Test
 	public void buyCosmetic_appendsToExisting() {
-		testUser.setCoins(1000);
-		testUser.setOwnedCosmetics("border-crimson");
+		testUser.setCoins(3000);
+		testUser.setOwnedCosmetics("border-wood");
 		when(userRepository.findByToken("test-token")).thenReturn(testUser);
 
 		User result = userService.buyCosmetic(1L, "test-token", "border-emerald");
 
-		assertEquals("border-crimson,border-emerald", result.getOwnedCosmetics());
+		assertEquals("border-wood,border-emerald", result.getOwnedCosmetics());
 	}
 
 	@Test
 	public void buyCosmetic_firstPurchase_nullOwnedCosmetics() {
-		testUser.setCoins(1000);
+		testUser.setCoins(2000);
 		testUser.setOwnedCosmetics(null);
 		when(userRepository.findByToken("test-token")).thenReturn(testUser);
 
-		User result = userService.buyCosmetic(1L, "test-token", "pawn-lava");
+		User result = userService.buyCosmetic(1L, "test-token", "pawn-angel");
 
-		assertEquals("pawn-lava", result.getOwnedCosmetics());
-		assertEquals(600, result.getCoins());
+		assertEquals("pawn-angel", result.getOwnedCosmetics());
+		assertEquals(200, result.getCoins());
 	}
 
 	@Test
@@ -497,11 +497,11 @@ public class UserServiceTest {
 	@Test
 	public void buyCosmetic_alreadyOwned_throwsBadRequest() {
 		testUser.setCoins(1000);
-		testUser.setOwnedCosmetics("border-crimson");
+		testUser.setOwnedCosmetics("border-wood");
 		when(userRepository.findByToken("test-token")).thenReturn(testUser);
 
 		assertThrows(ResponseStatusException.class,
-				() -> userService.buyCosmetic(1L, "test-token", "border-crimson"));
+				() -> userService.buyCosmetic(1L, "test-token", "border-wood"));
 	}
 
 	@Test
@@ -519,7 +519,7 @@ public class UserServiceTest {
 		when(userRepository.findByToken("test-token")).thenReturn(otherUser);
 
 		ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-				() -> userService.buyCosmetic(1L, "test-token", "border-crimson"));
+				() -> userService.buyCosmetic(1L, "test-token", "border-wood"));
 		assertEquals(403, ex.getStatusCode().value());
 	}
 
@@ -528,16 +528,16 @@ public class UserServiceTest {
 		when(userRepository.findByToken("bad-token")).thenReturn(null);
 
 		assertThrows(ResponseStatusException.class,
-				() -> userService.buyCosmetic(1L, "bad-token", "border-crimson"));
+				() -> userService.buyCosmetic(1L, "bad-token", "border-wood"));
 	}
 
 	@Test
 	public void buyCosmetic_expensiveItem_deductsCorrectly() {
-		testUser.setCoins(1200);
+		testUser.setCoins(7200);
 		testUser.setOwnedCosmetics("");
 		when(userRepository.findByToken("test-token")).thenReturn(testUser);
 
-		User result = userService.buyCosmetic(1L, "test-token", "pawn-gold");
+		User result = userService.buyCosmetic(1L, "test-token", "pawn-wealthy");
 
 		assertEquals(0, result.getCoins());
 	}
