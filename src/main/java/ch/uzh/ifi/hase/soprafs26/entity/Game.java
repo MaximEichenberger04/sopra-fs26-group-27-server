@@ -78,14 +78,6 @@ public class Game implements Serializable {
         this.turnDeadlineMillis = turnDeadlineMillis;
     }
 
-    public Long getServerTimeMillis() {
-        return serverTimeMillis;
-    }
-
-    public void setServerTimeMillis(Long serverTimeMillis) {
-        this.serverTimeMillis = serverTimeMillis;
-    }
-
     public List<Long> getActivePlayerIds() {
         return activePlayerIds;
     }

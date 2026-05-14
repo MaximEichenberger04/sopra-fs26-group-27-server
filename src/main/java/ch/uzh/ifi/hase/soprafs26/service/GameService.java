@@ -58,7 +58,7 @@ public class GameService {
     private final MatchHistoryRepository matchHistoryRepository;
     private final UserService userService;
     private final LevelingService levelingService;
-    private static final int DEFAULT_TURN_TIME_LIMIT_SECONDS = 60;
+    private static final int DEFAULT_TURN_TIME_LIMIT_SECONDS = 30;
 
     public GameService(
             @Qualifier("gameRepository") GameRepository gameRepository,
