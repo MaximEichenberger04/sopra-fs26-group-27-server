@@ -54,9 +54,10 @@ public class ChatService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Game " + gameId + " is not running");
         }
 
-        if (dto.getUserId() == null || !game.getPlayerIds().contains(dto.getUserId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not a player in this game");
+        if (dto.getUserId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "userId is required");
         }
+        boolean isSpectator = !game.getPlayerIds().contains(dto.getUserId());
 
         boolean hasText = dto.getText() != null && !dto.getText().isBlank();
         boolean hasGifUrl = dto.getGifUrl() != null && !dto.getGifUrl().isBlank();
@@ -80,6 +81,7 @@ public class ChatService {
         message.setText(dto.getText());
         message.setGifUrl(dto.getGifUrl());
         message.setTimestamp(System.currentTimeMillis());
+        message.setSpectator(isSpectator);
 
         chatCache.addGameMessage(gameId, message);
         return toDTO(message);
@@ -106,6 +108,7 @@ public class ChatService {
         dto.setText(msg.getText());
         dto.setGifUrl(msg.getGifUrl());
         dto.setTimestamp(msg.getTimestamp());
+        dto.setSpectator(msg.isSpectator());
         return dto;
     }
 }
