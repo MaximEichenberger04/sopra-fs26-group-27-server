@@ -32,6 +32,11 @@ public class GameGetDTO {
     private boolean canDrawCard;
     private int turnCounter;
 
+    // Timer
+    private int turnTimeLimitSeconds;
+    private Long turnDeadlineMillis;
+    private Long serverTimeMillis;
+
     // Need this for automatic disconnect logic
     private List<Long> activePlayerIds;
 
@@ -193,5 +198,29 @@ public class GameGetDTO {
 
     public void setActivePlayerIds(List<Long> activePlayerIds) {
         this.activePlayerIds = activePlayerIds;
+    }
+
+    public int getTurnTimeLimitSeconds() {
+        return turnTimeLimitSeconds;
+    }
+
+    public void setTurnTimeLimitSeconds(int turnTimeLimitSeconds) {
+        this.turnTimeLimitSeconds = turnTimeLimitSeconds;
+    }
+
+    public Long getTurnDeadlineMillis() {
+        return turnDeadlineMillis;
+    }
+
+    public void setTurnDeadlineMillis(Long turnDeadlineMillis) {
+        this.turnDeadlineMillis = turnDeadlineMillis;
+    }
+
+    public Long getServerTimeMillis() {
+        return serverTimeMillis;
+    }
+
+    public void setServerTimeMillis(Long serverTimeMillis) {
+        this.serverTimeMillis = serverTimeMillis;
     }
 }
