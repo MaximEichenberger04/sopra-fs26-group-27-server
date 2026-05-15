@@ -161,6 +161,19 @@ public class GameWebSocketHandler extends TextWebSocketHandler {
         broadcastGameEvent(type, gameId, null, null);
     }
 
+    public void broadcastGameEvent(String type, Long gameId, int targetRow, int targetCol) {
+        String json = "{\"type\":\"" + type + "\",\"gameId\":\"" + gameId + "\""
+            + ",\"targetRow\":" + targetRow + ",\"targetCol\":" + targetCol + "}";
+        TextMessage msg = new TextMessage(json);
+        Map<Long, WebSocketSession> perGame = gameSessions.get(gameId);
+        if (perGame == null) return;
+        for (WebSocketSession s : perGame.values()) {
+            if (s.isOpen()) {
+                try { s.sendMessage(msg); } catch (IOException e) { log.warn("send failed: {}", s.getId()); }
+            }
+        }
+    }
+
     public void broadcastGameEvent(String type, Long gameId, Long userId, Integer gracePeriodSeconds) {
         StringBuilder payload = new StringBuilder();
         payload.append("{\"type\":\"").append(type).append("\",\"gameId\":\"").append(gameId).append("\"");

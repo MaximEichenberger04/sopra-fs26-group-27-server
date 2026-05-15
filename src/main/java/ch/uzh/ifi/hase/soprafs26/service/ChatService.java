@@ -21,7 +21,8 @@ import java.util.stream.Collectors;
  * Validates incoming messages, assigns IDs and timestamps, stores them in
  * ChatCache, and provides history retrieval.
  *
- * Chat is in-memory only. History is discarded when evictGame is called on game end.
+ * Chat is in-memory only. History is discarded when evictGame is called on game
+ * end.
  */
 @Service
 public class ChatService {
@@ -29,7 +30,8 @@ public class ChatService {
     private static final int MAX_TEXT_LENGTH = 500;
     private static final String KLIPY_PREFIX = "https://static.klipy.com/";
 
-    // Thread-safe counter: multiple WebSocket threads (one websocket connection per player) may call sendMessage at the same time.
+    // Thread-safe counter: multiple WebSocket threads (one websocket connection per
+    // player) may call sendMessage at the same time.
     private final AtomicLong messageIdCounter = new AtomicLong(0);
 
     private final ChatCache chatCache;
@@ -46,24 +48,26 @@ public class ChatService {
      */
     public ChatMessageGetDTO sendMessage(Long gameId, ChatMessagePostDTO dto) {
         Game game = gameRepository.findById(gameId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found: " + gameId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found: " + gameId));
 
         if (game.getGameStatus() != GameStatus.RUNNING) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Game " + gameId + " is not running");
         }
 
-        if (dto.getUserId() == null || !game.getPlayerIds().contains(dto.getUserId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User is not a player in this game");
+        if (dto.getUserId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "userId is required");
         }
+        boolean isSpectator = !game.getPlayerIds().contains(dto.getUserId());
 
-        boolean hasText   = dto.getText()   != null && !dto.getText().isBlank();
+        boolean hasText = dto.getText() != null && !dto.getText().isBlank();
         boolean hasGifUrl = dto.getGifUrl() != null && !dto.getGifUrl().isBlank();
 
         if (!hasText && !hasGifUrl) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Message must contain text or gifUrl");
         }
         if (hasText && dto.getText().length() > MAX_TEXT_LENGTH) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Text exceeds " + MAX_TEXT_LENGTH + " characters");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Text exceeds " + MAX_TEXT_LENGTH + " characters");
         }
         if (hasGifUrl && !dto.getGifUrl().startsWith(KLIPY_PREFIX)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "gifUrl must start with " + KLIPY_PREFIX);
@@ -77,6 +81,7 @@ public class ChatService {
         message.setText(dto.getText());
         message.setGifUrl(dto.getGifUrl());
         message.setTimestamp(System.currentTimeMillis());
+        message.setSpectator(isSpectator);
 
         chatCache.addGameMessage(gameId, message);
         return toDTO(message);
@@ -88,11 +93,12 @@ public class ChatService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found: " + gameId);
         }
         return chatCache.getGameHistory(gameId).stream()
-            .map(this::toDTO)
-            .collect(Collectors.toList());
+                .map(this::toDTO)
+                .collect(Collectors.toList());
     }
 
-    // Helper method: Converts the internal ChatMessage entity to the DTO sent to the client.
+    // Helper method: Converts the internal ChatMessage entity to the DTO sent to
+    // the client.
     private ChatMessageGetDTO toDTO(ChatMessage msg) {
         ChatMessageGetDTO dto = new ChatMessageGetDTO();
         dto.setId(msg.getId());
@@ -102,6 +108,7 @@ public class ChatService {
         dto.setText(msg.getText());
         dto.setGifUrl(msg.getGifUrl());
         dto.setTimestamp(msg.getTimestamp());
+        dto.setSpectator(msg.isSpectator());
         return dto;
     }
 }

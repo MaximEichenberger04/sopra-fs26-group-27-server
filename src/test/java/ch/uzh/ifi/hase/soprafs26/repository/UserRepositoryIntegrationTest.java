@@ -111,9 +111,9 @@ public class UserRepositoryIntegrationTest {
 		newUser.setCreationDate(LocalDate.now());
 		newUser.setCoins(500);
 		newUser.setBiography("Bio text");
-		newUser.setEquippedBorder("border-crimson");
-		newUser.setEquippedPawnSkin("pawn-lava");
-		newUser.setOwnedCosmetics("border-crimson,pawn-lava");
+		newUser.setEquippedBorder("border-wood");
+		newUser.setEquippedPawnSkin("pawn-angel");
+		newUser.setOwnedCosmetics("border-wood,pawn-angel");
 
 		User saved = userRepository.saveAndFlush(newUser);
 
@@ -121,9 +121,9 @@ public class UserRepositoryIntegrationTest {
 		assertEquals("New User", saved.getDisplayName());
 		assertEquals(500, saved.getCoins());
 		assertEquals("Bio text", saved.getBiography());
-		assertEquals("border-crimson", saved.getEquippedBorder());
-		assertEquals("pawn-lava", saved.getEquippedPawnSkin());
-		assertEquals("border-crimson,pawn-lava", saved.getOwnedCosmetics());
+		assertEquals("border-wood", saved.getEquippedBorder());
+		assertEquals("pawn-angel", saved.getEquippedPawnSkin());
+		assertEquals("border-wood,pawn-angel", saved.getOwnedCosmetics());
 	}
 
 	@Test
@@ -147,17 +147,17 @@ public class UserRepositoryIntegrationTest {
 
 	@Test
 	public void cosmeticFields_persistCorrectly() {
-		persistedUser.setOwnedCosmetics("border-crimson,pawn-lava");
-		persistedUser.setEquippedBorder("border-crimson");
-		persistedUser.setEquippedPawnSkin("pawn-lava");
+		persistedUser.setOwnedCosmetics("border-wood,pawn-angel");
+		persistedUser.setEquippedBorder("border-wood");
+		persistedUser.setEquippedPawnSkin("pawn-angel");
 
 		userRepository.saveAndFlush(persistedUser);
 
 		User found = userRepository.findById(persistedUser.getId()).orElseThrow();
 
-		assertEquals("border-crimson,pawn-lava", found.getOwnedCosmetics());
-		assertEquals("border-crimson", found.getEquippedBorder());
-		assertEquals("pawn-lava", found.getEquippedPawnSkin());
+		assertEquals("border-wood,pawn-angel", found.getOwnedCosmetics());
+		assertEquals("border-wood", found.getEquippedBorder());
+		assertEquals("pawn-angel", found.getEquippedPawnSkin());
 	}
 
 	@Test

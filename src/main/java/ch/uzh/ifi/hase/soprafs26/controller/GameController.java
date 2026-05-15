@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs26.controller;
 
+import ch.uzh.ifi.hase.soprafs26.constant.AbilityType;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.AbilityPostDTO;
@@ -115,6 +116,21 @@ public class GameController {
     }
 
     /**
+     * POST /games/{gameId}/skip
+     * Pass the turn without acting — only allowed when the player cannot move their pawn
+     * (frozen or all pawn moves blocked by poison zones).
+     */
+    @PostMapping("/{gameId}/skip")
+    @ResponseStatus(HttpStatus.OK)
+    public GameGetDTO skipTurn(
+            @PathVariable Long gameId,
+            @RequestHeader("Authorization") String token) {
+        GameGetDTO result = gameService.skipTurn(gameId, token);
+        webSocketHandler.broadcastGameEvent("SKIP", gameId);
+        return result;
+    }
+
+    /**
      * POST /games/{gameId}/ability
      * Use an ability from the calling player's inventory.
      */
@@ -125,7 +141,18 @@ public class GameController {
             @RequestBody AbilityPostDTO abilityPostDTO,
             @RequestHeader("Authorization") String token) {
         GameGetDTO result = abilityService.useAbility(gameId, abilityPostDTO, token);
-        webSocketHandler.broadcastGameEvent("ABILITY_USED", gameId);
+        AbilityType usedType = abilityPostDTO.getAbilityType();
+        if (usedType == AbilityType.FIREBALL) {
+            int r = abilityPostDTO.getTargetRow() != null ? abilityPostDTO.getTargetRow() : 0;
+            int c = abilityPostDTO.getTargetCol() != null ? abilityPostDTO.getTargetCol() : 0;
+            webSocketHandler.broadcastGameEvent("FIREBALL", gameId, r, c);
+        } else if (usedType == AbilityType.EARTHQUAKE) {
+            int r = abilityPostDTO.getTargetRow() != null ? abilityPostDTO.getTargetRow() : 0;
+            int c = abilityPostDTO.getTargetCol() != null ? abilityPostDTO.getTargetCol() : 0;
+            webSocketHandler.broadcastGameEvent("EARTHQUAKE", gameId, r, c);
+        } else {
+            webSocketHandler.broadcastGameEvent("ABILITY_USED", gameId);
+        }
         return result;
     }
 

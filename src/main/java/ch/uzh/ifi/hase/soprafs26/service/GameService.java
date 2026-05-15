@@ -79,6 +79,8 @@ public class GameService {
         this.levelingService = levelingService;
     }
 
+    
+
     // ─────────────────────────────────────────────────────────────
     // Create
     // ─────────────────────────────────────────────────────────────
@@ -135,11 +137,10 @@ public class GameService {
         Game game = gameRepository.findById(gameId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
 
-         GameGetDTO timeoutResult = enforceTimeoutIfExpired(game);
+        GameGetDTO timeoutResult = enforceTimeoutIfExpired(game);
         if (timeoutResult != null) {
             return timeoutResult;
         }
-
         return buildGameGetDTO(game, requestingUserId); // call build and return DTO
     }
 
@@ -172,14 +173,12 @@ public class GameService {
                 .collect(Collectors.toList());
         dto.setWalls(wallDTOs);
 
-        // compute remaining wall budget per player
-        Map<Long, Long> usedWalls = gameStateCache.getWalls(game.getId()).stream()
-                .collect(Collectors.groupingBy(Wall::getUserId, Collectors.counting()));
-
+        // compute remaining wall budget per player using permanently consumed walls
+        // (destroyed walls by Fireball/Earthquake still count against budget)
         Map<Long, Integer> remainingWalls = new HashMap<>();
         for (Long playerId : game.getPlayerIds()) {
-            int used = usedWalls.getOrDefault(playerId, 0L).intValue();
-            remainingWalls.put(playerId, game.getWallsPerPlayer() - used);
+            int consumed = gameStateCache.getPermanentlyConsumedWalls(game.getId(), playerId);
+            remainingWalls.put(playerId, game.getWallsPerPlayer() - consumed);
         }
         dto.setRemainingWalls(remainingWalls);
 
@@ -222,6 +221,35 @@ public class GameService {
         }
         dto.setServerTimeMillis(System.currentTimeMillis());
         return dto;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Skip turn
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Passes the player's turn without acting.
+     * Clears any freeze and bonus actions, then advances to the next player.
+     */
+    public GameGetDTO skipTurn(Long gameId, String token) {
+        Game game = gameRepository.findById(gameId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+        User user = userRepository.findByToken(token);
+        if (user == null)
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid token");
+        if (game.getGameStatus() != GameStatus.RUNNING)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Game is not running");
+
+        Long userId = user.getId();
+        if (!game.getCurrentTurnUserId().equals(userId) && !gameStateCache.hasBonusAction(gameId, userId))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your turn");
+
+        gameStateCache.clearBonusAction(gameId, userId);
+        gameStateCache.clearFreeze(gameId, userId);
+        gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
+        gameStateCache.tickPoisonZones(gameId);
+        advanceTurn(game);
+        return buildGameGetDTO(game);
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -357,13 +385,13 @@ public class GameService {
             resetTurnTimer(game);
             gameRepository.saveAndFlush(game);
 
-            // Auto-skip frozen player if they have no walls and no ability cards
+            // Auto-skip frozen player if they have no remaining walls and no ability cards
             if (game.isChaosMode() && gameStateCache.isFrozen(game.getId(), nextPlayer)) {
-                int walls = gameStateCache.getExtraWalls(game.getId(), nextPlayer);
-                // Count base walls remaining (stored in remainingWalls map via MoveService)
-                // We check if they have any ability cards — if not and no walls, skip
+                int consumed = gameStateCache.getPermanentlyConsumedWalls(game.getId(), nextPlayer);
+                int extra = gameStateCache.getExtraWalls(game.getId(), nextPlayer);
+                int remaining = game.getWallsPerPlayer() + extra - consumed;
                 boolean hasAbilities = !gameStateCache.getInventory(game.getId(), nextPlayer).isEmpty();
-                boolean hasWalls = walls > 0;
+                boolean hasWalls = remaining > 0;
                 if (!hasAbilities && !hasWalls) {
                     // Clear freeze and skip their turn
                     gameStateCache.clearFreeze(game.getId(), nextPlayer);
@@ -431,8 +459,6 @@ public class GameService {
      * Placement in 4-player games is derived from the elimination order tracked
      * in GameStateCache: first eliminated = 4th place, second eliminated = 3rd,
      * the remaining non-winner = 2nd, winner = 1st.
-     *
-     * Leveling and coin rewards are handled by LevelingService.
      */
     private void recordMatchResults(Game game, Long winnerId, Lobby lobby) {
         String gameMode = (lobby != null) ? lobby.getGameMode() : "Classic";
@@ -444,52 +470,40 @@ public class GameService {
         // Build placement map for 4-player games
         Map<Long, Integer> placements = new HashMap<>();
         if (isFourPlayer) {
-            // Winner is always 1st
             placements.put(winnerId, 1);
 
-            // Elimination order: first eliminated = worst placement
             List<Long> eliminated = gameStateCache.getEliminationOrder(game.getId());
 
-            // In a 4-player game, 2 players get eliminated (forfeits/disconnects)
-            // and the last remaining player wins. The 2nd-place player is whoever
-            // was still active (not eliminated and not the winner).
             for (Long pid : playerIds) {
                 if (placements.containsKey(pid))
                     continue;
                 int elimIndex = eliminated.indexOf(pid);
                 if (elimIndex == -1) {
-                    // Not eliminated and not winner — this is 2nd place
                     placements.put(pid, 2);
                 }
             }
 
-            // Eliminated players: first eliminated = last place
             for (int i = 0; i < eliminated.size(); i++) {
                 Long elimPlayer = eliminated.get(i);
                 if (!placements.containsKey(elimPlayer)) {
-                    // First eliminated = 4th (in 4-player), second = 3rd
                     int placement = 4 - i;
                     if (placement < 2)
-                        placement = 2; // safety
+                        placement = 2;
                     placements.put(elimPlayer, placement);
                 }
             }
 
-            // Fill any remaining unplaced players as last place (safety)
             for (Long pid : playerIds) {
                 placements.putIfAbsent(pid, 4);
             }
         }
 
-        // Determine who forfeited (= in elimination order = they didn't finish the game
-        // naturally)
         List<Long> eliminated = gameStateCache.getEliminationOrder(game.getId());
 
         for (Long playerId : playerIds) {
             boolean won = playerId.equals(winnerId);
             boolean forfeited = eliminated.contains(playerId);
 
-            // Collect opponent usernames
             String opponentUsernames = playerIds.stream()
                     .filter(pid -> !pid.equals(playerId))
                     .map(pid -> {
@@ -497,15 +511,6 @@ public class GameService {
                         return u != null ? u.getUsername() : "Unknown";
                     })
                     .collect(Collectors.joining(", "));
-
-            // Persist match history row
-            MatchHistory record = new MatchHistory();
-            record.setUserId(playerId);
-            record.setGameId(game.getId());
-            record.setOpponentUsernames(opponentUsernames);
-            record.setGameMode(gameMode);
-            record.setWon(won);
-            record.setPlayedAt(now);
 
             // Calculate XP
             int moveCount = gameStateCache.getPlayerMoveCount(game.getId(), playerId);
@@ -521,13 +526,21 @@ public class GameService {
             }
 
             int totalXp = actionXp + resultXp;
+
+            // Persist match history row
+            MatchHistory record = new MatchHistory();
+            record.setUserId(playerId);
+            record.setGameId(game.getId());
+            record.setOpponentUsernames(opponentUsernames);
+            record.setGameMode(gameMode);
+            record.setWon(won);
+            record.setPlayedAt(now);
             record.setXpEarned(totalXp);
             matchHistoryRepository.save(record);
 
-            // Update player XP, level, coins via leveling service
+            // Update player score / xp / level
             User player = userRepository.findById(playerId).orElse(null);
             if (player != null) {
-                // Score system (unchanged from before)
                 if (won) {
                     player.setScore(player.getScore() + 100);
                 } else {

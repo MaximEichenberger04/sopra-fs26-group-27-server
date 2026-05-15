@@ -14,6 +14,7 @@ public class ChatMessage {
     private String text;
     private String gifUrl;
     private long timestamp;
+    private boolean spectator;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -35,4 +36,7 @@ public class ChatMessage {
 
     public long getTimestamp() { return timestamp; }
     public void setTimestamp(long timestamp) { this.timestamp = timestamp; }
+
+    public boolean isSpectator() { return spectator; }
+    public void setSpectator(boolean spectator) { this.spectator = spectator; }
 }
