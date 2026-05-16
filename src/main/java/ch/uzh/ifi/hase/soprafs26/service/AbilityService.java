@@ -89,6 +89,10 @@ public class AbilityService {
         User user = requireUser(token);
         Long userId = user.getId();
         Game game = requireGame(gameId);
+        GameGetDTO timeoutResult = gameService.enforceTimeoutIfExpired(game);
+        if (timeoutResult != null) {
+            return timeoutResult;
+        }
         requireTurnOrBonusAction(game, userId);
         requireCardInInventory(gameId, userId, dto.getAbilityType());
         // If in bonus mode, consume one bonus action before resolving the card

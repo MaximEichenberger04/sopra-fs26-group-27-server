@@ -266,20 +266,20 @@ public class UserControllerTest {
 	@Test
 	public void updateUser_equipCosmetic_returnsUpdated() throws Exception {
 		User updated = createMockUser();
-		updated.setEquippedBorder("border-crimson");
+		updated.setEquippedBorder("border-wood");
 
 		doNothing().when(userService).validateToken("test-token-123");
 		given(userService.updateUser(eq(1L), eq("test-token-123"), any())).willReturn(updated);
 
 		UserPatchDTO dto = new UserPatchDTO();
-		dto.setEquippedBorder("border-crimson");
+		dto.setEquippedBorder("border-wood");
 
 		mockMvc.perform(patch("/users/1")
 				.header("Authorization", "test-token-123")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(asJsonString(dto)))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.equippedBorder", is("border-crimson")));
+				.andExpect(jsonPath("$.equippedBorder", is("border-wood")));
 	}
 
 	// ═══════════════════════════════════════════════
@@ -290,19 +290,19 @@ public class UserControllerTest {
 	public void buyCosmetic_validPurchase_returnsUpdatedUser() throws Exception {
 		User updated = createMockUser();
 		updated.setCoins(700);
-		updated.setOwnedCosmetics("border-crimson");
+		updated.setOwnedCosmetics("border-wood");
 
 		doNothing().when(userService).validateToken("test-token-123");
-		given(userService.buyCosmetic(eq(1L), eq("test-token-123"), eq("border-crimson")))
+		given(userService.buyCosmetic(eq(1L), eq("test-token-123"), eq("border-wood")))
 				.willReturn(updated);
 
 		mockMvc.perform(post("/users/1/cosmetics/buy")
 				.header("Authorization", "test-token-123")
 				.contentType(MediaType.APPLICATION_JSON)
-				.content("{\"cosmeticId\":\"border-crimson\"}"))
+				.content("{\"cosmeticId\":\"border-wood\"}"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.coins", is(700)))
-				.andExpect(jsonPath("$.ownedCosmetics", is("border-crimson")));
+				.andExpect(jsonPath("$.ownedCosmetics", is("border-wood")));
 	}
 
 	@Test
@@ -326,7 +326,7 @@ public class UserControllerTest {
 		mockMvc.perform(post("/users/1/cosmetics/buy")
 				.header("Authorization", "bad-token")
 				.contentType(MediaType.APPLICATION_JSON)
-				.content("{\"cosmeticId\":\"border-crimson\"}"))
+				.content("{\"cosmeticId\":\"border-wood\"}"))
 				.andExpect(status().isUnauthorized());
 	}
 

@@ -301,34 +301,34 @@ public class UserServiceIntegrationTest {
 	@Test
 	public void buyCosmetic_success() {
 		User created = createTestUser("buyUser", "Buy User");
+		created.setCoins(5000);
+		userRepository.saveAndFlush(created);
 
-		User result = userService.buyCosmetic(created.getId(), created.getToken(), "border-crimson");
+		User result = userService.buyCosmetic(created.getId(), created.getToken(), "border-wood");
 
-		assertEquals(700, result.getCoins());
-		assertTrue(result.getOwnedCosmetics().contains("border-crimson"));
+		assertEquals(3200, result.getCoins());
+		assertTrue(result.getOwnedCosmetics().contains("border-wood"));
 	}
 
 	@Test
 	public void buyCosmetic_multipleItems() {
 		User created = createTestUser("multiUser", "Multi User");
+		created.setCoins(5000);
+		userRepository.saveAndFlush(created);
 
-		userService.buyCosmetic(created.getId(), created.getToken(), "border-crimson");
-		User result = userService.buyCosmetic(created.getId(), created.getToken(), "pawn-lava");
+		userService.buyCosmetic(created.getId(), created.getToken(), "border-wood");
+		User result = userService.buyCosmetic(created.getId(), created.getToken(), "pawn-angel");
 
-		assertTrue(result.getOwnedCosmetics().contains("border-crimson"));
-		assertTrue(result.getOwnedCosmetics().contains("pawn-lava"));
-		assertEquals(300, result.getCoins());
+		assertTrue(result.getOwnedCosmetics().contains("border-wood"));
+		assertTrue(result.getOwnedCosmetics().contains("pawn-angel"));
+		assertEquals(1400, result.getCoins());
 	}
 
 	@Test
 	public void buyCosmetic_notEnoughCoins_throwsBadRequest() {
 		User created = createTestUser("poorUser", "Poor User");
 
-		// Buy items to drain coins: 300 + 300 + 500 = 1100, leaving -100 not possible
-		userService.buyCosmetic(created.getId(), created.getToken(), "border-crimson"); // 1000 → 700
-		userService.buyCosmetic(created.getId(), created.getToken(), "border-emerald"); // 700 → 400
-
-		// border-rainbow costs 1000, but only 400 left
+		// User starts with 1000 coins, border-rainbow costs 99999
 		assertThrows(ResponseStatusException.class,
 				() -> userService.buyCosmetic(created.getId(), created.getToken(), "border-rainbow"));
 	}
@@ -336,11 +336,13 @@ public class UserServiceIntegrationTest {
 	@Test
 	public void buyCosmetic_alreadyOwned_throwsBadRequest() {
 		User created = createTestUser("dupeUser", "Dupe User");
+		created.setCoins(5000);
+		userRepository.saveAndFlush(created);
 
-		userService.buyCosmetic(created.getId(), created.getToken(), "border-crimson");
+		userService.buyCosmetic(created.getId(), created.getToken(), "border-wood");
 
 		assertThrows(ResponseStatusException.class,
-				() -> userService.buyCosmetic(created.getId(), created.getToken(), "border-crimson"));
+				() -> userService.buyCosmetic(created.getId(), created.getToken(), "border-wood"));
 	}
 
 	@Test
@@ -357,7 +359,7 @@ public class UserServiceIntegrationTest {
 		User user2 = createTestUser("buyer2", "Buyer 2");
 
 		assertThrows(ResponseStatusException.class,
-				() -> userService.buyCosmetic(user1.getId(), user2.getToken(), "border-crimson"));
+				() -> userService.buyCosmetic(user1.getId(), user2.getToken(), "border-wood"));
 	}
 
 	// ═══════════════════════════════════════════════

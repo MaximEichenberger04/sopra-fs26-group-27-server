@@ -62,16 +62,16 @@ public class DTOMapperTest {
 		dto.setDisplayName("Cosmetic User");
 		dto.setUsername("cosUser");
 		dto.setCoins(500);
-		dto.setOwnedCosmetics("border-crimson");
-		dto.setEquippedBorder("border-crimson");
-		dto.setEquippedPawnSkin("pawn-lava");
+		dto.setOwnedCosmetics("border-wood");
+		dto.setEquippedBorder("border-wood");
+		dto.setEquippedPawnSkin("pawn-angel");
 
 		User user = DTOMapper.INSTANCE.convertUserPostDTOtoEntity(dto);
 
 		assertEquals(500, user.getCoins());
-		assertEquals("border-crimson", user.getOwnedCosmetics());
-		assertEquals("border-crimson", user.getEquippedBorder());
-		assertEquals("pawn-lava", user.getEquippedPawnSkin());
+		assertEquals("border-wood", user.getOwnedCosmetics());
+		assertEquals("border-wood", user.getEquippedBorder());
+		assertEquals("pawn-angel", user.getEquippedPawnSkin());
 	}
 
 	// ═══════════════════════════════════════════════
@@ -116,9 +116,9 @@ public class DTOMapperTest {
 		user.setXp(500);
 		user.setLevel(5);
 		user.setCoins(800);
-		user.setOwnedCosmetics("border-crimson,pawn-lava");
-		user.setEquippedBorder("border-crimson");
-		user.setEquippedPawnSkin("pawn-lava");
+		user.setOwnedCosmetics("border-wood,pawn-angel");
+		user.setEquippedBorder("border-wood");
+		user.setEquippedPawnSkin("pawn-angel");
 
 		UserGetDTO dto = DTOMapper.INSTANCE.convertEntityToUserGetDTO(user);
 
@@ -130,9 +130,9 @@ public class DTOMapperTest {
 		assertEquals(500, dto.getXp());
 		assertEquals(5, dto.getLevel());
 		assertEquals(800, dto.getCoins());
-		assertEquals("border-crimson,pawn-lava", dto.getOwnedCosmetics());
-		assertEquals("border-crimson", dto.getEquippedBorder());
-		assertEquals("pawn-lava", dto.getEquippedPawnSkin());
+		assertEquals("border-wood,pawn-angel", dto.getOwnedCosmetics());
+		assertEquals("border-wood", dto.getEquippedBorder());
+		assertEquals("pawn-angel", dto.getEquippedPawnSkin());
 	}
 
 	@Test
@@ -190,12 +190,12 @@ public class DTOMapperTest {
 	public void testPatchUser_cosmeticFields() {
 		UserPatchDTO dto = new UserPatchDTO();
 		dto.setEquippedBorder("border-fire");
-		dto.setEquippedPawnSkin("pawn-galaxy");
+		dto.setEquippedPawnSkin("pawn-knight");
 
 		User user = DTOMapper.INSTANCE.convertUserPatchDTOtoEntity(dto);
 
 		assertEquals("border-fire", user.getEquippedBorder());
-		assertEquals("pawn-galaxy", user.getEquippedPawnSkin());
+		assertEquals("pawn-knight", user.getEquippedPawnSkin());
 	}
 
 	@Test
