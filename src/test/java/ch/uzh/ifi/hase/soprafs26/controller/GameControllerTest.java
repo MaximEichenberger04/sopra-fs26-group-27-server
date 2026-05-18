@@ -4,9 +4,11 @@ import ch.uzh.ifi.hase.soprafs26.constant.GameStatus;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.GameGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.MatchHistoryGetDTO;
 import ch.uzh.ifi.hase.soprafs26.service.AbilityService;
 import ch.uzh.ifi.hase.soprafs26.service.GameService;
 import ch.uzh.ifi.hase.soprafs26.service.MoveService;
+import ch.uzh.ifi.hase.soprafs26.service.StatisticsService;
 import ch.uzh.ifi.hase.soprafs26.websocket.GameWebSocketHandler;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -50,6 +52,9 @@ class GameControllerTest {
 
     @Mock
     private GameWebSocketHandler webSocketHandler;
+
+    @Mock
+    private StatisticsService statisticsService;
 
     @InjectMocks
     private GameController gameController;
@@ -259,5 +264,182 @@ class GameControllerTest {
                         .header("Authorization", "valid-token"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.gameStatus").value("ENDED"));
+    }
+
+    @Test
+    void forfeitGame_runningGameAfterForfeit_broadcastsGAME_UPDATED() throws Exception {
+        // No winner yet (4-player game where 1 forfeits but 3 remain active)
+        runningGameDTO.setWinnerId(null);
+        when(gameService.forfeitGame(10L, "valid-token")).thenReturn(runningGameDTO);
+
+        mockMvc.perform(post("/games/10/forfeit")
+                        .header("Authorization", "valid-token"))
+                .andExpect(status().isOk());
+
+        verify(webSocketHandler).broadcastGameEvent("PLAYER_FORFEITED", 10L, 1L, null);
+        verify(webSocketHandler).broadcastGameEvent("GAME_UPDATED", 10L);
+        verify(webSocketHandler, never()).broadcastGameEvent(eq("GAME_OVER"), anyLong());
+    }
+
+    @Test
+    void forfeitGame_userMissing_broadcastsGenericFORFEIT() throws Exception {
+        runningGameDTO.setWinnerId(null);
+        when(gameService.forfeitGame(10L, "guest-token")).thenReturn(runningGameDTO);
+
+        mockMvc.perform(post("/games/10/forfeit")
+                        .header("Authorization", "guest-token"))
+                .andExpect(status().isOk());
+
+        verify(webSocketHandler).broadcastGameEvent("FORFEIT", 10L);
+    }
+
+    // ════════════════════════════════════════════════
+    // POST /games/{gameId}/skip
+    // ════════════════════════════════════════════════
+    @Test
+    void skipTurn_validRequest_returns200AndBroadcastsSKIP() throws Exception {
+        when(gameService.skipTurn(10L, "valid-token")).thenReturn(runningGameDTO);
+
+        mockMvc.perform(post("/games/10/skip")
+                        .header("Authorization", "valid-token"))
+                .andExpect(status().isOk());
+
+        verify(webSocketHandler).broadcastGameEvent("SKIP", 10L);
+    }
+
+    @Test
+    void skipTurn_notMyTurn_returns403() throws Exception {
+        when(gameService.skipTurn(10L, "guest-token"))
+                .thenThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your turn"));
+
+        mockMvc.perform(post("/games/10/skip")
+                        .header("Authorization", "guest-token"))
+                .andExpect(status().isForbidden());
+    }
+
+    // ════════════════════════════════════════════════
+    // POST /games/{gameId}/ability
+    // ════════════════════════════════════════════════
+    @Test
+    void useAbility_fireball_broadcastsFIREBALLWithCoords() throws Exception {
+        when(abilityService.useAbility(eq(10L), any(), eq("valid-token"))).thenReturn(runningGameDTO);
+
+        mockMvc.perform(post("/games/10/ability")
+                        .header("Authorization", "valid-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"abilityType\":\"FIREBALL\",\"targetRow\":3,\"targetCol\":4}"))
+                .andExpect(status().isOk());
+
+        verify(webSocketHandler).broadcastGameEvent("FIREBALL", 10L, 3, 4);
+    }
+
+    @Test
+    void useAbility_earthquake_broadcastsEARTHQUAKEWithCoords() throws Exception {
+        when(abilityService.useAbility(eq(10L), any(), eq("valid-token"))).thenReturn(runningGameDTO);
+
+        mockMvc.perform(post("/games/10/ability")
+                        .header("Authorization", "valid-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"abilityType\":\"EARTHQUAKE\",\"targetRow\":5,\"targetCol\":6}"))
+                .andExpect(status().isOk());
+
+        verify(webSocketHandler).broadcastGameEvent("EARTHQUAKE", 10L, 5, 6);
+    }
+
+    @Test
+    void useAbility_freeze_broadcastsGenericABILITY_USED() throws Exception {
+        when(abilityService.useAbility(eq(10L), any(), eq("valid-token"))).thenReturn(runningGameDTO);
+
+        mockMvc.perform(post("/games/10/ability")
+                        .header("Authorization", "valid-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"abilityType\":\"FREEZE\",\"targetUserId\":2}"))
+                .andExpect(status().isOk());
+
+        verify(webSocketHandler).broadcastGameEvent("ABILITY_USED", 10L);
+    }
+
+    @Test
+    void useAbility_twoMoves_broadcastsGenericABILITY_USED() throws Exception {
+        when(abilityService.useAbility(eq(10L), any(), eq("valid-token"))).thenReturn(runningGameDTO);
+
+        mockMvc.perform(post("/games/10/ability")
+                        .header("Authorization", "valid-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"abilityType\":\"TWO_MOVES\"}"))
+                .andExpect(status().isOk());
+
+        verify(webSocketHandler).broadcastGameEvent("ABILITY_USED", 10L);
+    }
+
+    @Test
+    void useAbility_serviceForbids_returns403() throws Exception {
+        when(abilityService.useAbility(eq(10L), any(), eq("valid-token")))
+                .thenThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your turn"));
+
+        mockMvc.perform(post("/games/10/ability")
+                        .header("Authorization", "valid-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"abilityType\":\"TWO_MOVES\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    // ════════════════════════════════════════════════
+    // POST /games/{gameId}/ability/draw
+    // ════════════════════════════════════════════════
+    @Test
+    void drawAbilityCard_valid_returns200AndBroadcastsABILITY_DRAW() throws Exception {
+        when(abilityService.drawCard(10L, "valid-token")).thenReturn(runningGameDTO);
+
+        mockMvc.perform(post("/games/10/ability/draw")
+                        .header("Authorization", "valid-token"))
+                .andExpect(status().isOk());
+
+        verify(webSocketHandler).broadcastGameEvent("ABILITY_DRAW", 10L);
+    }
+
+    @Test
+    void drawAbilityCard_notChaosMode_returns400() throws Exception {
+        when(abilityService.drawCard(10L, "valid-token"))
+                .thenThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Not chaos"));
+
+        mockMvc.perform(post("/games/10/ability/draw")
+                        .header("Authorization", "valid-token"))
+                .andExpect(status().isBadRequest());
+    }
+
+    // ════════════════════════════════════════════════
+    // GET /games/{gameId}/results
+    // ════════════════════════════════════════════════
+    @Test
+    void getGameResults_validRequest_returnsList() throws Exception {
+        MatchHistoryGetDTO a = new MatchHistoryGetDTO();
+        a.setId(1L);
+        a.setUserId(1L);
+        a.setGameId(10L);
+        a.setWon(true);
+        MatchHistoryGetDTO b = new MatchHistoryGetDTO();
+        b.setId(2L);
+        b.setUserId(2L);
+        b.setGameId(10L);
+        b.setWon(false);
+        when(statisticsService.getGameResults(10L, "valid-token")).thenReturn(List.of(a, b));
+
+        mockMvc.perform(get("/games/10/results")
+                        .header("Authorization", "valid-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].won").value(true))
+                .andExpect(jsonPath("$[1].won").value(false));
+    }
+
+    @Test
+    void getGameResults_invalidToken_returns401() throws Exception {
+        when(statisticsService.getGameResults(10L, "bad-token"))
+                .thenThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+
+        mockMvc.perform(get("/games/10/results")
+                        .header("Authorization", "bad-token"))
+                .andExpect(status().isUnauthorized());
     }
 }

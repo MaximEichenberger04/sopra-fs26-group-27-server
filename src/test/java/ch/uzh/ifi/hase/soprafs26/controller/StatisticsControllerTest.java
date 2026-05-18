@@ -135,7 +135,7 @@ public class StatisticsControllerTest {
 
     @Test
     public void getStatistics_missingToken_returns401() throws Exception {
-        given(statisticsService.getStatistics(anyLong(), anyString()))
+        given(statisticsService.getStatistics(anyLong(), isNull()))
                 .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or missing token"));
 
         mockMvc.perform(get("/users/1/statistics")
