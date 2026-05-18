@@ -127,6 +127,8 @@ public interface DTOMapper {
 	@Mapping(source = "sizeBoard", target = "sizeBoard")
 	@Mapping(source = "creatorId", target = "creatorId")
 	@Mapping(source = "currentTurnUserId", target = "currentTurnUserId")
+	@Mapping(source = "turnTimeLimitSeconds", target = "turnTimeLimitSeconds")
+	@Mapping(source = "turnDeadlineMillis", target = "turnDeadlineMillis")
 	@Mapping(source = "wallsPerPlayer", target = "wallsPerPlayer")
 	@Mapping(source = "winnerId", target = "winnerId")
 	@Mapping(source = "playerIds", target = "playerIds")
@@ -135,6 +137,7 @@ public interface DTOMapper {
 	@Mapping(target = "remainingWalls", ignore = true) // computed and set manually in GameService
 	@Mapping(source = "activePlayerIds", target = "activePlayerIds")
 	@Mapping(source = "mapTheme", target = "mapTheme")
+	@Mapping(target = "serverTimeMillis", ignore = true)
 	GameGetDTO convertEntityToGameGetDTO(Game game);
 
 	@Mapping(source = "id", target = "id")

@@ -145,23 +145,33 @@ public class ChatServiceTest {
     // sendMessage: player checks 
 
     @Test
-    public void sendMessage_userIdNull_throws403() {
+    public void sendMessage_userIdNull_throws400() {
         when(gameRepository.findById(1L)).thenReturn(Optional.of(runningGame));
 
         ChatMessagePostDTO dto = postDTO(null, "hi", null);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> chatService.sendMessage(1L, dto));
-        assertEquals(403, ex.getStatusCode().value());
+        assertEquals(400, ex.getStatusCode().value());
     }
 
     @Test
-    public void sendMessage_userNotInGame_throws403() {
+    public void sendMessage_userNotInGame_marksAsSpectator() {
         when(gameRepository.findById(1L)).thenReturn(Optional.of(runningGame));
 
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> chatService.sendMessage(1L, postDTO(99L, "hi", null)));
-        assertEquals(403, ex.getStatusCode().value());
+        ChatMessageGetDTO result = chatService.sendMessage(1L, postDTO(99L, "hi", null));
+
+        assertEquals(99L, result.getUserId());
+        assertTrue(result.isSpectator());
+    }
+
+    @Test
+    public void sendMessage_userInGame_isNotSpectator() {
+        when(gameRepository.findById(1L)).thenReturn(Optional.of(runningGame));
+
+        ChatMessageGetDTO result = chatService.sendMessage(1L, postDTO(10L, "hi", null));
+
+        assertFalse(result.isSpectator());
     }
 
     // sendMessage: content validation 
