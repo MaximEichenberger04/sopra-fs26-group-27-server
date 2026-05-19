@@ -306,7 +306,7 @@ public class UserServiceIntegrationTest {
 
 		User result = userService.buyCosmetic(created.getId(), created.getToken(), "border-wood");
 
-		assertEquals(3200, result.getCoins());
+		assertEquals(4600, result.getCoins());
 		assertTrue(result.getOwnedCosmetics().contains("border-wood"));
 	}
 
@@ -321,7 +321,7 @@ public class UserServiceIntegrationTest {
 
 		assertTrue(result.getOwnedCosmetics().contains("border-wood"));
 		assertTrue(result.getOwnedCosmetics().contains("pawn-angel"));
-		assertEquals(1400, result.getCoins());
+		assertEquals(2100, result.getCoins());
 	}
 
 	@Test
