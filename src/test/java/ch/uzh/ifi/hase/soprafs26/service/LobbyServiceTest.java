@@ -1,10 +1,12 @@
 package ch.uzh.ifi.hase.soprafs26.service;
 
 import ch.uzh.ifi.hase.soprafs26.constant.LobbyStatus;
+import ch.uzh.ifi.hase.soprafs26.entity.Game;
 import ch.uzh.ifi.hase.soprafs26.entity.Lobby;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
 import ch.uzh.ifi.hase.soprafs26.repository.LobbyRepository;
 import ch.uzh.ifi.hase.soprafs26.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.GameGetDTO;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -239,6 +241,31 @@ public class LobbyServiceTest {
 
         assertEquals(1, result.getCurrentPlayers()); // unchanged
         verify(lobbyRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    public void startLobby_fourPlayerLobbyWithThreePlayers_success() {
+        testLobby.setMaxPlayers(4);
+        testLobby.setCurrentPlayers(3);
+        testLobby.getPlayerIds().add(2L);
+        testLobby.getPlayerIds().add(3L);
+
+        Game game = new Game();
+        game.setId(99L);
+        GameGetDTO gameDto = new GameGetDTO();
+        gameDto.setId(99L);
+
+        when(userRepository.findByToken("valid-token")).thenReturn(testUser);
+        when(lobbyRepository.findById(10L)).thenReturn(Optional.of(testLobby));
+        when(gameService.createGameFromLobby(10L, "valid-token")).thenReturn(game);
+        when(gameService.buildGameGetDTO(game)).thenReturn(gameDto);
+
+        GameGetDTO result = lobbyService.startLobby(10L, "valid-token");
+
+        assertEquals(99L, result.getId());
+        assertEquals(LobbyStatus.INGAME, testLobby.getLobbyStatus());
+        verify(lobbyRepository).saveAndFlush(testLobby);
+        verify(gameWebSocketHandler).broadcastGameEvent("GAME_STARTED", 99L);
     }
 
     @Test

@@ -454,10 +454,10 @@ public class GameService {
      * 1) Action XP: moves × 2 + walls × 5 (forfeited players get 0)
      * 2) Result XP:
      * - 2-player: winner +100, loser +30, forfeit = 0
-     * - 4-player: 1st +150, 2nd +80, 3rd +40, 4th/forfeit = 0
+     * - multiplayer: 1st +150, 2nd +80, 3rd +40, 4th/forfeit = 0
      *
-     * Placement in 4-player games is derived from the elimination order tracked
-     * in GameStateCache: first eliminated = 4th place, second eliminated = 3rd,
+     * Placement in multiplayer games is derived from the elimination order tracked
+     * in GameStateCache: first eliminated = last place, second eliminated = next,
      * the remaining non-winner = 2nd, winner = 1st.
      */
     private void recordMatchResults(Game game, Long winnerId, Lobby lobby) {
@@ -465,14 +465,15 @@ public class GameService {
         LocalDateTime now = LocalDateTime.now();
 
         List<Long> playerIds = game.getPlayerIds();
-        boolean isFourPlayer = playerIds.size() == 4;
+        boolean isFourPlayer = playerIds.size() >= 3;
 
-        // Build placement map for 4-player games
+        // Build placement map for multiplayer games.
         Map<Long, Integer> placements = new HashMap<>();
         if (isFourPlayer) {
             placements.put(winnerId, 1);
 
             List<Long> eliminated = gameStateCache.getEliminationOrder(game.getId());
+            int lastPlace = playerIds.size();
 
             for (Long pid : playerIds) {
                 if (placements.containsKey(pid))
@@ -486,7 +487,7 @@ public class GameService {
             for (int i = 0; i < eliminated.size(); i++) {
                 Long elimPlayer = eliminated.get(i);
                 if (!placements.containsKey(elimPlayer)) {
-                    int placement = 4 - i;
+                    int placement = lastPlace - i;
                     if (placement < 2)
                         placement = 2;
                     placements.put(elimPlayer, placement);
@@ -494,7 +495,7 @@ public class GameService {
             }
 
             for (Long pid : playerIds) {
-                placements.putIfAbsent(pid, 4);
+                placements.putIfAbsent(pid, lastPlace);
             }
         }
 
