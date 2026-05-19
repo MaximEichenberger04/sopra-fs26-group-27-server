@@ -60,7 +60,7 @@ public class User implements Serializable {
 	@Column(nullable = true)
 	private int coins;
 
-	@Column(nullable = true)
+	@Column(nullable = true, length = 1024)
 	private String ownedCosmetics;
 
 	@Column(nullable = true)

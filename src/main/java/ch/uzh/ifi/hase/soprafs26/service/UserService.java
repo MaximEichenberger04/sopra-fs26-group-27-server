@@ -37,29 +37,32 @@ public class UserService {
 
 	private static final Map<String, Integer> COSMETIC_PRICES = Map.ofEntries(
 			// Avatar Borders
-			Map.entry("border-wood", 1800),
-			Map.entry("border-builder", 1800),
-			Map.entry("border-slime", 1800),
-			Map.entry("border-emerald", 3000),
-			Map.entry("border-ice", 3000),
-			Map.entry("border-knight", 3000),
-			Map.entry("border-fire", 4800),
-			Map.entry("border-shadow", 4800),
-			Map.entry("border-royal", 4800),
-			Map.entry("border-diamond", 7200),
-			Map.entry("border-wizard", 7200),
-			Map.entry("border-rainbow", 99999),
+			Map.entry("border-wood", 400),
+			Map.entry("border-builder", 500),
+			Map.entry("border-slime", 600),
+			Map.entry("border-ice", 800),
+			Map.entry("border-fire", 1000),
+			Map.entry("border-rainbow", 1500),
+			Map.entry("border-emerald", 1500),
+			Map.entry("border-diamond", 1700),
+			Map.entry("border-knight", 1800),
+			Map.entry("border-wizard", 2000),
+			Map.entry("border-shadow", 2500),
+			Map.entry("border-royal", 3000),
 
 			// Pawn Skins (image-based)
-			Map.entry("pawn-angel", 1800),
-			Map.entry("pawn-builder", 1800),
-			Map.entry("pawn-frog", 1800),
-			Map.entry("pawn-king", 4800),
-			Map.entry("pawn-knight", 3000),
-			Map.entry("pawn-wealthy", 7200),
-			Map.entry("pawn-witch", 3000),
-			Map.entry("pawn-wizard", 4800),
-			Map.entry("pawn-wolf", 3000));
+			Map.entry("pawn-wolf", 500),
+			Map.entry("pawn-frog", 500),
+			Map.entry("pawn-builder", 750),
+			Map.entry("pawn-farmer", 750),
+			Map.entry("pawn-knight", 1000),
+			Map.entry("pawn-witch", 1000),
+			Map.entry("pawn-wizard", 1000),
+			Map.entry("pawn-queen", 1250),
+			Map.entry("pawn-king", 1500),
+			Map.entry("pawn-wealthy", 2000),
+			Map.entry("pawn-angel", 2500),
+			Map.entry("pawn-demon", 3000));
 
 	public UserService(@Qualifier("userRepository") UserRepository userRepository) {
 		this.userRepository = userRepository;

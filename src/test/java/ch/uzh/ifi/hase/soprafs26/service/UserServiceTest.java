@@ -451,13 +451,13 @@ public class UserServiceTest {
 	// buyCosmetic
 	@Test
 	public void buyCosmetic_validPurchase_success() {
-		testUser.setCoins(2000);
+		testUser.setCoins(1000);
 		testUser.setOwnedCosmetics("");
 		when(userRepository.findByToken("test-token")).thenReturn(testUser);
 
 		User result = userService.buyCosmetic(1L, "test-token", "border-wood");
 
-		assertEquals(200, result.getCoins());
+		assertEquals(600, result.getCoins());
 		assertTrue(result.getOwnedCosmetics().contains("border-wood"));
 	}
 
@@ -474,14 +474,14 @@ public class UserServiceTest {
 
 	@Test
 	public void buyCosmetic_firstPurchase_nullOwnedCosmetics() {
-		testUser.setCoins(2000);
+		testUser.setCoins(2500);
 		testUser.setOwnedCosmetics(null);
 		when(userRepository.findByToken("test-token")).thenReturn(testUser);
 
 		User result = userService.buyCosmetic(1L, "test-token", "pawn-angel");
 
 		assertEquals("pawn-angel", result.getOwnedCosmetics());
-		assertEquals(200, result.getCoins());
+		assertEquals(0, result.getCoins());
 	}
 
 	@Test
@@ -533,7 +533,7 @@ public class UserServiceTest {
 
 	@Test
 	public void buyCosmetic_expensiveItem_deductsCorrectly() {
-		testUser.setCoins(7200);
+		testUser.setCoins(2000);
 		testUser.setOwnedCosmetics("");
 		when(userRepository.findByToken("test-token")).thenReturn(testUser);
 
