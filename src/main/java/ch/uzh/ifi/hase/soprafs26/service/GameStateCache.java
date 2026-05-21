@@ -25,7 +25,7 @@ public class GameStateCache {
     private static final int INTERNAL_SIZE = 17;
     private static final int MAX_CARDS_HELD = 3;
     private static final int TURNS_PER_DRAW_CYCLE = 6;
-    private static final int POISON_INITIAL_ROUNDS = 4;
+    private static final int POISON_INITIAL_ROUNDS = 2;
 
     private static final int[][] START_POSITIONS = {
             { 16, 8 },
@@ -46,6 +46,8 @@ public class GameStateCache {
     private final Map<Long, Set<Long>> frozenPlayers = new ConcurrentHashMap<>();
     private final Map<Long, Map<Long, Integer>> bonusActions = new ConcurrentHashMap<>();
     private final Map<Long, List<PoisonZone>> poisonZones = new ConcurrentHashMap<>();
+    private final Map<Long, Integer> playerCount = new ConcurrentHashMap<>();
+    private final Map<Long, Integer> poisonTurnTick = new ConcurrentHashMap<>();
     private final Map<Long, Map<Long, Integer>> extraWalls = new ConcurrentHashMap<>();
     // Tracks walls permanently consumed from a player's budget (even if wall was
     // later destroyed)
@@ -103,6 +105,8 @@ public class GameStateCache {
         poisonZones.put(gameId, new ArrayList<>());
         pendingCardDraw.put(gameId, new HashSet<>());
         turnCounter.put(gameId, 0);
+        playerCount.put(gameId, playerIds.size());
+        poisonTurnTick.put(gameId, 0);
     }
 
     public void placeWall(Long gameId, int row, int col, WallOrientation orientation, Long userId) {
@@ -205,6 +209,8 @@ public class GameStateCache {
         frozenPlayers.remove(gameId);
         bonusActions.remove(gameId);
         poisonZones.remove(gameId);
+        playerCount.remove(gameId);
+        poisonTurnTick.remove(gameId);
         extraWalls.remove(gameId);
         playerMoveCount.remove(gameId);
         playerWallCount.remove(gameId);
@@ -307,6 +313,12 @@ public class GameStateCache {
             .put(userId, count);  // SET, not add — always replaces existing count
     }
 
+    public void addBonusAction(Long gameId, Long userId) {
+        bonusActions
+            .computeIfAbsent(gameId, k -> new ConcurrentHashMap<>())
+            .merge(userId, 1, Integer::sum);
+    }
+
     public boolean hasBonusAction(Long gameId, Long userId) {
         Map<Long, Integer> gameMap = bonusActions.get(gameId);
         if (gameMap == null)
@@ -362,10 +374,14 @@ public class GameStateCache {
 
     public void tickPoisonZones(Long gameId) {
         List<PoisonZone> zones = poisonZones.get(gameId);
-        if (zones == null)
+        if (zones == null || zones.isEmpty())
             return;
-        zones.forEach(z -> z.setRoundsRemaining(z.getRoundsRemaining() - 1));
-        zones.removeIf(z -> z.getRoundsRemaining() <= 0);
+        int tick = poisonTurnTick.merge(gameId, 1, Integer::sum);
+        int numPlayers = playerCount.getOrDefault(gameId, 1);
+        if (tick % numPlayers == 0) {
+            zones.forEach(z -> z.setRoundsRemaining(z.getRoundsRemaining() - 1));
+            zones.removeIf(z -> z.getRoundsRemaining() <= 0);
+        }
     }
 
     public boolean isPoisoned(Long gameId, int row, int col) {
