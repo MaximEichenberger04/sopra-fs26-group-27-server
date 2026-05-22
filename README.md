@@ -1,119 +1,167 @@
-# SoPra RESTful Service Template FS26 
-     
-## Getting started with Spring Boot
--   Documentation: https://docs.spring.io/spring-boot/docs/current/reference/html/index.html
--   Guides: http://spring.io/guides
-    -   Building a RESTful Web Service: http://spring.io/guides/gs/rest-service/
-    -   Building REST services with Spring: https://spring.io/guides/tutorials/rest/
+# Quoridor Chaos Arena backend
 
-## Setup this Template with your IDE of choice
-Download your IDE of choice (e.g., [IntelliJ](https://www.jetbrains.com/idea/download/), [Visual Studio Code](https://code.visualstudio.com/), or [Eclipse](http://www.eclipse.org/downloads/)). Make sure Java 17 is installed on your system (for Windows, please make sure your `JAVA_HOME` environment variable is set to the correct version of Java).
+## Introduction
 
-### IntelliJ
-If you consider to use IntelliJ as your IDE of choice, you can make use of your free educational license [here](https://www.jetbrains.com/community/education/#students).
-1. File -> Open... -> SoPra server template
-2. Accept to import the project as a `gradle project`
-3. To build right click the `build.gradle` file and choose `Run Build`
+Quoridor is a strategic board game built on two simple actions: move your pawn, or drop a wall to block your rival. The first player to reach the opposite side wins. Simple rules, deep tactics.
 
-### VS Code
-The following extensions can help you get started more easily:
--   `vmware.vscode-spring-boot`
--   `vscjava.vscode-spring-initializr`
--   `vscjava.vscode-spring-boot-dashboard`
--   `vscjava.vscode-java-pack`
+Our project brings Quoridor to life as a modern online multiplayer web application, and pushes the classic formula further with smooth matchmaking, real-time gameplay, player progression, and the social layer that turns a game into a community.
 
-**Note:** You'll need to build the project first with Gradle, just click on the `build` command in the _Gradle Tasks_ extension. Then check the _Spring Boot Dashboard_ extension if it already shows `soprafs26` and hit the play button to start the server. If it doesn't show up, restart VS Code and check again.
+The backend is the engine room behind it all. It handles users, authentication, lobbies, game creation, move validation, wall placement rules, Chaos mode abilities, chat, statistics, match history, leaderboards, cosmetics, and live WebSocket updates that keep every player in sync.
 
-## Building with Gradle
-You can use the local Gradle Wrapper to build the application.
--   macOS: `./gradlew`
--   Linux: `./gradlew`
--   Windows: `./gradlew.bat`
+Our goal was a server that holds the game state as a single source of truth, enforces every rule centrally so no client can cheat or drift, and exposes reliable APIs that let the frontend stay perfectly synchronized through every move, wall, and ability of a multiplayer match.
 
-More Information about [Gradle Wrapper](https://docs.gradle.org/current/userguide/gradle_wrapper.html) and [Gradle](https://gradle.org/docs/).
+## Technologies Used
 
-### Build
+* Java
+* Spring Boot
+* Spring Web / REST APIs
+* Spring Data JPA / Hibernate
+* H2 in-memory database for local development
+* WebSockets for live game refresh events
+* Gradle
+* Docker
+* Sonar
+* SQL
 
-```bash
-./gradlew build
-```
 
-### Run
 
-```bash
+This is the backend implementation. For the frontend implementation, click [here](https://github.com/MaximEichenberger04/sopra-fs26-group-27-client).
+
+## High-Level Components
+
+### User, Profile, Progression and Cosmetics
+
+User-related functionality is handled mainly by [`UserController`](src/main/java/ch/uzh/ifi/hase/soprafs26/controller/UserController.java), [`UserService`](src/main/java/ch/uzh/ifi/hase/soprafs26/service/UserService.java), and [`UserRepository`](src/main/java/ch/uzh/ifi/hase/soprafs26/repository/UserRepository.java). This component covers registration, login, logout, profile updates, authentication token validation, cosmetics purchasing/equipping, leaderboard data, achievements, and user progression.
+
+The [`User`](src/main/java/ch/uzh/ifi/hase/soprafs26/entity/User.java) entity stores account data, display information, score, XP, level, coins, owned cosmetics, and equipped cosmetics. Statistics and match-related profile data are exposed through [`StatisticsService`](src/main/java/ch/uzh/ifi/hase/soprafs26/service/StatisticsService.java).
+
+### Lobby and Match Setup
+
+The lobby system is implemented through [`LobbyController`](src/main/java/ch/uzh/ifi/hase/soprafs26/controller/LobbyController.java) and [`LobbyService`](src/main/java/ch/uzh/ifi/hase/soprafs26/service/LobbyService.java). It allows players to create lobbies, join open lobbies, join by invite code, update lobby settings, leave lobbies, and start games.
+
+A lobby stores the host, invited/current players, maximum player count, game mode, invite code, map theme, and the created game ID once the match starts. The lobby flow connects directly to the game creation logic in [`GameService`](src/main/java/ch/uzh/ifi/hase/soprafs26/service/GameService.java).
+
+### Game Engine and Move Validation
+
+Core game lifecycle logic is implemented in [`GameService`](src/main/java/ch/uzh/ifi/hase/soprafs26/service/GameService.java). It creates games from lobbies, initializes players and board state, tracks active players, checks win conditions, handles forfeits/disconnects, advances turns, and ends games.
+
+Move and wall placement validation is handled by [`MoveService`](src/main/java/ch/uzh/ifi/hase/soprafs26/service/MoveService.java). It validates standard Quoridor pawn movement, jumps, diagonal jumps, wall placement rules, wall collision, and path availability using BFS so that no player can be fully blocked from reaching their goal.
+
+Game metadata is persisted in [`Game`](src/main/java/ch/uzh/ifi/hase/soprafs26/entity/Game.java), while live board state such as pawns, walls, remaining walls, ability inventories, and temporary effects is managed in [`GameStateCache`](src/main/java/ch/uzh/ifi/hase/soprafs26/service/GameStateCache.java).
+
+### Chaos Mode and Abilities
+
+Chaos mode extends classic Quoridor with ability cards. The available ability types are defined in [`AbilityType`](src/main/java/ch/uzh/ifi/hase/soprafs26/constant/AbilityType.java), and their behavior is implemented in [`AbilityService`](src/main/java/ch/uzh/ifi/hase/soprafs26/service/AbilityService.java).
+
+Supported abilities include:
+
+* `FIREBALL`: destroys wall segments in a target area
+* `EARTHQUAKE`: randomly shifts or destroys walls in a target area
+* `POISON`: creates a temporary blocked zone
+* `FREEZE`: makes an opponent skip their next turn
+* `PLUS_TWO_WALLS`: grants additional wall capacity
+* `TWO_MOVES`: grants an additional action
+
+The ability system uses the game state cache to track card inventories, poison zones, frozen players, bonus actions, and additional wall counts.
+
+### Real-Time Communication, Chat and GIFs
+
+The backend uses [`GameWebSocketHandler`](src/main/java/ch/uzh/ifi/hase/soprafs26/websocket/GameWebSocketHandler.java) and [`WebSocketConfig`](src/main/java/ch/uzh/ifi/hase/soprafs26/websocket/WebSocketConfig.java) to notify connected clients when game-relevant events occur. Events include moves, wall placements, chat messages, ability usage, forfeits, game starts, and game endings.
+
+Chat functionality is implemented through [`ChatController`](src/main/java/ch/uzh/ifi/hase/soprafs26/controller/ChatController.java), [`ChatService`](src/main/java/ch/uzh/ifi/hase/soprafs26/service/ChatService.java), and [`ChatCache`](src/main/java/ch/uzh/ifi/hase/soprafs26/service/ChatCache.java). Messages are stored in memory for active games and broadcast to clients through WebSocket refresh events.
+
+GIF search is exposed through [`GifController`](src/main/java/ch/uzh/ifi/hase/soprafs26/controller/GifController.java) and [`GifService`](src/main/java/ch/uzh/ifi/hase/soprafs26/service/GifService.java), which integrates with the Klipy API using the `KLIPY_API_KEY` environment variable.
+
+## Launch and Deployment
+
+### Prerequisites
+
+* Java 17 or newer
+* Gradle or the included Gradle wrapper
+* Optional: Docker
+* Optional: `KLIPY_API_KEY` environment variable for GIF search
+
+### Local Development
+
+Run the backend locally:
+
+```Shell
 ./gradlew bootRun
 ```
 
-You can verify that the server is running by visiting `localhost:8080` in your browser.
+The backend starts on:
 
-### Test
+```text
+http://localhost:8080
+```
 
-```bash
+The local H2 database console is available at:
+
+```text
+http://localhost:8080/h2-console
+```
+
+Default local database settings are defined in [`application.properties`](src/main/resources/application.properties):
+
+```text
+JDBC URL: jdbc:h2:mem:testdb
+User: sa
+Password: 
+```
+
+### Build
+
+```Shell
+./gradlew build
+```
+
+### Run Tests
+
+```Shell
 ./gradlew test
 ```
 
-### Development Mode
-You can start the backend in development mode, this will automatically trigger a new build and reload the application
-once the content of a file has been changed.
+The test suite covers controllers, services, repositories, DTO mapping, game state cache, move logic, lobby logic, chat, and user functionality.
 
-Start two terminal windows and run:
+### Releases
 
-`./gradlew build --continuous`
+A typical release flow is:
 
-and in the other one:
+1. Ensure all tests pass with `./gradlew test`.
+2. Build the project with `./gradlew build`.
+3. Build and push a Docker image if deploying via container infrastructure.
+4. Deploy the produced image or application package to the selected hosting platform.
 
-`./gradlew bootRun`
+## Illustrations
 
-If you want to avoid running all tests with every change, use the following command instead:
+A typical backend flow is:
 
-`./gradlew build --continuous -xtest`
+* A user registers or logs in through the frontend, and the backend creates or validates the account.
+* Players browse and join lobbies through `LobbyController`, which manages lobby state and settings.
+* When a match starts, `GameService` initializes game state and the WebSocket handler notifies connected clients.
+* During gameplay, `MoveService` validates moves and wall placements while `ChatController` and `GifController` handle chat and GIF features.
+* When the game ends, the backend updates statistics, leaderboards, and match history.
 
-## API Endpoint Testing with Postman
-We recommend using [Postman](https://www.getpostman.com) to test your API Endpoints.
+## Roadmap
 
-## Debugging
-If something is not working and/or you don't know what is going on. We recommend using a debugger and step-through the process step-by-step.
+* Add persistent database support beyond the current H2 in-memory database.
+* Add integration tests for frontend-backend API flows and WebSocket events.
+* Add CI/CD deployment automation for cloud hosting.
 
-To configure a debugger for SpringBoot's Tomcat servlet (i.e. the process you start with `./gradlew bootRun` command), do the following:
+## Authors and Acknowledgment
 
-1. Open Tab: **Run**/Edit Configurations
-2. Add a new Remote Configuration and name it properly
-3. Start the Server in Debug mode: `./gradlew bootRun --debug-jvm`
-4. Press `Shift + F9` or the use **Run**/Debug "Name of your task"
-5. Set breakpoints in the application where you need it
-6. Step through the process one step at a time
+Developed by the SoPra group 27.
 
-## Testing
-Have a look here: https://www.baeldung.com/spring-boot-testing
+Team members:
 
-<br>
-<br>
-<br>
+* Flint Menzi
+* Maxim Eichenberger
+* Eldar Kryeziu
+* Timon Weidmann
+* Jonas Metzger
 
-## Docker
+This project was developed as part of the Software Praktikum at the University of Zurich.
 
-### Introduction
-This year Docker will be used to ease the process of deployment.\
-Docker is a tool that uses containers as isolated environments, ensuring that the application runs consistently and uniformly across different devices.\
-Everything in this repository is already set up to minimize your effort for deployment.\
-All changes to the main branch will automatically be pushed to dockerhub and optimized for production.
+## License
 
-### Setup
-1. **One** member of the team should create an account on [dockerhub](https://hub.docker.com/), _incorporating the group number into the account name_, for example, `SoPra_group_XX`.\
-2. This account then creates a repository on dockerhub with the _same name as the group's Github repository name_.\
-3. Finally, the person's account details need to be added as [secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository) to the group's repository:
-    - dockerhub_username (the username of the dockerhub account from step 1, for example, `SoPra_group_XX`)
-    - dockerhub_password (a generated PAT([personal access token](https://docs.docker.com/docker-hub/access-tokens/)) of the account with read and write access)
-    - dockerhub_repo_name (the name of the dockerhub repository from step 2)
-
-### Pull and run
-Once the image is created and has been successfully pushed to dockerhub, the image can be run on any machine.\
-Ensure that [Docker](https://www.docker.com/) is installed on the machine you wish to run the container.\
-First, pull (download) the image with the following command, replacing your username and repository name accordingly.
-
-```docker pull <dockerhub_username>/<dockerhub_repo_name>```
-
-Then, run the image in a container with the following command, again replacing _<dockerhub_username>_ and _<dockerhub_repo_name>_ accordingly.
-
-```docker run -p 3000:3000 <dockerhub_username>/<dockerhub_repo_name>```
-
+Apache License 2.0 — see `LICENSE`.
