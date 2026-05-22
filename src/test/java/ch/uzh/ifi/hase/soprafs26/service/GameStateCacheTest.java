@@ -2,6 +2,7 @@ package ch.uzh.ifi.hase.soprafs26.service;
 
 import ch.uzh.ifi.hase.soprafs26.constant.WallOrientation;
 import ch.uzh.ifi.hase.soprafs26.entity.Pawn;
+import ch.uzh.ifi.hase.soprafs26.entity.PoisonZone;
 import ch.uzh.ifi.hase.soprafs26.entity.Wall;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -172,5 +173,30 @@ public class GameStateCacheTest {
         assertTrue(cache.getPawns(1L).isEmpty());
         assertTrue(cache.getWalls(1L).isEmpty());
         assertThrows(ResponseStatusException.class, () -> cache.getWallGrid(1L));
+    }
+
+    @Test
+    public void addPoisonZone_addsToList() {
+        cache.initGame(1L, Arrays.asList(10L, 20L), true);
+        cache.addPoisonZone(1L, 4, 4);
+
+        List<PoisonZone> zones = cache.getPoisonZones(1L);
+        assertEquals(1, zones.size());
+        assertEquals(4, zones.get(0).getTopLeftRow());
+        assertEquals(4, zones.get(0).getTopLeftCol());
+        assertEquals(2, zones.get(0).getRoundsRemaining());
+    }
+
+    @Test
+    public void tickPoisonZones_decrementsRoundsRemaining() {
+        // 2 players → a full round = 2 ticks; roundsRemaining drops only after each full round
+        cache.initGame(1L, Arrays.asList(10L, 20L), true);
+        cache.addPoisonZone(1L, 4, 4);
+
+        cache.tickPoisonZones(1L); // player 1's turn — not yet a full round
+        assertEquals(2, cache.getPoisonZones(1L).get(0).getRoundsRemaining());
+
+        cache.tickPoisonZones(1L); // player 2's turn — full round complete
+        assertEquals(1, cache.getPoisonZones(1L).get(0).getRoundsRemaining());
     }
 }
