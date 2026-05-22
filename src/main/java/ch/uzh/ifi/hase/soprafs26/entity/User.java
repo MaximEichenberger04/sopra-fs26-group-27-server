@@ -6,6 +6,9 @@ import ch.uzh.ifi.hase.soprafs26.constant.UserStatus;
 
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Internal User Representation
@@ -60,8 +63,8 @@ public class User implements Serializable {
 	@Column(nullable = true)
 	private int coins;
 
-	@Column(nullable = true)
-	private String ownedCosmetics;
+	@OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+	private List<UserCosmetic> cosmetics = new ArrayList<>();
 
 	@Column(nullable = true)
 	private String equippedBorder;
@@ -210,12 +213,51 @@ public class User implements Serializable {
 		this.coins = coins;
 	}
 
+	/**
+	 * Returns the owned cosmetics as a backward-compatible comma-separated string,
+	 * or null when none are owned. Used by DTOs, tests, and the mapper.
+	 */
 	public String getOwnedCosmetics() {
-		return ownedCosmetics;
+		if (cosmetics == null || cosmetics.isEmpty()) {
+			return null;
+		}
+		return cosmetics.stream()
+				.map(UserCosmetic::getCosmeticId)
+				.collect(Collectors.joining(","));
 	}
 
+	/**
+	 * Backward-compatible helper. Parses a comma-separated cosmetic string and
+	 * replaces the current collection. Passing null or blank clears all owned
+	 * cosmetics.
+	 */
 	public void setOwnedCosmetics(String ownedCosmetics) {
-		this.ownedCosmetics = ownedCosmetics;
+		if (cosmetics == null) {
+			cosmetics = new ArrayList<>();
+		}
+		cosmetics.clear();
+		if (ownedCosmetics == null || ownedCosmetics.isBlank()) {
+			return;
+		}
+		for (String id : ownedCosmetics.split(",")) {
+			String trimmed = id.trim();
+			if (!trimmed.isEmpty()) {
+				UserCosmetic uc = new UserCosmetic(this, trimmed);
+				cosmetics.add(uc);
+			}
+		}
+	}
+
+	/** Direct access to the cosmetics collection (for service-layer use). */
+	public List<UserCosmetic> getCosmetics() {
+		return cosmetics;
+	}
+
+	public void addCosmetic(String cosmeticId) {
+		if (cosmetics == null) {
+			cosmetics = new ArrayList<>();
+		}
+		cosmetics.add(new UserCosmetic(this, cosmeticId));
 	}
 
 	public String getEquippedBorder() {

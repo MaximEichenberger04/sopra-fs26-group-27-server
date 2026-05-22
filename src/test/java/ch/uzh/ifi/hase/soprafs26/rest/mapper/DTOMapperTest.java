@@ -2,11 +2,18 @@ package ch.uzh.ifi.hase.soprafs26.rest.mapper;
 
 import org.junit.jupiter.api.Test;
 
+import ch.uzh.ifi.hase.soprafs26.constant.MoveType;
 import ch.uzh.ifi.hase.soprafs26.constant.UserStatus;
+import ch.uzh.ifi.hase.soprafs26.constant.WallOrientation;
+import ch.uzh.ifi.hase.soprafs26.entity.Pawn;
 import ch.uzh.ifi.hase.soprafs26.entity.User;
+import ch.uzh.ifi.hase.soprafs26.entity.Wall;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.PawnGetDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.PoisonZoneDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs26.rest.dto.UserPatchDTO;
+import ch.uzh.ifi.hase.soprafs26.rest.dto.WallGetDTO;
 
 import java.time.LocalDate;
 
@@ -213,5 +220,75 @@ public class DTOMapperTest {
 		assertNull(user.getPassword());
 		assertNull(user.getEquippedBorder());
 		assertNull(user.getEquippedPawnSkin());
+	}
+
+	// ═══════════════════════════════════════════════
+	// Pawn → PawnGetDTO
+	// ═══════════════════════════════════════════════
+	@Test
+	public void testConvertPawn_toPawnGetDTO_mapsAllFields() {
+		Pawn pawn = new Pawn();
+		pawn.setId(7L);
+		pawn.setUserId(42L);
+		pawn.setRow(8);
+		pawn.setCol(16);
+
+		PawnGetDTO dto = DTOMapper.INSTANCE.convertEntityToPawnGetDTO(pawn);
+
+		assertEquals(7L, dto.getId());
+		assertEquals(42L, dto.getUserId());
+		assertEquals(8, dto.getRow());
+		assertEquals(16, dto.getCol());
+	}
+
+	// ═══════════════════════════════════════════════
+	// Wall → WallGetDTO
+	// ═══════════════════════════════════════════════
+	@Test
+	public void testConvertWall_toWallGetDTO_mapsAllFields() {
+		Wall wall = new Wall();
+		wall.setId(3L);
+		wall.setUserId(11L);
+		wall.setRow(5);
+		wall.setCol(7);
+		wall.setOrientation(WallOrientation.VERTICAL);
+
+		WallGetDTO dto = DTOMapper.INSTANCE.convertEntityToWallGetDTO(wall);
+
+		assertEquals(3L, dto.getId());
+		assertEquals(11L, dto.getUserId());
+		assertEquals(5, dto.getRow());
+		assertEquals(7, dto.getCol());
+		assertEquals(WallOrientation.VERTICAL, dto.getOrientation());
+	}
+
+	// ═══════════════════════════════════════════════
+	// PoisonZoneDTO POJO contract
+	// ═══════════════════════════════════════════════
+	@Test
+	public void testPoisonZoneDTO_settersAndGetters() {
+		PoisonZoneDTO dto = new PoisonZoneDTO();
+		dto.setId(9L);
+		dto.setTopLeftRow(6);
+		dto.setTopLeftCol(8);
+		dto.setRoundsRemaining(3);
+
+		assertEquals(9L, dto.getId());
+		assertEquals(6, dto.getTopLeftRow());
+		assertEquals(8, dto.getTopLeftCol());
+		assertEquals(3, dto.getRoundsRemaining());
+	}
+
+	// ═══════════════════════════════════════════════
+	// MoveType enum
+	// ═══════════════════════════════════════════════
+	@Test
+	public void testMoveTypeEnum_allValuesPresent() {
+		MoveType[] values = MoveType.values();
+		assertTrue(values.length > 0);
+		// Round-trip via valueOf for each declared value
+		for (MoveType type : values) {
+			assertEquals(type, MoveType.valueOf(type.name()));
+		}
 	}
 }

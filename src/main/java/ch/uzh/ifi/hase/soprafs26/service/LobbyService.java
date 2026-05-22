@@ -133,7 +133,8 @@ public class LobbyService {
     /**
      * Transitions the lobby to INGAME, creates the game via GameService,
      * broadcasts a refresh signal, and returns the new GameGetDTO.
-     * Only the host may call this; requires the lobby to be full.
+     * Only the host may call this. 2-player lobbies must be full; 4-player
+     * lobbies can start with 3 or 4 players.
      */
     public GameGetDTO startLobby(Long lobbyId, String token) {
         User authenticatedUser = userRepository.findByToken(token);
@@ -148,8 +149,11 @@ public class LobbyService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the host can start the game!");
         }
 
-        if (!lobby.getCurrentPlayers().equals(lobby.getMaxPlayers())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lobby must be full to start the game");
+        boolean canStart = (lobby.getMaxPlayers() == 2 && lobby.getCurrentPlayers() == 2)
+                || (lobby.getMaxPlayers() == 4 && lobby.getCurrentPlayers() >= 3);
+
+        if (!canStart) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Not enough players to start the game");
         }
 
         if (lobby.getLobbyStatus() != LobbyStatus.WAITING) {

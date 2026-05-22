@@ -356,6 +356,137 @@ public class UserControllerTest {
 	}
 
 	// ═══════════════════════════════════════════════
+	// GET /users/leaderboard
+	// ═══════════════════════════════════════════════
+	@Test
+	public void getLeaderboard_validToken_returnsList() throws Exception {
+		User a = createMockUser();
+		a.setScore(500);
+		User b = createMockUser();
+		b.setId(2L);
+		b.setUsername("u2");
+		b.setScore(300);
+		doNothing().when(userService).validateToken("test-token-123");
+		given(userService.getLeaderboard()).willReturn(List.of(a, b));
+
+		mockMvc.perform(get("/users/leaderboard")
+				.header("Authorization", "test-token-123"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$", hasSize(2)))
+				.andExpect(jsonPath("$[0].score", is(500)))
+				.andExpect(jsonPath("$[1].score", is(300)));
+	}
+
+	@Test
+	public void getLeaderboard_invalidToken_returnsUnauthorized() throws Exception {
+		doThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED))
+				.when(userService).validateToken("bad");
+
+		mockMvc.perform(get("/users/leaderboard")
+				.header("Authorization", "bad"))
+				.andExpect(status().isUnauthorized());
+	}
+
+	// ═══════════════════════════════════════════════
+	// GET /users/{id}/statistics
+	// ═══════════════════════════════════════════════
+	@Test
+	public void getUserStatistics_validToken_returnsDTO() throws Exception {
+		ch.uzh.ifi.hase.soprafs26.rest.dto.UserStatisticsGetDTO stats =
+				new ch.uzh.ifi.hase.soprafs26.rest.dto.UserStatisticsGetDTO();
+		stats.setTotalGames(5);
+		stats.setWins(3);
+		stats.setLosses(2);
+		stats.setWinLossRatio(0.6);
+		stats.setMostPlayedGameMode("CHAOS");
+		given(statisticsService.getStatistics(1L, "test-token-123")).willReturn(stats);
+
+		mockMvc.perform(get("/users/1/statistics")
+				.header("Authorization", "test-token-123"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.totalGames", is(5)))
+				.andExpect(jsonPath("$.wins", is(3)))
+				.andExpect(jsonPath("$.losses", is(2)))
+				.andExpect(jsonPath("$.mostPlayedGameMode", is("CHAOS")));
+	}
+
+	@Test
+	public void getUserStatistics_invalidToken_returnsUnauthorized() throws Exception {
+		given(statisticsService.getStatistics(1L, "bad"))
+				.willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+
+		mockMvc.perform(get("/users/1/statistics")
+				.header("Authorization", "bad"))
+				.andExpect(status().isUnauthorized());
+	}
+
+	// ═══════════════════════════════════════════════
+	// GET /users/{id}/match-history
+	// ═══════════════════════════════════════════════
+	@Test
+	public void getUserMatchHistory_validToken_returnsList() throws Exception {
+		ch.uzh.ifi.hase.soprafs26.rest.dto.MatchHistoryGetDTO m =
+				new ch.uzh.ifi.hase.soprafs26.rest.dto.MatchHistoryGetDTO();
+		m.setId(1L);
+		m.setUserId(1L);
+		m.setGameId(10L);
+		m.setGameMode("CLASSIC");
+		m.setWon(true);
+		m.setOpponentUsernames("bob");
+		m.setXpEarned(130);
+		given(statisticsService.getMatchHistory(1L, "test-token-123")).willReturn(List.of(m));
+
+		mockMvc.perform(get("/users/1/match-history")
+				.header("Authorization", "test-token-123"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$", hasSize(1)))
+				.andExpect(jsonPath("$[0].won", is(true)))
+				.andExpect(jsonPath("$[0].xpEarned", is(130)));
+	}
+
+	@Test
+	public void getUserMatchHistory_userNotFound_returns404() throws Exception {
+		given(statisticsService.getMatchHistory(99L, "test-token-123"))
+				.willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+		mockMvc.perform(get("/users/99/match-history")
+				.header("Authorization", "test-token-123"))
+				.andExpect(status().isNotFound());
+	}
+
+	// ═══════════════════════════════════════════════
+	// GET /users/{id}/achievements
+	// ═══════════════════════════════════════════════
+	@Test
+	public void getUserAchievements_validToken_returnsList() throws Exception {
+		ch.uzh.ifi.hase.soprafs26.rest.dto.AchievementGetDTO a =
+				new ch.uzh.ifi.hase.soprafs26.rest.dto.AchievementGetDTO();
+		a.setId("first-win");
+		a.setName("First Win");
+		a.setDescription("Win your first game");
+		a.setCoinReward(100);
+		doNothing().when(userService).validateToken("test-token-123");
+		given(userService.getAchievements(1L)).willReturn(List.of(a));
+
+		mockMvc.perform(get("/users/1/achievements")
+				.header("Authorization", "test-token-123"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$", hasSize(1)))
+				.andExpect(jsonPath("$[0].id", is("first-win")))
+				.andExpect(jsonPath("$[0].coinReward", is(100)));
+	}
+
+	@Test
+	public void getUserAchievements_invalidToken_returnsUnauthorized() throws Exception {
+		doThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED))
+				.when(userService).validateToken("bad");
+
+		mockMvc.perform(get("/users/1/achievements")
+				.header("Authorization", "bad"))
+				.andExpect(status().isUnauthorized());
+	}
+
+	// ═══════════════════════════════════════════════
 	// Helper
 	// ═══════════════════════════════════════════════
 
