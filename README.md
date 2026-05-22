@@ -2,27 +2,30 @@
 
 ## Introduction
 
-Quoridor is a strategic board game built around two core movements wall placement and pawn movement with the goal
-of reaching the opposite side of the board befor your opponent. The goal of this project is to transform that
-local board-game experience into an online multiplayer application that supports smooth matchmaking, real-time
-gameplay, player progression, and social interaction.
+Quoridor is a strategic board game built on two simple actions: move your pawn, or drop a wall to block your rival. The first player to reach the opposite side wins. Simple rules, deep tactics.
 
-This backend provides the foundation for the game experience. It manages users, authentication, lobbies, game
-creation, move validation, wall placement rules, Chaos mode abilities, chat, statistics, match history,
-leaderboards, cosmetics, and WebSocket-based game updates. The motivation behind the backend design is to keep the
-game state consistent, enforce the rules centrally, and provide reliable APIs that allow the frontend to stay
-synchronized during multiplayer matches.
+Our project brings Quoridor to life as a modern online multiplayer web application, and pushes the classic formula further with smooth matchmaking, real-time gameplay, player progression, and the social layer that turns a game into a community.
+
+The backend is the engine room behind it all. It handles users, authentication, lobbies, game creation, move validation, wall placement rules, Chaos mode abilities, chat, statistics, match history, leaderboards, cosmetics, and live WebSocket updates that keep every player in sync.
+
+Our goal was a server that holds the game state as a single source of truth, enforces every rule centrally so no client can cheat or drift, and exposes reliable APIs that let the frontend stay perfectly synchronized through every move, wall, and ability of a multiplayer match.
 
 ## Technologies Used
 
-- Java
-- Spring Boot
-- Spring Web / REST APIs
-- Spring Data JPA / Hibernate
-- H2 in-memory database for local development
-- WebSockets for live game refresh events
-- Gradle
-- Docker
+* Java
+* Spring Boot
+* Spring Web / REST APIs
+* Spring Data JPA / Hibernate
+* H2 in-memory database for local development
+* WebSockets for live game refresh events
+* Gradle
+* Docker
+* Sonar
+* SQL
+
+
+
+This is the backend implementation. For the frontend implementation, click [here](https://github.com/MaximEichenberger04/sopra-fs26-group-27-client).
 
 ## High-Level Components
 
@@ -52,12 +55,12 @@ Chaos mode extends classic Quoridor with ability cards. The available ability ty
 
 Supported abilities include:
 
-- `FIREBALL`: destroys wall segments in a target area
-- `EARTHQUAKE`: randomly shifts or destroys walls in a target area
-- `POISON`: creates a temporary blocked zone
-- `FREEZE`: makes an opponent skip their next turn
-- `PLUS_TWO_WALLS`: grants additional wall capacity
-- `TWO_MOVES`: grants an additional action
+* `FIREBALL`: destroys wall segments in a target area
+* `EARTHQUAKE`: randomly shifts or destroys walls in a target area
+* `POISON`: creates a temporary blocked zone
+* `FREEZE`: makes an opponent skip their next turn
+* `PLUS_TWO_WALLS`: grants additional wall capacity
+* `TWO_MOVES`: grants an additional action
 
 The ability system uses the game state cache to track card inventories, poison zones, frozen players, bonus actions, and additional wall counts.
 
@@ -73,16 +76,16 @@ GIF search is exposed through [`GifController`](src/main/java/ch/uzh/ifi/hase/so
 
 ### Prerequisites
 
-- Java 17 or newer
-- Gradle or the included Gradle wrapper
-- Optional: Docker
-- Optional: `KLIPY_API_KEY` environment variable for GIF search
+* Java 17 or newer
+* Gradle or the included Gradle wrapper
+* Optional: Docker
+* Optional: `KLIPY_API_KEY` environment variable for GIF search
 
 ### Local Development
 
 Run the backend locally:
 
-```bash
+```Shell
 ./gradlew bootRun
 ```
 
@@ -108,18 +111,17 @@ Password:
 
 ### Build
 
-```bash
+```Shell
 ./gradlew build
 ```
 
 ### Run Tests
 
-```bash
+```Shell
 ./gradlew test
 ```
 
 The test suite covers controllers, services, repositories, DTO mapping, game state cache, move logic, lobby logic, chat, and user functionality.
-
 
 ### Releases
 
@@ -134,17 +136,17 @@ A typical release flow is:
 
 A typical backend flow is:
 
-- A user registers or logs in through the frontend, and the backend creates or validates the account.
-- Players browse and join lobbies through `LobbyController`, which manages lobby state and settings.
-- When a match starts, `GameService` initializes game state and the WebSocket handler notifies connected clients.
-- During gameplay, `MoveService` validates moves and wall placements while `ChatController` and `GifController` handle chat and GIF features.
-- When the game ends, the backend updates statistics, leaderboards, and match history.
+* A user registers or logs in through the frontend, and the backend creates or validates the account.
+* Players browse and join lobbies through `LobbyController`, which manages lobby state and settings.
+* When a match starts, `GameService` initializes game state and the WebSocket handler notifies connected clients.
+* During gameplay, `MoveService` validates moves and wall placements while `ChatController` and `GifController` handle chat and GIF features.
+* When the game ends, the backend updates statistics, leaderboards, and match history.
 
 ## Roadmap
 
-- Add persistent database support beyond the current H2 in-memory database.
-- Add integration tests for frontend-backend API flows and WebSocket events.
-- Add CI/CD deployment automation for cloud hosting.
+* Add persistent database support beyond the current H2 in-memory database.
+* Add integration tests for frontend-backend API flows and WebSocket events.
+* Add CI/CD deployment automation for cloud hosting.
 
 ## Authors and Acknowledgment
 
@@ -152,17 +154,14 @@ Developed by the SoPra group 27.
 
 Team members:
 
-- Flint Menzi
-- Maxim Eichenberger
-- Eldar Kryeziu
-- Timon Weidmann
-- Jonas Metzger
+* Flint Menzi
+* Maxim Eichenberger
+* Eldar Kryeziu
+* Timon Weidmann
+* Jonas Metzger
 
 This project was developed as part of the Software Praktikum at the University of Zurich.
 
 ## License
 
 Apache License 2.0 — see `LICENSE`.
-
-
-
