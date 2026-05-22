@@ -439,17 +439,18 @@ public class GameStateCacheTest {
     // ════════════════════════════════════════════════
     // Poison zones
     // ════════════════════════════════════════════════
+
+    // Kept from main2: uses (4,4) and expects roundsRemaining = 2
     @Test
     public void addPoisonZone_addsToList() {
         cache.initGame(1L, Arrays.asList(10L, 20L), true);
-
-        cache.addPoisonZone(1L, 6, 6);
+        cache.addPoisonZone(1L, 4, 4);
 
         List<PoisonZone> zones = cache.getPoisonZones(1L);
         assertEquals(1, zones.size());
-        assertEquals(6, zones.get(0).getTopLeftRow());
-        assertEquals(6, zones.get(0).getTopLeftCol());
-        assertEquals(4, zones.get(0).getRoundsRemaining());
+        assertEquals(4, zones.get(0).getTopLeftRow());
+        assertEquals(4, zones.get(0).getTopLeftCol());
+        assertEquals(2, zones.get(0).getRoundsRemaining());
     }
 
     @Test
@@ -468,14 +469,17 @@ public class GameStateCacheTest {
         assertThrows(ResponseStatusException.class, () -> cache.addPoisonZone(1L, 6, 6));
     }
 
+    // Kept from main2: 2 players → full round = 2 ticks; roundsRemaining drops only after each full round
     @Test
     public void tickPoisonZones_decrementsRoundsRemaining() {
         cache.initGame(1L, Arrays.asList(10L, 20L), true);
-        cache.addPoisonZone(1L, 6, 6);
+        cache.addPoisonZone(1L, 4, 4);
 
-        cache.tickPoisonZones(1L);
+        cache.tickPoisonZones(1L); // player 1's turn — not yet a full round
+        assertEquals(2, cache.getPoisonZones(1L).get(0).getRoundsRemaining());
 
-        assertEquals(3, cache.getPoisonZones(1L).get(0).getRoundsRemaining());
+        cache.tickPoisonZones(1L); // player 2's turn — full round complete
+        assertEquals(1, cache.getPoisonZones(1L).get(0).getRoundsRemaining());
     }
 
     @Test

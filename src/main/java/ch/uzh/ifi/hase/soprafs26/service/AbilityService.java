@@ -106,46 +106,49 @@ public class AbilityService {
                 requireTargetCoords(dto);
                 applyFireball(gameId, dto.getTargetRow(), dto.getTargetCol());
                 gameStateCache.removeCardFromInventory(gameId, userId, AbilityType.FIREBALL);
-                gameStateCache.clearBonusAction(gameId, userId);
-                gameStateCache.clearFreeze(gameId, userId);
-                gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
-                gameStateCache.tickPoisonZones(gameId);
-                gameService.advanceTurn(game);
+                if (!gameStateCache.hasBonusAction(gameId, userId)) {
+                    gameStateCache.clearFreeze(gameId, userId);
+                    gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
+                    gameStateCache.tickPoisonZones(gameId);
+                    gameService.advanceTurn(game);
+                }
                 break;
 
             case EARTHQUAKE:
                 requireTargetCoords(dto);
                 applyEarthquake(gameId, dto.getTargetRow(), dto.getTargetCol());
                 gameStateCache.removeCardFromInventory(gameId, userId, AbilityType.EARTHQUAKE);
-                gameStateCache.clearBonusAction(gameId, userId);
-                gameStateCache.clearFreeze(gameId, userId);
-                gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
-                gameStateCache.tickPoisonZones(gameId);
-                gameService.advanceTurn(game);
+                if (!gameStateCache.hasBonusAction(gameId, userId)) {
+                    gameStateCache.clearFreeze(gameId, userId);
+                    gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
+                    gameStateCache.tickPoisonZones(gameId);
+                    gameService.advanceTurn(game);
+                }
                 break;
 
             case POISON:
                 requireTargetCoords(dto);
                 applyPoison(gameId, dto.getTargetRow(), dto.getTargetCol());
                 gameStateCache.removeCardFromInventory(gameId, userId, AbilityType.POISON);
-                gameStateCache.clearBonusAction(gameId, userId);
-                gameStateCache.clearFreeze(gameId, userId);
-                gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
-                gameStateCache.tickPoisonZones(gameId);
-                gameService.advanceTurn(game);
+                if (!gameStateCache.hasBonusAction(gameId, userId)) {
+                    gameStateCache.clearFreeze(gameId, userId);
+                    gameStateCache.incrementTurnCounter(gameId, game.getPlayerIds());
+                    gameStateCache.tickPoisonZones(gameId);
+                    gameService.advanceTurn(game);
+                }
                 break;
 
             case FREEZE:
                 requireTargetUser(dto);
                 applyFreeze(gameId, userId, dto.getTargetUserId());
                 gameStateCache.removeCardFromInventory(gameId, userId, AbilityType.FREEZE);
-                gameStateCache.setBonusAction(gameId, userId, 1);  // 1 bonus: can do 1 more action
+                gameStateCache.setBonusAction(gameId, userId, 1);
                 break;
 
             case PLUS_TWO_WALLS:
                 applyPlusTwoWalls(gameId, userId, game.getWallsPerPlayer());
                 gameStateCache.removeCardFromInventory(gameId, userId, AbilityType.PLUS_TWO_WALLS);
-                gameStateCache.setBonusAction(gameId, userId, 1);  // 1 bonus: can do 1 more action
+                gameStateCache.setBonusAction(gameId, userId, 1);
                 break;
 
             case TWO_MOVES:

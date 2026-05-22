@@ -594,6 +594,8 @@ public class GameService {
             return buildGameGetDTO(game);
         }
 
+        gameStateCache.incrementTurnCounter(game.getId(), game.getPlayerIds());
+        gameStateCache.tickPoisonZones(game.getId());
         advanceTurn(game);
 
         return buildGameGetDTO(game);
