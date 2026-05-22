@@ -130,9 +130,21 @@ A typical release flow is:
 3. Build and push a Docker image if deploying via container infrastructure.
 4. Deploy the produced image or application package to the selected hosting platform.
 
+## Illustrations
+
+A typical backend flow is:
+
+- A user registers or logs in through the frontend, and the backend creates or validates the account.
+- Players browse and join lobbies through `LobbyController`, which manages lobby state and settings.
+- When a match starts, `GameService` initializes game state and the WebSocket handler notifies connected clients.
+- During gameplay, `MoveService` validates moves and wall placements while `ChatController` and `GifController` handle chat and GIF features.
+- When the game ends, the backend updates statistics, leaderboards, and match history.
+
 ## Roadmap
 
-
+- Add persistent database support beyond the current H2 in-memory database.
+- Add integration tests for frontend-backend API flows and WebSocket events.
+- Add CI/CD deployment automation for cloud hosting.
 
 ## Authors and Acknowledgment
 
@@ -149,5 +161,8 @@ Team members:
 This project was developed as part of the Software Praktikum at the University of Zurich.
 
 ## License
+
+Apache License 2.0 — see `LICENSE`.
+
 
 
