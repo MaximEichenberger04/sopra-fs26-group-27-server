@@ -368,4 +368,256 @@ class GameServiceTest {
         verify(gameStateCache, times(1)).evictGame(10L);
         verify(chatCache, times(1)).evictGame(10L);
     }
+
+    // ════════════════════════════════════════════════
+    // skipTurn
+    // ════════════════════════════════════════════════
+    @Test
+    void skipTurn_clearsFreezeAndBonusAndAdvancesTurn() {
+        when(gameRepository.findById(10L)).thenReturn(Optional.of(game));
+        when(userRepository.findByToken("valid-token")).thenReturn(user);
+        when(gameStateCache.getPawns(10L)).thenReturn(List.of());
+        when(gameStateCache.getWalls(10L)).thenReturn(List.of());
+
+        GameGetDTO result = gameService.skipTurn(10L, "valid-token");
+
+        assertNotNull(result);
+        verify(gameStateCache).clearFreeze(10L, 1L);
+        verify(gameStateCache).clearBonusAction(10L, 1L);
+        verify(gameStateCache).incrementTurnCounter(10L, game.getPlayerIds());
+        verify(gameStateCache).tickPoisonZones(10L);
+        assertEquals(2L, game.getCurrentTurnUserId()); // turn advanced
+    }
+
+    @Test
+    void skipTurn_invalidToken_throwsUnauthorized() {
+        when(gameRepository.findById(10L)).thenReturn(Optional.of(game));
+        when(userRepository.findByToken("bad")).thenReturn(null);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> gameService.skipTurn(10L, "bad"));
+        assertEquals(401, ex.getStatusCode().value());
+    }
+
+    @Test
+    void skipTurn_gameNotRunning_throwsBadRequest() {
+        game.setGameStatus(GameStatus.ENDED);
+        when(gameRepository.findById(10L)).thenReturn(Optional.of(game));
+        when(userRepository.findByToken("valid-token")).thenReturn(user);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> gameService.skipTurn(10L, "valid-token"));
+        assertEquals(400, ex.getStatusCode().value());
+    }
+
+    @Test
+    void skipTurn_notMyTurn_throwsForbidden() {
+        game.setCurrentTurnUserId(2L);
+        when(gameRepository.findById(10L)).thenReturn(Optional.of(game));
+        when(userRepository.findByToken("valid-token")).thenReturn(user);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> gameService.skipTurn(10L, "valid-token"));
+        assertEquals(403, ex.getStatusCode().value());
+    }
+
+    @Test
+    void skipTurn_gameNotFound_throwsNotFound() {
+        when(gameRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(ResponseStatusException.class,
+                () -> gameService.skipTurn(99L, "valid-token"));
+    }
+
+    // ════════════════════════════════════════════════
+    // 4-player win conditions
+    // ════════════════════════════════════════════════
+    @Test
+    void checkWinCondition_playerIndex2_goalIsCol0() {
+        game.setPlayerIds(new ArrayList<>(Arrays.asList(1L, 2L, 3L, 4L)));
+        Pawn pawn = new Pawn();
+        pawn.setRow(8);
+        pawn.setCol(0);
+        when(gameStateCache.getPawn(10L, 3L)).thenReturn(pawn);
+
+        assertTrue(gameService.checkWinCondition(game, 3L));
+    }
+
+    @Test
+    void checkWinCondition_playerIndex3_goalIsCol16() {
+        game.setPlayerIds(new ArrayList<>(Arrays.asList(1L, 2L, 3L, 4L)));
+        Pawn pawn = new Pawn();
+        pawn.setRow(8);
+        pawn.setCol(16);
+        when(gameStateCache.getPawn(10L, 4L)).thenReturn(pawn);
+
+        assertTrue(gameService.checkWinCondition(game, 4L));
+    }
+
+    // ════════════════════════════════════════════════
+    // Chaos-mode init
+    // ════════════════════════════════════════════════
+    @Test
+    void createGameFromLobby_chaosMode_setsChaosFlag() {
+        lobby.setGameMode("CHAOS");
+        when(lobbyRepository.findById(5L)).thenReturn(Optional.of(lobby));
+        when(userRepository.findByToken("valid-token")).thenReturn(user);
+        when(gameRepository.save(any(Game.class))).thenAnswer(inv -> {
+            Game g = inv.getArgument(0);
+            g.setId(10L);
+            return g;
+        });
+
+        Game created = gameService.createGameFromLobby(5L, "valid-token");
+
+        assertTrue(created.isChaosMode());
+        verify(gameStateCache).initGame(anyLong(), eq(lobby.getPlayerIds()), eq(true));
+    }
+
+    @Test
+    void createGameFromLobby_classicMode_chaosFlagFalse() {
+        lobby.setGameMode("CLASSIC");
+        when(lobbyRepository.findById(5L)).thenReturn(Optional.of(lobby));
+        when(userRepository.findByToken("valid-token")).thenReturn(user);
+        when(gameRepository.save(any(Game.class))).thenAnswer(inv -> {
+            Game g = inv.getArgument(0);
+            g.setId(10L);
+            return g;
+        });
+
+        Game created = gameService.createGameFromLobby(5L, "valid-token");
+
+        assertFalse(created.isChaosMode());
+        verify(gameStateCache).initGame(anyLong(), eq(lobby.getPlayerIds()), eq(false));
+    }
+
+    // ════════════════════════════════════════════════
+    // advanceTurn with removed player
+    // ════════════════════════════════════════════════
+    @Test
+    void advanceTurn_withRemovedUser_skipsRemovedAndAdvancesToNextActive() {
+        game.setPlayerIds(new ArrayList<>(Arrays.asList(1L, 2L, 3L)));
+        game.setActivePlayerIds(new ArrayList<>(Arrays.asList(1L, 3L)));
+        game.setCurrentTurnUserId(2L); // removed player still set as current
+
+        gameService.advanceTurn(game, 2L);
+
+        assertEquals(3L, game.getCurrentTurnUserId());
+    }
+
+    @Test
+    void advanceTurn_chaosMode_autoSkipsFrozenPlayerWithNoResources() {
+        game.setChaosMode(true);
+        game.setCurrentTurnUserId(1L);
+        when(gameStateCache.isFrozen(10L, 2L)).thenReturn(true);
+        when(gameStateCache.getPermanentlyConsumedWalls(10L, 2L)).thenReturn(10);
+        when(gameStateCache.getExtraWalls(10L, 2L)).thenReturn(0);
+        when(gameStateCache.getInventory(10L, 2L)).thenReturn(List.of());
+
+        gameService.advanceTurn(game);
+
+        // Should skip player 2 and wrap back to player 1
+        assertEquals(1L, game.getCurrentTurnUserId());
+        verify(gameStateCache).clearFreeze(10L, 2L);
+    }
+
+    @Test
+    void advanceTurn_chaosMode_frozenWithWallsRemaining_doesNotSkip() {
+        game.setChaosMode(true);
+        game.setCurrentTurnUserId(1L);
+        when(gameStateCache.isFrozen(10L, 2L)).thenReturn(true);
+        when(gameStateCache.getPermanentlyConsumedWalls(10L, 2L)).thenReturn(5);
+        when(gameStateCache.getExtraWalls(10L, 2L)).thenReturn(0);
+
+        gameService.advanceTurn(game);
+
+        assertEquals(2L, game.getCurrentTurnUserId());
+        verify(gameStateCache, never()).clearFreeze(anyLong(), eq(2L));
+    }
+
+    // ════════════════════════════════════════════════
+    // recordMatchResults via endGame
+    // ════════════════════════════════════════════════
+    @Test
+    void endGame_recordsMatchHistoryAndUpdatesXp() {
+        when(gameStateCache.getPawns(10L)).thenReturn(List.of());
+        when(gameStateCache.getWalls(10L)).thenReturn(List.of());
+        when(gameStateCache.getEliminationOrder(10L)).thenReturn(List.of());
+
+        User winner = new User();
+        winner.setId(1L);
+        winner.setScore(100);
+        winner.setUsername("winner");
+        User loser = new User();
+        loser.setId(2L);
+        loser.setScore(50);
+        loser.setUsername("loser");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(winner));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(loser));
+
+        gameService.endGame(game, 1L);
+
+        verify(matchHistoryRepository, times(2)).save(any());
+        verify(levelingService).awardXp(eq(winner), anyInt());
+        verify(levelingService).awardXp(eq(loser), anyInt());
+        verify(userService).updateGameStats(1L, true);
+        verify(userService).updateGameStats(2L, false);
+    }
+
+    @Test
+    void endGame_winnerGetsScoreBoost_loserLosesScore() {
+        when(gameStateCache.getPawns(10L)).thenReturn(List.of());
+        when(gameStateCache.getWalls(10L)).thenReturn(List.of());
+        when(gameStateCache.getEliminationOrder(10L)).thenReturn(List.of());
+
+        User winner = new User();
+        winner.setId(1L);
+        winner.setScore(100);
+        winner.setUsername("winner");
+        User loser = new User();
+        loser.setId(2L);
+        loser.setScore(50);
+        loser.setUsername("loser");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(winner));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(loser));
+
+        gameService.endGame(game, 1L);
+
+        assertEquals(200, winner.getScore()); // +100
+        assertEquals(0, loser.getScore()); // -100 but clamped to 0 (was 50, -100 → clamp)
+    }
+
+    @Test
+    void endGame_fourPlayer_assignsPlacementsByEliminationOrder() {
+        game.setPlayerIds(new ArrayList<>(Arrays.asList(1L, 2L, 3L, 4L)));
+        game.setActivePlayerIds(new ArrayList<>(Arrays.asList(1L, 2L)));
+
+        when(gameStateCache.getPawns(10L)).thenReturn(List.of());
+        when(gameStateCache.getWalls(10L)).thenReturn(List.of());
+        // Player 4 eliminated first → 4th place. Player 3 eliminated second → 3rd.
+        when(gameStateCache.getEliminationOrder(10L)).thenReturn(List.of(4L, 3L));
+
+        User p1 = stubUser(1L, "p1");
+        User p2 = stubUser(2L, "p2");
+        User p3 = stubUser(3L, "p3");
+        User p4 = stubUser(4L, "p4");
+
+        gameService.endGame(game, 1L);
+
+        // 4 match history records
+        verify(matchHistoryRepository, times(4)).save(any());
+        // levelingService called 4 times
+        verify(levelingService, times(4)).awardXp(any(User.class), anyInt());
+        // Placement-based XP: winner (1st place) gets the 4-player win XP path
+        verify(levelingService).calculateResultXp4Player(1, false); // winner
+    }
+
+    private User stubUser(Long id, String name) {
+        User u = new User();
+        u.setId(id);
+        u.setUsername(name);
+        u.setScore(0);
+        when(userRepository.findById(id)).thenReturn(Optional.of(u));
+        return u;
+    }
 }

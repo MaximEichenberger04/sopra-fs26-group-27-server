@@ -457,7 +457,7 @@ public class UserServiceTest {
 
 		User result = userService.buyCosmetic(1L, "test-token", "border-wood");
 
-		assertEquals(200, result.getCoins());
+		assertEquals(1600, result.getCoins());
 		assertTrue(result.getOwnedCosmetics().contains("border-wood"));
 	}
 
@@ -478,10 +478,10 @@ public class UserServiceTest {
 		testUser.setOwnedCosmetics(null);
 		when(userRepository.findByToken("test-token")).thenReturn(testUser);
 
-		User result = userService.buyCosmetic(1L, "test-token", "pawn-angel");
+		User result = userService.buyCosmetic(1L, "test-token", "pawn-farmer");
 
-		assertEquals("pawn-angel", result.getOwnedCosmetics());
-		assertEquals(200, result.getCoins());
+		assertEquals("pawn-farmer", result.getOwnedCosmetics());
+		assertEquals(1250, result.getCoins());
 	}
 
 	@Test
@@ -539,7 +539,7 @@ public class UserServiceTest {
 
 		User result = userService.buyCosmetic(1L, "test-token", "pawn-wealthy");
 
-		assertEquals(0, result.getCoins());
+		assertEquals(5200, result.getCoins());
 	}
 
 	// logoutUser
