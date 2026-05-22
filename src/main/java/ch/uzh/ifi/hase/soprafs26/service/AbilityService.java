@@ -142,13 +142,13 @@ public class AbilityService {
                 requireTargetUser(dto);
                 applyFreeze(gameId, userId, dto.getTargetUserId());
                 gameStateCache.removeCardFromInventory(gameId, userId, AbilityType.FREEZE);
-                gameStateCache.addBonusAction(gameId, userId);
+                gameStateCache.setBonusAction(gameId, userId, 1);
                 break;
 
             case PLUS_TWO_WALLS:
                 applyPlusTwoWalls(gameId, userId, game.getWallsPerPlayer());
                 gameStateCache.removeCardFromInventory(gameId, userId, AbilityType.PLUS_TWO_WALLS);
-                gameStateCache.addBonusAction(gameId, userId);
+                gameStateCache.setBonusAction(gameId, userId, 1);
                 break;
 
             case TWO_MOVES:
